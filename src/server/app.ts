@@ -198,6 +198,89 @@ app.post('/sesiones', async (c) => {
 });
 
 /**
+ * PUT /api/sesiones/:id
+ * Actualiza una sesión existente en sesiones_flujo.
+ */
+app.put('/sesiones/:id', async (c) => {
+  try {
+    const supabase = getSupabaseAdmin(c.env);
+    const id = c.req.param('id');
+    const body = await c.req.json();
+    const { tipo, horas_netas, intensidad, incomodidad, calidad } = body;
+
+    const updatePayload: Record<string, any> = {};
+
+    if (tipo !== undefined) {
+      if (!String(tipo).trim()) {
+        return c.json({ error: 'El tipo de sesión no puede estar vacío' }, 400);
+      }
+      updatePayload.tipo = String(tipo).trim();
+    }
+
+    if (horas_netas !== undefined) {
+      const parsedHoras = parseFloat(horas_netas);
+      if (isNaN(parsedHoras) || parsedHoras <= 0) {
+        return c.json({ error: 'Las horas netas deben ser un número positivo' }, 400);
+      }
+      updatePayload.horas_netas = parsedHoras;
+    }
+
+    if (intensidad !== undefined) {
+      updatePayload.intensidad = intensidad;
+    }
+
+    if (incomodidad !== undefined) {
+      updatePayload.incomodidad = incomodidad;
+    }
+
+    if (calidad !== undefined) {
+      updatePayload.calidad = String(calidad).trim();
+    }
+
+    const { data: sesion, error: updateErr } = await supabase
+      .from('sesiones_flujo')
+      .update(updatePayload)
+      .eq('id', id)
+      .select('*')
+      .single();
+
+    if (updateErr) {
+      return c.json({ error: updateErr.message || 'Error al actualizar sesión' }, 500);
+    }
+
+    return c.json({ success: true, sesion });
+  } catch (err: any) {
+    console.error('Error in PUT /api/sesiones/:id:', err);
+    return c.json({ error: err.message || 'Error al actualizar sesión' }, 500);
+  }
+});
+
+/**
+ * DELETE /api/sesiones/:id
+ * Elimina una sesión de sesiones_flujo.
+ */
+app.delete('/sesiones/:id', async (c) => {
+  try {
+    const supabase = getSupabaseAdmin(c.env);
+    const id = c.req.param('id');
+
+    const { error: deleteErr } = await supabase
+      .from('sesiones_flujo')
+      .delete()
+      .eq('id', id);
+
+    if (deleteErr) {
+      return c.json({ error: deleteErr.message || 'Error al eliminar sesión' }, 500);
+    }
+
+    return c.json({ success: true, message: 'Sesión eliminada' });
+  } catch (err: any) {
+    console.error('Error in DELETE /api/sesiones/:id:', err);
+    return c.json({ error: err.message || 'Error al eliminar sesión' }, 500);
+  }
+});
+
+/**
  * PUT /api/tareas/:id
  * Actualiza el estado ('pendiente', 'hecho', 'incompleto', 'no_hecho') y 'motivo_desvio'.
  */

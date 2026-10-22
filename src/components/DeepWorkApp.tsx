@@ -57,6 +57,46 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
     });
   };
 
+  // When a session is updated
+  const handleSesionActualizada = (sesionActualizada: SesionFlujo) => {
+    setData((prev) => {
+      if (!prev) return prev;
+      const updatedSesiones = prev.sesiones.map((s) =>
+        s.id === sesionActualizada.id ? sesionActualizada : s
+      );
+      const updatedTotal = updatedSesiones.reduce(
+        (acc, s) => acc + (parseFloat(String(s.horas_netas)) || 0),
+        0
+      );
+      return {
+        ...prev,
+        sesiones: updatedSesiones,
+        totalHorasNetas: Number(updatedTotal.toFixed(2)),
+      };
+    });
+    setNotification('Bloque de foco actualizado con éxito');
+    setTimeout(() => setNotification(null), 3500);
+  };
+
+  // When a session is deleted
+  const handleSesionEliminada = (sesionId: string) => {
+    setData((prev) => {
+      if (!prev) return prev;
+      const updatedSesiones = prev.sesiones.filter((s) => s.id !== sesionId);
+      const updatedTotal = updatedSesiones.reduce(
+        (acc, s) => acc + (parseFloat(String(s.horas_netas)) || 0),
+        0
+      );
+      return {
+        ...prev,
+        sesiones: updatedSesiones,
+        totalHorasNetas: Number(updatedTotal.toFixed(2)),
+      };
+    });
+    setNotification('Bloque de foco eliminado');
+    setTimeout(() => setNotification(null), 3500);
+  };
+
   // When a task is updated in the audit
   const handleTaskUpdated = (tareaActualizada: TareaPlanificada) => {
     setData((prev) => {
@@ -129,6 +169,8 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
           fecha={fechaHoy}
           sesiones={data?.sesiones || []}
           onSesionRegistrada={handleSesionRegistrada}
+          onSesionActualizada={handleSesionActualizada}
+          onSesionEliminada={handleSesionEliminada}
         />
       </main>
 
