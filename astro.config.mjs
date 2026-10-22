@@ -31,6 +31,10 @@ export default defineConfig({
   }),
   integrations: [react(), tailwind()],
   vite: {
+    define: {
+      'process.env.SUPABASE_URL': JSON.stringify(process.env.SUPABASE_URL || 'https://conedgbqbwoazfwspstg.supabase.co'),
+      'process.env.SUPABASE_SERVICE_ROLE_KEY': JSON.stringify(process.env.SUPABASE_SERVICE_ROLE_KEY || ''),
+    },
     build: {
       rollupOptions: {
         output: {

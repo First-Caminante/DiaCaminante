@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { supabaseAdmin } from '../lib/supabase';
+import { getSupabaseAdmin } from '../lib/supabase';
 
 export const app = new Hono().basePath('/api');
 
@@ -38,10 +38,11 @@ function calculateTimeDiffHours(start: string, end: string): number {
  */
 app.get('/dia/hoy', async (c) => {
   try {
+    const supabase = getSupabaseAdmin(c.env);
     const fecha = getFormattedDate(c.req.query('fecha'));
 
     // Check or create dia in dias_salud
-    let { data: dia, error: diaErr } = await supabaseAdmin
+    let { data: dia, error: diaErr } = await supabase
       .from('dias_salud')
       .select('*')
       .eq('fecha', fecha)
@@ -52,7 +53,7 @@ app.get('/dia/hoy', async (c) => {
     }
 
     if (!dia) {
-      const { data: newDia, error: insertErr } = await supabaseAdmin
+      const { data: newDia, error: insertErr } = await supabase
         .from('dias_salud')
         .insert({
           fecha,
@@ -63,11 +64,15 @@ app.get('/dia/hoy', async (c) => {
 
       if (insertErr) {
         // Retry in case of concurrent insert
-        const { data: retryDia } = await supabaseAdmin
+        const { data: retryDia, error: retryErr } = await supabase
           .from('dias_salud')
           .select('*')
           .eq('fecha', fecha)
           .single();
+
+        if (retryErr) {
+          return c.json({ error: retryErr.message || 'Error al obtener registro diario tras inserción' }, 500);
+        }
         dia = retryDia;
       } else {
         dia = newDia;
@@ -75,29 +80,29 @@ app.get('/dia/hoy', async (c) => {
     }
 
     if (!dia) {
-      return c.json({ error: 'No se pudo inicializar el día' }, 500);
+      return c.json({ error: 'No se pudo obtener o crear el registro diario' }, 500);
     }
 
     // Get sesiones for this dia
-    const { data: sesiones, error: sesErr } = await supabaseAdmin
+    const { data: sesiones, error: sesErr } = await supabase
       .from('sesiones_flujo')
       .select('*')
       .eq('dia_id', dia.id)
       .order('registrado_a', { ascending: true });
 
     if (sesErr) {
-      console.error('Error fetching sesiones:', sesErr);
+      return c.json({ error: sesErr.message || 'Error al obtener sesiones' }, 500);
     }
 
     // Get tareas for fecha_objetivo = fecha
-    const { data: tareas, error: tarErr } = await supabaseAdmin
+    const { data: tareas, error: tarErr } = await supabase
       .from('tareas_planificadas')
       .select('*')
       .eq('fecha_objetivo', fecha)
       .order('hora_inicio', { ascending: true });
 
     if (tarErr) {
-      console.error('Error fetching tareas:', tarErr);
+      return c.json({ error: tarErr.message || 'Error al obtener tareas' }, 500);
     }
 
     const totalHorasNetas = (sesiones || []).reduce(
@@ -124,6 +129,7 @@ app.get('/dia/hoy', async (c) => {
  */
 app.post('/sesiones', async (c) => {
   try {
+    const supabase = getSupabaseAdmin(c.env);
     const body = await c.req.json();
     const { tipo, horas_netas, intensidad, incomodidad, calidad, fecha: customFecha } = body;
 
@@ -139,20 +145,25 @@ app.post('/sesiones', async (c) => {
     const fecha = getFormattedDate(customFecha);
 
     // Ensure dia exists
-    let { data: dia } = await supabaseAdmin
+    let { data: dia, error: fetchDiaErr } = await supabase
       .from('dias_salud')
       .select('id')
       .eq('fecha', fecha)
       .maybeSingle();
 
+    if (fetchDiaErr) {
+      return c.json({ error: fetchDiaErr.message || 'Error al buscar el día' }, 500);
+    }
+
     if (!dia) {
-      const { data: newDia, error: createDiaErr } = await supabaseAdmin
+      const { data: newDia, error: createDiaErr } = await supabase
         .from('dias_salud')
         .insert({ fecha, cierre_realizado: false })
         .select('id')
         .single();
+
       if (createDiaErr) {
-        console.warn('Error inserting dia in sesiones:', createDiaErr);
+        return c.json({ error: createDiaErr.message || 'Error al crear el día' }, 500);
       }
       dia = newDia;
     }
@@ -161,7 +172,7 @@ app.post('/sesiones', async (c) => {
       return c.json({ error: 'No se pudo obtener o crear el registro diario' }, 500);
     }
 
-    const { data: sesion, error: insertErr } = await supabaseAdmin
+    const { data: sesion, error: insertErr } = await supabase
       .from('sesiones_flujo')
       .insert({
         dia_id: dia.id,
@@ -176,8 +187,7 @@ app.post('/sesiones', async (c) => {
       .single();
 
     if (insertErr) {
-      console.error('Error inserting sesion:', insertErr);
-      return c.json({ error: insertErr.message }, 500);
+      return c.json({ error: insertErr.message || 'Error al registrar sesión' }, 500);
     }
 
     return c.json({ success: true, sesion }, 201);
@@ -193,6 +203,7 @@ app.post('/sesiones', async (c) => {
  */
 app.put('/tareas/:id', async (c) => {
   try {
+    const supabase = getSupabaseAdmin(c.env);
     const id = c.req.param('id');
     const body = await c.req.json();
     const { estado, motivo_desvio } = body;
@@ -209,7 +220,7 @@ app.put('/tareas/:id', async (c) => {
       updatePayload.motivo_desvio = motivo_desvio ? String(motivo_desvio).trim() : null;
     }
 
-    const { data: tarea, error: updateErr } = await supabaseAdmin
+    const { data: tarea, error: updateErr } = await supabase
       .from('tareas_planificadas')
       .update(updatePayload)
       .eq('id', id)
@@ -217,8 +228,7 @@ app.put('/tareas/:id', async (c) => {
       .single();
 
     if (updateErr) {
-      console.error('Error updating tarea:', updateErr);
-      return c.json({ error: updateErr.message }, 500);
+      return c.json({ error: updateErr.message || 'Error al actualizar tarea' }, 500);
     }
 
     return c.json({ success: true, tarea });
@@ -234,6 +244,7 @@ app.put('/tareas/:id', async (c) => {
  */
 app.post('/cierre', async (c) => {
   try {
+    const supabase = getSupabaseAdmin(c.env);
     const body = await c.req.json();
     const {
       fecha: customFecha,
@@ -248,18 +259,26 @@ app.post('/cierre', async (c) => {
     const fechaManana = getTomorrowDate(fecha);
 
     // Ensure dia exists
-    let { data: dia } = await supabaseAdmin
+    let { data: dia, error: fetchDiaErr } = await supabase
       .from('dias_salud')
       .select('*')
       .eq('fecha', fecha)
       .maybeSingle();
 
+    if (fetchDiaErr) {
+      return c.json({ error: fetchDiaErr.message || 'Error al buscar el día de cierre' }, 500);
+    }
+
     if (!dia) {
-      const { data: newDia } = await supabaseAdmin
+      const { data: newDia, error: createDiaErr } = await supabase
         .from('dias_salud')
         .insert({ fecha, cierre_realizado: false })
         .select('*')
         .single();
+
+      if (createDiaErr) {
+        return c.json({ error: createDiaErr.message || 'Error al crear el día de cierre' }, 500);
+      }
       dia = newDia;
     }
 
@@ -268,8 +287,6 @@ app.post('/cierre', async (c) => {
     }
 
     // Strict Markdown regex parser
-    // Matches: - [ ] [09:00 - 11:00] [PROFUNDO] Tarea clave de la mañana (2h netas)
-    // or: - [ ] [15:00 - 15:30] [SUPERFICIAL] Organización y respuestas
     const regex = /^\s*-\s*\[\s*\]\s*\[(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})\]\s*\[(PROFUNDO|SUPERFICIAL)\]\s*(.+?)(?:\s*\((\d+(?:\.\d+)?)\s*h\s*netas\))?\s*$/i;
 
     const lineas = typeof planificacion_markdown === 'string'
@@ -307,7 +324,7 @@ app.post('/cierre', async (c) => {
 
     let tareasCreadas: any[] = [];
     if (tareasToInsert.length > 0) {
-      const { data: inserted, error: insertTareasErr } = await supabaseAdmin
+      const { data: inserted, error: insertTareasErr } = await supabase
         .from('tareas_planificadas')
         .insert(tareasToInsert)
         .select('*');
@@ -319,7 +336,6 @@ app.post('/cierre', async (c) => {
       }
     }
 
-    // Normalize frio_mental for database compatibility
     let normalizedFrio = frio_mental;
     if (frio_mental === 'Frío total') normalizedFrio = 'Frio total';
     if (frio_mental === 'Ávido') normalizedFrio = 'Avido';
@@ -342,7 +358,7 @@ app.post('/cierre', async (c) => {
       updateData.frio_mental = normalizedFrio;
     }
 
-    const { data: diaActualizado, error: updateDiaErr } = await supabaseAdmin
+    const { data: diaActualizado, error: updateDiaErr } = await supabase
       .from('dias_salud')
       .update(updateData)
       .eq('id', dia.id)
@@ -350,8 +366,7 @@ app.post('/cierre', async (c) => {
       .single();
 
     if (updateDiaErr) {
-      console.error('Error updating dia closure:', updateDiaErr);
-      return c.json({ error: updateDiaErr.message }, 500);
+      return c.json({ error: updateDiaErr.message || 'Error al actualizar día de cierre' }, 500);
     }
 
     return c.json({
@@ -373,12 +388,13 @@ app.post('/cierre', async (c) => {
  */
 app.get('/exportar', async (c) => {
   try {
+    const supabase = getSupabaseAdmin(c.env);
     const mesParam = c.req.query('mes');
     const now = new Date();
     const currentMonth = mesParam || now.toISOString().slice(0, 7);
 
     // Consultar vista_resumen_diario
-    const { data: viewData, error: viewError } = await supabaseAdmin
+    const { data: viewData, error: viewError } = await supabase
       .from('vista_resumen_diario')
       .select('*');
 
@@ -396,8 +412,8 @@ app.get('/exportar', async (c) => {
       });
     }
 
-    // Fallback: aggregation from tables if view is restricted or empty
-    const { data: dias, error: diasErr } = await supabaseAdmin
+    // Fallback: aggregation from tables
+    const { data: dias, error: diasErr } = await supabase
       .from('dias_salud')
       .select('*, sesiones:sesiones_flujo(*), tareas:tareas_planificadas(*)')
       .gte('fecha', `${currentMonth}-01`)
@@ -405,8 +421,7 @@ app.get('/exportar', async (c) => {
       .order('fecha', { ascending: false });
 
     if (diasErr) {
-      console.error('Error in fallback export:', diasErr);
-      return c.json({ error: diasErr.message }, 500);
+      return c.json({ error: diasErr.message || 'Error en fallback de exportación' }, 500);
     }
 
     return c.json({
@@ -420,3 +435,5 @@ app.get('/exportar', async (c) => {
     return c.json({ error: err.message || 'Error al exportar datos' }, 500);
   }
 });
+
+export default app;
