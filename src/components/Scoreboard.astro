@@ -1,0 +1,23 @@
+---
+import { Scoreboard as ScoreboardReact } from './Scoreboard';
+
+interface Props {
+  fecha: string;
+  totalHorasNetas: number;
+  cierreRealizado: boolean;
+}
+
+const { fecha, totalHorasNetas, cierreRealizado } = Astro.props;
+---
+
+<ScoreboardReact
+  client:load
+  fecha={fecha}
+  totalHorasNetas={totalHorasNetas}
+  cierreRealizado={cierreRealizado}
+  onOpenShutdown={() => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('open-shutdown-modal'));
+    }
+  }}
+/>
