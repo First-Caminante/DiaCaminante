@@ -1,60 +1,10 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { DeepWorkApp } from '../components/DeepWorkApp';
-import { supabaseAdmin } from '../lib/supabase';
-import type { DiaHoyResponse } from '../types/database';
-
-let initialData: DiaHoyResponse | null = null;
-const today = new Date().toISOString().split('T')[0];
-
-try {
-  // Fetch or create record for today
-  let { data: dia, error: diaErr } = await supabaseAdmin
-    .from('dias_salud')
-    .select('*')
-    .eq('fecha', today)
-    .maybeSingle();
-
-  if (!dia && !diaErr) {
-    const { data: newDia } = await supabaseAdmin
-      .from('dias_salud')
-      .insert({ fecha: today, cierre_realizado: false })
-      .select('*')
-      .single();
-    dia = newDia;
-  }
-
-  if (dia) {
-    const { data: sesiones } = await supabaseAdmin
-      .from('sesiones_flujo')
-      .select('*')
-      .eq('dia_id', dia.id)
-      .order('registrado_a', { ascending: true });
-
-    const { data: tareas } = await supabaseAdmin
-      .from('tareas_planificadas')
-      .select('*')
-      .eq('fecha_objetivo', today)
-      .order('hora_inicio', { ascending: true });
-
-    const totalHorasNetas = (sesiones || []).reduce(
-      (sum, s) => sum + (parseFloat(s.horas_netas) || 0),
-      0
-    );
-
-    initialData = {
-      dia,
-      totalHorasNetas: Number(totalHorasNetas.toFixed(2)),
-      cierreRealizado: Boolean(dia.cierre_realizado),
-      sesiones: sesiones || [],
-      tareas: tareas || [],
-    };
-  }
-} catch (err) {
-  console.error('SSR initial data fetch error:', err);
-}
+import DeepWorkApp from '../components/DeepWorkApp';
 ---
 
-<Layout title="DiaCaminante — Deep Work & Ritual de Cierre">
-  <DeepWorkApp client:load initialData={initialData} />
+<Layout title="Día de un Caminante">
+  <main class="min-h-screen bg-midnight-950 text-slate-200">
+    <DeepWorkApp client:only="react" />
+  </main>
 </Layout>

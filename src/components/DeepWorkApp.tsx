@@ -149,3 +149,5 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
     </div>
   );
 };
+
+export default DeepWorkApp;
