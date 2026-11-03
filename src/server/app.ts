@@ -226,19 +226,33 @@ app.get('/dia/historico', async (c) => {
 
 /**
  * POST /api/sesiones
- * Inserta una nueva sesión de flujo vinculada al día actual.
+ * Inserta una nueva sesión de flujo vinculada al día actual o especificado.
  */
 app.post('/sesiones', async (c) => {
   try {
     const supabase = getSupabaseAdmin(c.env);
     const body = await c.req.json();
-    const { tipo, horas_netas, intensidad, incomodidad, calidad, fecha: customFecha } = body;
+    const {
+      tipo,
+      horas_netas,
+      intensidad,
+      incomodidad,
+      calidad,
+      fecha: customFecha,
+      hora_inicio,
+      hora_fin,
+      registrado_a: customRegistradoA,
+    } = body;
 
     if (!tipo || !String(tipo).trim()) {
-      return c.json({ error: 'El tipo de sesión es requerido' }, 400);
+      return c.json({ error: 'El tipo de actividad es requerido' }, 400);
     }
 
-    const parsedHoras = parseFloat(horas_netas);
+    let parsedHoras = parseFloat(horas_netas);
+    if ((isNaN(parsedHoras) || parsedHoras <= 0) && hora_inicio && hora_fin) {
+      parsedHoras = calculateTimeDiffHours(hora_inicio, hora_fin);
+    }
+
     if (isNaN(parsedHoras) || parsedHoras <= 0) {
       return c.json({ error: 'Las horas netas deben ser un número positivo' }, 400);
     }
@@ -273,19 +287,55 @@ app.post('/sesiones', async (c) => {
       return c.json({ error: 'No se pudo obtener o crear el registro diario' }, 500);
     }
 
-    const { data: sesion, error: insertErr } = await supabase
+    // Calcular registrado_a coherente
+    let finalRegistradoA = customRegistradoA;
+    if (!finalRegistradoA) {
+      if (hora_fin) {
+        // Combinar fecha y hora_fin con offset local si es posible
+        finalRegistradoA = new Date(`${fecha}T${hora_fin}:00`).toISOString();
+      } else {
+        finalRegistradoA = new Date().toISOString();
+      }
+    }
+
+    const insertPayload: Record<string, any> = {
+      dia_id: dia.id,
+      tipo: tipo.trim(),
+      horas_netas: parsedHoras,
+      intensidad: intensidad || 'Media',
+      incomodidad: incomodidad || 'Media',
+      calidad: (calidad || '').trim(),
+      registrado_a: finalRegistradoA,
+    };
+
+    if (hora_inicio) insertPayload.hora_inicio = hora_inicio;
+    if (hora_fin) insertPayload.hora_fin = hora_fin;
+
+    let { data: sesion, error: insertErr } = await supabase
       .from('sesiones_flujo')
-      .insert({
-        dia_id: dia.id,
-        tipo: tipo.trim(),
-        horas_netas: parsedHoras,
-        intensidad: intensidad || 'Media',
-        incomodidad: incomodidad || 'Media',
-        calidad: (calidad || '').trim(),
-        registrado_a: new Date().toISOString(),
-      })
+      .insert(insertPayload)
       .select('*')
       .single();
+
+    // Fallback tolerante si las columnas hora_inicio o hora_fin no existen aún en Supabase
+    if (insertErr && (insertErr.code === '42703' || String(insertErr.message).includes('column'))) {
+      delete insertPayload.hora_inicio;
+      delete insertPayload.hora_fin;
+
+      const retry = await supabase
+        .from('sesiones_flujo')
+        .insert(insertPayload)
+        .select('*')
+        .single();
+
+      insertErr = retry.error;
+      sesion = retry.data;
+
+      if (!insertErr && sesion) {
+        sesion.hora_inicio = hora_inicio;
+        sesion.hora_fin = hora_fin;
+      }
+    }
 
     if (insertErr) {
       return c.json({ error: insertErr.message || 'Error al registrar sesión' }, 500);
@@ -300,20 +350,30 @@ app.post('/sesiones', async (c) => {
 
 /**
  * PUT /api/sesiones/:id
- * Actualiza una sesión existente en sesiones_flujo.
+ * Actualiza una sesión existente en sesiones_flujo (permite moverla de horario).
  */
 app.put('/sesiones/:id', async (c) => {
   try {
     const supabase = getSupabaseAdmin(c.env);
     const id = c.req.param('id');
     const body = await c.req.json();
-    const { tipo, horas_netas, intensidad, incomodidad, calidad } = body;
+    const {
+      tipo,
+      horas_netas,
+      intensidad,
+      incomodidad,
+      calidad,
+      hora_inicio,
+      hora_fin,
+      registrado_a: customRegistradoA,
+      fecha,
+    } = body;
 
     const updatePayload: Record<string, any> = {};
 
     if (tipo !== undefined) {
       if (!String(tipo).trim()) {
-        return c.json({ error: 'El tipo de sesión no puede estar vacío' }, 400);
+        return c.json({ error: 'El tipo de actividad no puede estar vacío' }, 400);
       }
       updatePayload.tipo = String(tipo).trim();
     }
@@ -338,12 +398,50 @@ app.put('/sesiones/:id', async (c) => {
       updatePayload.calidad = String(calidad).trim();
     }
 
-    const { data: sesion, error: updateErr } = await supabase
+    if (hora_inicio !== undefined) {
+      updatePayload.hora_inicio = hora_inicio;
+    }
+
+    if (hora_fin !== undefined) {
+      updatePayload.hora_fin = hora_fin;
+    }
+
+    // Si se envía registrado_a explícito o se puede calcular desde fecha y hora_fin
+    if (customRegistradoA) {
+      updatePayload.registrado_a = customRegistradoA;
+    } else if (fecha && hora_fin) {
+      updatePayload.registrado_a = new Date(`${fecha}T${hora_fin}:00`).toISOString();
+    }
+
+    let { data: sesion, error: updateErr } = await supabase
       .from('sesiones_flujo')
       .update(updatePayload)
       .eq('id', id)
       .select('*')
       .single();
+
+    // Fallback tolerante si las columnas hora_inicio o hora_fin no existen aún en Supabase
+    if (updateErr && (updateErr.code === '42703' || String(updateErr.message).includes('column'))) {
+      const savedHoraInicio = updatePayload.hora_inicio;
+      const savedHoraFin = updatePayload.hora_fin;
+      delete updatePayload.hora_inicio;
+      delete updatePayload.hora_fin;
+
+      const retry = await supabase
+        .from('sesiones_flujo')
+        .update(updatePayload)
+        .eq('id', id)
+        .select('*')
+        .single();
+
+      updateErr = retry.error;
+      sesion = retry.data;
+
+      if (!updateErr && sesion) {
+        sesion.hora_inicio = savedHoraInicio;
+        sesion.hora_fin = savedHoraFin;
+      }
+    }
 
     if (updateErr) {
       return c.json({ error: updateErr.message || 'Error al actualizar sesión' }, 500);

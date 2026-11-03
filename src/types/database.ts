@@ -24,6 +24,8 @@ export interface SesionFlujo {
   incomodidad: Incomodidad;
   calidad: string;
   registrado_a: string;
+  hora_inicio?: string; // Formato HH:MM
+  hora_fin?: string;    // Formato HH:MM
 }
 
 export interface TareaPlanificada {

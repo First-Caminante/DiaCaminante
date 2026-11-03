@@ -9,7 +9,50 @@ interface QuickLogProps {
   onSesionEliminada?: (sesionId: string) => void;
 }
 
-const PRESET_TIPOS = ['Desarrollo', 'Estudio', 'Arquitectura', 'Escritura', 'Lectura'];
+interface PresetItem {
+  label: string;
+  icon: string;
+}
+
+const PRESET_TIPOS: PresetItem[] = [
+  { label: 'Desarrollo', icon: '💻' },
+  { label: 'Estudio', icon: '📚' },
+  { label: 'Entrenamiento', icon: '🏃' },
+  { label: 'Sueño / Descanso', icon: '🌙' },
+  { label: 'Trabajo Profundo', icon: '🧠' },
+  { label: 'Arquitectura', icon: '🏛️' },
+  { label: 'Escritura', icon: '✍️' },
+  { label: 'Lectura', icon: '📖' },
+  { label: 'Planificación', icon: '🎯' },
+];
+
+// Helper: Formatea Date a HH:MM
+const dateToTimeString = (d: Date): string => {
+  const h = String(d.getHours()).padStart(2, '0');
+  const m = String(d.getMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
+};
+
+// Helper: Suma minutos a una cadena HH:MM retornando HH:MM
+const addMinutesToTime = (timeStr: string, minutesToAdd: number): string => {
+  if (!timeStr || !timeStr.includes(':')) return '12:00';
+  const [h, m] = timeStr.split(':').map(Number);
+  const totalMin = ((h * 60 + m + minutesToAdd) % (24 * 60) + 24 * 60) % (24 * 60);
+  const newH = Math.floor(totalMin / 60);
+  const newM = totalMin % 60;
+  return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
+};
+
+// Helper: Diferencia en horas decimales entre start (HH:MM) y end (HH:MM)
+const diffInHours = (startStr: string, endStr: string): number => {
+  if (!startStr || !endStr) return 1.0;
+  const [h1, m1] = startStr.split(':').map(Number);
+  const [h2, m2] = endStr.split(':').map(Number);
+  let mins = (h2 * 60 + m2) - (h1 * 60 + m1);
+  if (mins < 0) mins += 24 * 60;
+  if (mins === 0) mins = 60;
+  return Math.round((mins / 60) * 100) / 100;
+};
 
 export const QuickLog: React.FC<QuickLogProps> = ({
   fecha,
@@ -18,12 +61,20 @@ export const QuickLog: React.FC<QuickLogProps> = ({
   onSesionActualizada,
   onSesionEliminada,
 }) => {
+  // Inicialización de horarios: hora fin es la hora actual, inicio es 1.5h antes
+  const now = new Date();
+  const initialFin = dateToTimeString(now);
+  const initialInicio = addMinutesToTime(initialFin, -90);
+
   // New session state
   const [tipoSeleccionado, setTipoSeleccionado] = useState<string>('Desarrollo');
   const [isCustomTipo, setIsCustomTipo] = useState<boolean>(false);
   const [customTipo, setCustomTipo] = useState<string>('');
 
+  const [horaInicio, setHoraInicio] = useState<string>(initialInicio);
+  const [horaFin, setHoraFin] = useState<string>(initialFin);
   const [horasNetas, setHorasNetas] = useState<number>(1.5);
+
   const [intensidad, setIntensidad] = useState<Intensidad>('Alta');
   const [incomodidad, setIncomodidad] = useState<Incomodidad>('Media');
   const [calidad, setCalidad] = useState<string>('');
@@ -34,6 +85,8 @@ export const QuickLog: React.FC<QuickLogProps> = ({
   // Edit session state
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editTipo, setEditTipo] = useState<string>('');
+  const [editHoraInicio, setEditHoraInicio] = useState<string>('09:00');
+  const [editHoraFin, setEditHoraFin] = useState<string>('11:00');
   const [editHorasNetas, setEditHorasNetas] = useState<number>(1.5);
   const [editIntensidad, setEditIntensidad] = useState<Intensidad>('Media');
   const [editIncomodidad, setEditIncomodidad] = useState<Incomodidad>('Media');
@@ -46,24 +99,73 @@ export const QuickLog: React.FC<QuickLogProps> = ({
 
   const activeTipo = isCustomTipo ? customTipo : tipoSeleccionado;
 
+  // Sincronización inteligente de Horas y Horarios en Nueva Sesión
+  const handleHoraInicioChange = (val: string) => {
+    setHoraInicio(val);
+    if (val && horaFin) {
+      const calc = diffInHours(val, horaFin);
+      setHorasNetas(calc);
+    }
+  };
+
+  const handleHoraFinChange = (val: string) => {
+    setHoraFin(val);
+    if (horaInicio && val) {
+      const calc = diffInHours(horaInicio, val);
+      setHorasNetas(calc);
+    }
+  };
+
+  const handleHorasNetasChange = (val: number) => {
+    const safeVal = Math.max(0.1, Math.round(val * 100) / 100);
+    setHorasNetas(safeVal);
+    if (horaInicio) {
+      const newFin = addMinutesToTime(horaInicio, Math.round(safeVal * 60));
+      setHoraFin(newFin);
+    }
+  };
+
   const handleAddHoras = (increment: number) => {
-    setHorasNetas((prev) => {
-      const next = Math.max(0.25, Math.round((prev + increment) * 100) / 100);
-      return next;
-    });
+    const next = Math.max(0.25, Math.round((horasNetas + increment) * 100) / 100);
+    handleHorasNetasChange(next);
+  };
+
+  // Sincronización inteligente en Edición
+  const handleEditHoraInicioChange = (val: string) => {
+    setEditHoraInicio(val);
+    if (val && editHoraFin) {
+      const calc = diffInHours(val, editHoraFin);
+      setEditHorasNetas(calc);
+    }
+  };
+
+  const handleEditHoraFinChange = (val: string) => {
+    setEditHoraFin(val);
+    if (editHoraInicio && val) {
+      const calc = diffInHours(editHoraInicio, val);
+      setEditHorasNetas(calc);
+    }
+  };
+
+  const handleEditHorasNetasChange = (val: number) => {
+    const safeVal = Math.max(0.1, Math.round(val * 100) / 100);
+    setEditHorasNetas(safeVal);
+    if (editHoraInicio) {
+      const newFin = addMinutesToTime(editHoraInicio, Math.round(safeVal * 60));
+      setEditHoraFin(newFin);
+    }
   };
 
   const handleAddEditHoras = (increment: number) => {
-    setEditHorasNetas((prev) => {
-      const next = Math.max(0.25, Math.round((prev + increment) * 100) / 100);
-      return next;
-    });
+    const next = Math.max(0.25, Math.round((editHorasNetas + increment) * 100) / 100);
+    handleEditHorasNetasChange(next);
   };
 
+  // Registrar nueva sesión
   const handleSubmit = async (e?: React.SyntheticEvent) => {
     if (e) e.preventDefault();
     if (!activeTipo.trim()) {
-      alert('Por favor especifica el tipo de trabajo.');
+      alert('Por favor especifica el tipo de actividad.');
       return;
     }
     if (horasNetas <= 0) {
@@ -73,6 +175,15 @@ export const QuickLog: React.FC<QuickLogProps> = ({
 
     try {
       setSubmitting(true);
+      // Generar timestamp de finalización con la fecha y hora seleccionadas
+      let registradoA: string;
+      try {
+        const localEnd = new Date(`${fecha}T${horaFin}:00`);
+        registradoA = !isNaN(localEnd.getTime()) ? localEnd.toISOString() : new Date().toISOString();
+      } catch {
+        registradoA = new Date().toISOString();
+      }
+
       const res = await fetch('/api/sesiones', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -83,6 +194,9 @@ export const QuickLog: React.FC<QuickLogProps> = ({
           incomodidad,
           calidad: calidad.trim(),
           fecha,
+          hora_inicio: horaInicio,
+          hora_fin: horaFin,
+          registrado_a: registradoA,
         }),
       });
 
@@ -95,8 +209,14 @@ export const QuickLog: React.FC<QuickLogProps> = ({
       onSesionRegistrada(data.sesion);
 
       setCalidad('');
-      setFeedbackMsg(`+${horasNetas}h registradas en ${activeTipo.trim()}`);
-      setTimeout(() => setFeedbackMsg(null), 3000);
+      setFeedbackMsg(`+${horasNetas}h registradas (${horaInicio} - ${horaFin})`);
+      setTimeout(() => setFeedbackMsg(null), 3500);
+
+      // Avanzar horario sugerido para la siguiente actividad
+      const newStart = horaFin;
+      const newEnd = addMinutesToTime(newStart, Math.round(horasNetas * 60));
+      setHoraInicio(newStart);
+      setHoraFin(newEnd);
     } catch (err: any) {
       console.error(err);
       alert(err.message || 'Error al registrar sesión');
@@ -111,23 +231,46 @@ export const QuickLog: React.FC<QuickLogProps> = ({
     }
   };
 
+  // Abrir editor de sesión
   const startEdit = (sesion: SesionFlujo) => {
     setEditingSessionId(sesion.id);
     setEditTipo(sesion.tipo);
-    setEditHorasNetas(parseFloat(String(sesion.horas_netas)) || 1.0);
+    const hNet = parseFloat(String(sesion.horas_netas)) || 1.0;
+    setEditHorasNetas(hNet);
     setEditIntensidad(sesion.intensidad);
     setEditIncomodidad(sesion.incomodidad);
     setEditCalidad(sesion.calidad || '');
     setConfirmDeleteId(null);
+
+    if (sesion.hora_inicio && sesion.hora_fin) {
+      setEditHoraInicio(sesion.hora_inicio);
+      setEditHoraFin(sesion.hora_fin);
+    } else if (sesion.registrado_a) {
+      try {
+        const endDate = new Date(sesion.registrado_a);
+        const finStr = dateToTimeString(endDate);
+        const startDate = new Date(endDate.getTime() - Math.round(hNet * 60 * 60 * 1000));
+        const inicioStr = dateToTimeString(startDate);
+        setEditHoraInicio(inicioStr);
+        setEditHoraFin(finStr);
+      } catch {
+        setEditHoraInicio('09:00');
+        setEditHoraFin('11:00');
+      }
+    } else {
+      setEditHoraInicio('09:00');
+      setEditHoraFin('11:00');
+    }
   };
 
   const cancelEdit = () => {
     setEditingSessionId(null);
   };
 
+  // Guardar sesión editada (permite reubicar a cualquier hora)
   const handleSaveEdit = async (sesionId: string) => {
     if (!editTipo.trim()) {
-      alert('El tipo no puede estar vacío');
+      alert('El tipo de actividad no puede estar vacío');
       return;
     }
     if (editHorasNetas <= 0) {
@@ -137,6 +280,16 @@ export const QuickLog: React.FC<QuickLogProps> = ({
 
     try {
       setSavingEdit(true);
+
+      // Calcular registrado_a para la fecha y la nueva hora fin
+      let finalIso: string;
+      try {
+        const localEnd = new Date(`${fecha}T${editHoraFin}:00`);
+        finalIso = !isNaN(localEnd.getTime()) ? localEnd.toISOString() : new Date().toISOString();
+      } catch {
+        finalIso = new Date().toISOString();
+      }
+
       const res = await fetch(`/api/sesiones/${sesionId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -146,6 +299,10 @@ export const QuickLog: React.FC<QuickLogProps> = ({
           intensidad: editIntensidad,
           incomodidad: editIncomodidad,
           calidad: editCalidad.trim(),
+          hora_inicio: editHoraInicio,
+          hora_fin: editHoraFin,
+          fecha,
+          registrado_a: finalIso,
         }),
       });
 
@@ -167,6 +324,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
     }
   };
 
+  // Eliminar sesión
   const handleDeleteSession = async (sesionId: string) => {
     try {
       setDeletingId(sesionId);
@@ -191,14 +349,24 @@ export const QuickLog: React.FC<QuickLogProps> = ({
     }
   };
 
-  const formatTime = (isoString?: string) => {
-    if (!isoString) return '--:--';
-    try {
-      const date = new Date(isoString);
-      return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-    } catch {
-      return '--:--';
+  // Helper para mostrar rango horario de cada sesión en la lista
+  const renderTimeBadge = (sesion: SesionFlujo) => {
+    if (sesion.hora_inicio && sesion.hora_fin) {
+      return `${sesion.hora_inicio} — ${sesion.hora_fin}`;
     }
+    if (sesion.registrado_a) {
+      try {
+        const end = new Date(sesion.registrado_a);
+        const durMin = Math.round((parseFloat(String(sesion.horas_netas)) || 0) * 60);
+        const start = new Date(end.getTime() - durMin * 60 * 1000);
+        const sStr = start.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+        const eStr = end.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+        return `${sStr} — ${eStr}`;
+      } catch {
+        return '--:--';
+      }
+    }
+    return '--:--';
   };
 
   return (
@@ -208,10 +376,10 @@ export const QuickLog: React.FC<QuickLogProps> = ({
         <div className="flex items-center justify-between pb-3 border-b border-[#5b9bd5]/15">
           <div className="flex items-center gap-2">
             <span className="tag-formal px-2.5 py-0.5 rounded-full text-[10px] bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30 font-medium">
-              Nueva Sesión
+              Registro Diario
             </span>
             <h3 className="text-base sm:text-lg font-serif font-bold text-white tracking-wide">
-              Registrar Sesión de Foco
+              Registrar Actividad del Día
             </h3>
           </div>
 
@@ -229,23 +397,24 @@ export const QuickLog: React.FC<QuickLogProps> = ({
               Tipo de Actividad
             </label>
             <div className="flex flex-wrap items-center gap-1.5">
-              {PRESET_TIPOS.map((tipo) => {
-                const isActive = !isCustomTipo && tipoSeleccionado === tipo;
+              {PRESET_TIPOS.map((item) => {
+                const isActive = !isCustomTipo && tipoSeleccionado === item.label;
                 return (
                   <button
-                    key={tipo}
+                    key={item.label}
                     type="button"
                     onClick={() => {
                       setIsCustomTipo(false);
-                      setTipoSeleccionado(tipo);
+                      setTipoSeleccionado(item.label);
                     }}
-                    className={`px-3 py-1.5 rounded-full text-xs transition-all ${
+                    className={`px-2.5 py-1.5 rounded-xl text-xs transition-all flex items-center gap-1.5 ${
                       isActive
                         ? 'bg-[#2563eb] text-white font-medium shadow-midnight'
                         : 'bg-[#0d1733] text-[#94a3b8] hover:text-white border border-[#5b9bd5]/20'
                     }`}
                   >
-                    {tipo}
+                    <span>{item.icon}</span>
+                    <span>{item.label}</span>
                   </button>
                 );
               })}
@@ -253,65 +422,97 @@ export const QuickLog: React.FC<QuickLogProps> = ({
               <button
                 type="button"
                 onClick={() => setIsCustomTipo(true)}
-                className={`px-3 py-1.5 rounded-full text-xs transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-xs transition-all ${
                   isCustomTipo
                     ? 'bg-[#2563eb] text-white font-medium'
                     : 'bg-[#0d1733] text-[#94a3b8] hover:text-white border border-[#5b9bd5]/20'
                 }`}
               >
-                + Personalizado
+                + Otra Actividad
               </button>
 
               {isCustomTipo && (
                 <input
                   type="text"
-                  placeholder="Especificar nombre..."
+                  placeholder="Ej: Calistenia, Lectura de Paper, etc..."
                   value={customTipo}
                   onChange={(e) => setCustomTipo(e.target.value)}
                   autoFocus
-                  className="px-3.5 py-1.5 rounded-full text-xs bg-[#070e1e] border border-[#5b9bd5]/40 text-white placeholder-[#94a3b8]/50 focus:outline-none focus:border-[#eed59b]"
+                  className="w-full mt-1.5 px-3.5 py-2 rounded-xl text-xs bg-[#070e1e] border border-[#5b9bd5]/40 text-white placeholder-[#94a3b8]/50 focus:outline-none focus:border-[#eed59b]"
                 />
               )}
             </div>
           </div>
 
-          {/* Horas Netas con incremento rápido */}
-          <div>
-            <label className="block text-xs font-medium text-[#94a3b8] mb-2">
-              Duración Neta de Concentración
-            </label>
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1">
+          {/* Horario Exacto: Inicio y Fin */}
+          <div className="p-3.5 rounded-2xl bg-[#081229] border border-[#5b9bd5]/20 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-[#eed59b] flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5 text-[#eed59b]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <circle cx="12" cy="12" r="10" strokeWidth="2" />
+                  <polyline points="12 6 12 12 16 14" strokeWidth="2" />
+                </svg>
+                Horario de Realización
+              </span>
+              <span className="text-[11px] font-mono text-[#94a3b8]">
+                {horaInicio} — {horaFin} ({horasNetas.toFixed(2)}h)
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] text-[#94a3b8] mb-1">Hora Inicio</label>
+                <input
+                  type="time"
+                  value={horaInicio}
+                  onChange={(e) => handleHoraInicioChange(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl text-xs font-mono font-medium text-white bg-[#0d1733] border border-[#5b9bd5]/30 focus:border-[#eed59b] focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] text-[#94a3b8] mb-1">Hora Fin</label>
+                <input
+                  type="time"
+                  value={horaFin}
+                  onChange={(e) => handleHoraFinChange(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl text-xs font-mono font-medium text-white bg-[#0d1733] border border-[#5b9bd5]/30 focus:border-[#eed59b] focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Duración Neta y Botones de Ajuste Rápido */}
+            <div className="pt-1 flex items-center justify-between gap-2 border-t border-[#5b9bd5]/10">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-[#94a3b8]">Duración:</span>
                 <input
                   type="number"
                   step="0.25"
-                  min="0.25"
-                  max="12"
+                  min="0.1"
+                  max="24"
                   value={horasNetas}
-                  onChange={(e) => setHorasNetas(parseFloat(e.target.value) || 0)}
-                  className="w-full px-4 py-2.5 rounded-xl text-base font-serif font-bold text-[#eed59b] bg-[#081229] border border-[#5b9bd5]/30 focus:border-[#eed59b] focus:outline-none tabular-nums"
+                  onChange={(e) => handleHorasNetasChange(parseFloat(e.target.value) || 0)}
+                  className="w-20 px-2.5 py-1 rounded-lg text-xs font-serif font-bold text-[#eed59b] bg-[#070e1e] border border-[#5b9bd5]/30 text-center"
                 />
-                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-[#94a3b8] pointer-events-none">
-                  horas
-                </span>
+                <span className="text-[11px] text-[#94a3b8]">horas</span>
               </div>
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={() => handleAddHoras(0.5)}
-                  className="btn-formal-outline px-3 py-2.5 rounded-xl text-xs font-mono font-medium"
+                  className="btn-formal-outline px-2.5 py-1 rounded-lg text-[11px] font-mono"
                   title="Sumar 30 minutos"
                 >
-                  +0.5h
+                  +30m
                 </button>
                 <button
                   type="button"
                   onClick={() => handleAddHoras(1.0)}
-                  className="btn-formal-outline px-3 py-2.5 rounded-xl text-xs font-mono font-medium"
+                  className="btn-formal-outline px-2.5 py-1 rounded-lg text-[11px] font-mono"
                   title="Sumar 1 hora"
                 >
-                  +1.0h
+                  +1h
                 </button>
               </div>
             </div>
@@ -379,7 +580,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
             </label>
             <input
               type="text"
-              placeholder="Ej: Análisis del capítulo 4, refactorización del módulo..."
+              placeholder="Ej: Análisis del capítulo 4, 5km de trote, refactorización..."
               value={calidad}
               onChange={(e) => setCalidad(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl text-xs bg-[#081229] border border-[#5b9bd5]/30 text-white placeholder-[#94a3b8]/40 focus:border-[#eed59b] focus:outline-none"
@@ -397,7 +598,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
               disabled={submitting}
               className="btn-formal px-6 py-2.5 rounded-full text-xs font-semibold disabled:opacity-50"
             >
-              <span>{submitting ? 'Guardando...' : 'Registrar Sesión'}</span>
+              <span>{submitting ? 'Guardando...' : 'Registrar Actividad'}</span>
             </button>
           </div>
         </form>
@@ -411,19 +612,19 @@ export const QuickLog: React.FC<QuickLogProps> = ({
               Bitácora
             </span>
             <h3 className="text-base sm:text-lg font-serif font-bold text-white tracking-wide">
-              Sesiones Registradas Hoy
+              Actividades Registradas Hoy
             </h3>
           </div>
           <span className="text-xs text-[#94a3b8] font-medium">
-            {sesiones.length} {sesiones.length === 1 ? 'sesión' : 'sesiones'}
+            {sesiones.length} {sesiones.length === 1 ? 'actividad' : 'actividades'}
           </span>
         </div>
 
         {sesiones.length === 0 ? (
           <div className="text-center py-12 px-4 rounded-2xl border border-dashed border-[#5b9bd5]/20 bg-[#081229]/60">
-            <p className="text-sm font-serif font-bold text-white">Aún no hay sesiones registradas hoy</p>
+            <p className="text-sm font-serif font-bold text-white">Aún no hay actividades registradas hoy</p>
             <p className="text-xs text-[#94a3b8] mt-1">
-              Inicia tu primera sesión de trabajo profundo y anótala aquí para ver reflejado tu avance.
+              Registra cualquier bloque de trabajo, entrenamiento, estudio o descanso realizado.
             </p>
           </div>
         ) : (
@@ -439,13 +640,15 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                     className="p-4 rounded-2xl bg-[#081229] border border-[#eed59b]/50 shadow-midnight space-y-3 animate-fade-in text-xs"
                   >
                     <div className="flex items-center justify-between pb-2 border-b border-[#5b9bd5]/15">
-                      <span className="font-serif font-bold text-[#eed59b]">Editar Sesión</span>
-                      <span className="text-[#94a3b8]">{formatTime(sesion.registrado_a)}</span>
+                      <span className="font-serif font-bold text-[#eed59b]">Editar y Reubicar Horario</span>
+                      <span className="text-[11px] text-[#94a3b8] font-mono">
+                        {editHoraInicio} — {editHoraFin} ({editHorasNetas.toFixed(2)}h)
+                      </span>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[11px] text-[#94a3b8] mb-1 font-medium">Tipo de Tarea</label>
+                        <label className="block text-[11px] text-[#94a3b8] mb-1 font-medium">Tipo de Actividad</label>
                         <input
                           type="text"
                           value={editTipo}
@@ -453,6 +656,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                           className="w-full px-3 py-1.5 rounded-xl bg-[#0d1733] border border-[#5b9bd5]/30 text-white"
                         />
                       </div>
+
                       <div>
                         <label className="block text-[11px] text-[#94a3b8] mb-1 font-medium">Horas Netas</label>
                         <div className="flex items-center gap-1.5">
@@ -460,17 +664,67 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                             type="number"
                             step="0.25"
                             value={editHorasNetas}
-                            onChange={(e) => setEditHorasNetas(parseFloat(e.target.value) || 0)}
+                            onChange={(e) => handleEditHorasNetasChange(parseFloat(e.target.value) || 0)}
                             className="w-full px-3 py-1.5 rounded-xl bg-[#0d1733] border border-[#5b9bd5]/30 text-[#eed59b] font-serif font-bold"
                           />
                           <button
                             type="button"
                             onClick={() => handleAddEditHoras(0.5)}
-                            className="btn-formal-outline px-2.5 py-1 rounded-xl text-xs"
+                            className="btn-formal-outline px-2.5 py-1 rounded-xl text-xs font-mono"
                           >
-                            +0.5
+                            +0.5h
                           </button>
                         </div>
+                      </div>
+                    </div>
+
+                    {/* Modificar Horario de qué hora a qué hora se hizo */}
+                    <div className="grid grid-cols-2 gap-3 p-2.5 rounded-xl bg-[#0d1733]/70 border border-[#5b9bd5]/20">
+                      <div>
+                        <label className="block text-[11px] text-[#94a3b8] mb-1">Mover a Hora Inicio</label>
+                        <input
+                          type="time"
+                          value={editHoraInicio}
+                          onChange={(e) => handleEditHoraInicioChange(e.target.value)}
+                          className="w-full px-3 py-1.5 rounded-xl bg-[#081229] border border-[#5b9bd5]/30 text-white font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] text-[#94a3b8] mb-1">Mover a Hora Fin</label>
+                        <input
+                          type="time"
+                          value={editHoraFin}
+                          onChange={(e) => handleEditHoraFinChange(e.target.value)}
+                          className="w-full px-3 py-1.5 rounded-xl bg-[#081229] border border-[#5b9bd5]/30 text-white font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Intensidad & Incomodidad en Edición */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] text-[#94a3b8] mb-1">Intensidad</label>
+                        <select
+                          value={editIntensidad}
+                          onChange={(e) => setEditIntensidad(e.target.value as Intensidad)}
+                          className="w-full px-3 py-1.5 rounded-xl bg-[#0d1733] border border-[#5b9bd5]/30 text-white text-xs"
+                        >
+                          <option value="Baja">Baja</option>
+                          <option value="Media">Media</option>
+                          <option value="Alta">Alta</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] text-[#94a3b8] mb-1">Incomodidad</label>
+                        <select
+                          value={editIncomodidad}
+                          onChange={(e) => setEditIncomodidad(e.target.value as Incomodidad)}
+                          className="w-full px-3 py-1.5 rounded-xl bg-[#0d1733] border border-[#5b9bd5]/30 text-white text-xs"
+                        >
+                          <option value="Baja">Baja</option>
+                          <option value="Media">Media</option>
+                          <option value="Alta">Alta</option>
+                        </select>
                       </div>
                     </div>
 
@@ -498,7 +752,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                         onClick={() => handleSaveEdit(sesion.id)}
                         className="btn-formal px-4 py-1.5 rounded-full text-xs font-semibold"
                       >
-                        {savingEdit ? 'Guardando...' : 'Guardar Cambios'}
+                        {savingEdit ? 'Guardando...' : 'Guardar y Reubicar'}
                       </button>
                     </div>
                   </div>
@@ -511,31 +765,31 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                   className="p-4 rounded-2xl bg-[#081229]/80 border border-[#5b9bd5]/20 hover:border-[#5b9bd5]/40 transition-all space-y-2.5"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-[#5b9bd5]/15">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-serif font-bold text-white text-base">
                         {sesion.tipo}
                       </span>
-                      <span className="tag-formal text-[10px] px-2.5 py-0.5 rounded-full bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30">
-                        {sesion.horas_netas} horas netas
+                      <span className="tag-formal text-[11px] px-2.5 py-0.5 rounded-full bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30 font-mono">
+                        🕒 {renderTimeBadge(sesion)}
+                      </span>
+                      <span className="tag-formal text-[10px] px-2 py-0.5 rounded-full bg-[#eed59b]/10 text-[#eed59b] border border-[#eed59b]/30 font-semibold">
+                        {parseFloat(String(sesion.horas_netas)).toFixed(2)}h
                       </span>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] text-[#94a3b8]">
-                        {formatTime(sesion.registrado_a)}
-                      </span>
-
                       {/* Edit Button */}
                       <button
                         type="button"
                         onClick={() => startEdit(sesion)}
-                        className="p-1.5 rounded-lg text-[#94a3b8] hover:text-white hover:bg-[#0d1733] transition-colors"
-                        title="Editar sesión"
+                        className="p-1.5 rounded-lg text-[#94a3b8] hover:text-[#eed59b] hover:bg-[#0d1733] transition-colors flex items-center gap-1 text-[11px]"
+                        title="Editar y reubicar horario"
                       >
                         <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                           <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                         </svg>
+                        <span>Editar</span>
                       </button>
 
                       {/* Delete Button */}

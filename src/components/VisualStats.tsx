@@ -95,20 +95,34 @@ function compute24hSlots(
     let incBajaMins = 0;
 
     sessions.forEach((s) => {
-      if (!s.registrado_a) return;
-      const regDate = new Date(s.registrado_a);
-      const sessionEndMs = regDate.getTime();
-      const durationMin = Math.round((parseFloat(String(s.horas_netas)) || 0) * 60);
-      const sessionStartMs = sessionEndMs - durationMin * 60 * 1000;
-
-      const overlapStart = Math.max(sessionStartMs, hourStartMs);
-      const overlapEnd = Math.min(sessionEndMs, hourEndMs);
-
       let overlapMins = 0;
-      if (overlapEnd > overlapStart) {
-        overlapMins = Math.round((overlapEnd - overlapStart) / 60000);
-      } else if (regDate.getHours() === h && durationMin > 0) {
-        overlapMins = Math.min(60, durationMin);
+
+      if (s.hora_inicio && s.hora_fin) {
+        const [hStart, mStart] = s.hora_inicio.split(':').map(Number);
+        const [hEnd, mEnd] = s.hora_fin.split(':').map(Number);
+        const sStartMin = (hStart || 0) * 60 + (mStart || 0);
+        let sEndMin = (hEnd || 0) * 60 + (mEnd || 0);
+        if (sEndMin < sStartMin) sEndMin += 24 * 60;
+
+        const slotStartMin = h * 60;
+        const slotEndMin = (h + 1) * 60;
+        const oStart = Math.max(sStartMin, slotStartMin);
+        const oEnd = Math.min(sEndMin, slotEndMin);
+        overlapMins = Math.max(0, oEnd - oStart);
+      } else if (s.registrado_a) {
+        const regDate = new Date(s.registrado_a);
+        const sessionEndMs = regDate.getTime();
+        const durationMin = Math.round((parseFloat(String(s.horas_netas)) || 0) * 60);
+        const sessionStartMs = sessionEndMs - durationMin * 60 * 1000;
+
+        const overlapStart = Math.max(sessionStartMs, hourStartMs);
+        const overlapEnd = Math.min(sessionEndMs, hourEndMs);
+
+        if (overlapEnd > overlapStart) {
+          overlapMins = Math.round((overlapEnd - overlapStart) / 60000);
+        } else if (regDate.getHours() === h && durationMin > 0) {
+          overlapMins = Math.min(60, durationMin);
+        }
       }
 
       if (overlapMins > 0) {
@@ -389,10 +403,18 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
   };
 
   const getSessionTimeRange = (s: SesionFlujo) => {
+    const durMin = Math.round((parseFloat(String(s.horas_netas)) || 0) * 60);
+    if (s.hora_inicio && s.hora_fin) {
+      return {
+        inicio: s.hora_inicio,
+        fin: s.hora_fin,
+        durMin,
+        exacta: s.hora_fin,
+      };
+    }
     if (!s.registrado_a) return { inicio: '--:--', fin: '--:--', durMin: 0, exacta: '--:--' };
     try {
       const end = new Date(s.registrado_a);
-      const durMin = Math.round((parseFloat(String(s.horas_netas)) || 0) * 60);
       const start = new Date(end.getTime() - durMin * 60 * 1000);
       return {
         inicio: start.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
