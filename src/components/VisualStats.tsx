@@ -12,7 +12,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, onGoToDailyL
   const [error, setError] = useState<string | null>(null);
   const [rangoDias, setRangoDias] = useState<7 | 14 | 30>(14);
   const [hoveredDay, setHoveredDay] = useState<TendenciaDia | null>(null);
-  const [vistaCalidad, setVistaCalidad] = useState<'hoy' | 'historico'>('hoy');
+  const [mostrarHistorico, setMostrarHistorico] = useState<boolean>(false);
 
   const fetchStats = async () => {
     try {
@@ -45,7 +45,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, onGoToDailyL
     return (
       <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 my-10 flex flex-col items-center justify-center min-h-[45vh] space-y-4">
         <div className="w-10 h-10 rounded-full border-2 border-pastel-lavender/20 border-t-pastel-lavender animate-spin"></div>
-        <p className="text-xs font-mono text-slate-400">Calculando métricas y tendencias de Deep Work...</p>
+        <p className="text-xs font-mono text-slate-400">Calculando métricas del día de hoy...</p>
       </div>
     );
   }
@@ -69,7 +69,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, onGoToDailyL
 
   if (!stats) return null;
 
-  // Filter trend days according to selected range
+  // Filter trend days according to selected range (para vista histórica)
   const filteredTrend = stats.tendenciaDias.slice(-rangoDias);
   const maxHoursInTrend = Math.max(...filteredTrend.map((d) => d.horasNetas), 4.5);
   const totalHorasEnRango = filteredTrend.reduce((acc, d) => acc + d.horasNetas, 0);
@@ -92,7 +92,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, onGoToDailyL
   const horasFriccionHoy = incomodidadHoy.Alta + incomodidadHoy.Media;
   const pctExigenteHoy = horasHoy > 0 ? Math.round((horasFriccionHoy / horasHoy) * 100) : 0;
 
-  // Lógica de Alertas para HOY (Totalmente fiel a lo hecho en la jornada actual)
+  // Lógica de Alertas para HOY (Fiel a la jornada actual)
   const alertaTrabajo = horasHoy < UMBRAL_TRABAJO_MIN_H;
   const deficitTrabajoHoy = Math.max(0, UMBRAL_TRABAJO_MIN_H - horasHoy);
 
@@ -105,22 +105,29 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, onGoToDailyL
 
   const totalAlertas = (alertaTrabajo ? 1 : 0) + (alertaEstudio ? 1 : 0) + (alertaEntrenamiento ? 1 : 0) + (alertaCierre ? 1 : 0);
 
-  // Datos para la Matriz y Espectro Gráfico (Hoy vs Histórico)
-  const isVistaHoy = vistaCalidad === 'hoy';
-  const activeHorasTotales = isVistaHoy ? horasHoy : stats.totalHorasNetas;
-  const activeIntensidad = isVistaHoy ? intensidadHoy : stats.distribucionIntensidad;
-  const activeIncomodidad = isVistaHoy ? incomodidadHoy : stats.distribucionIncomodidad;
-  const activeMatriz = isVistaHoy ? (stats.matrizCalidadHoy || { Alta: { Alta: 0, Media: 0, Baja: 0 }, Media: { Alta: 0, Media: 0, Baja: 0 }, Baja: { Alta: 0, Media: 0, Baja: 0 } }) : (stats.matrizCalidad || { Alta: { Alta: 0, Media: 0, Baja: 0 }, Media: { Alta: 0, Media: 0, Baja: 0 }, Baja: { Alta: 0, Media: 0, Baja: 0 } });
+  // Matriz y espectros para HOY
+  const matrizHoy = stats.matrizCalidadHoy || { Alta: { Alta: 0, Media: 0, Baja: 0 }, Media: { Alta: 0, Media: 0, Baja: 0 }, Baja: { Alta: 0, Media: 0, Baja: 0 } };
+  const totalIncomodidadHoy = incomodidadHoy.Alta + incomodidadHoy.Media + incomodidadHoy.Baja;
+  const pctIncomodidadAltaHoy = totalIncomodidadHoy > 0 ? Number(((incomodidadHoy.Alta / totalIncomodidadHoy) * 100).toFixed(1)) : 0;
+  const pctIncomodidadMediaHoy = totalIncomodidadHoy > 0 ? Number(((incomodidadHoy.Media / totalIncomodidadHoy) * 100).toFixed(1)) : 0;
+  const pctIncomodidadBajaHoy = totalIncomodidadHoy > 0 ? Number(((incomodidadHoy.Baja / totalIncomodidadHoy) * 100).toFixed(1)) : 0;
 
-  const activeIncomodidadTotal = activeIncomodidad.Alta + activeIncomodidad.Media + activeIncomodidad.Baja;
-  const pctIncomodidadAlta = activeIncomodidadTotal > 0 ? Number(((activeIncomodidad.Alta / activeIncomodidadTotal) * 100).toFixed(1)) : 0;
-  const pctIncomodidadMedia = activeIncomodidadTotal > 0 ? Number(((activeIncomodidad.Media / activeIncomodidadTotal) * 100).toFixed(1)) : 0;
-  const pctIncomodidadBaja = activeIncomodidadTotal > 0 ? Number(((activeIncomodidad.Baja / activeIncomodidadTotal) * 100).toFixed(1)) : 0;
+  const totalIntensidadHoy = intensidadHoy.Alta + intensidadHoy.Media + intensidadHoy.Baja;
+  const pctIntensidadAltaHoy = totalIntensidadHoy > 0 ? Number(((intensidadHoy.Alta / totalIntensidadHoy) * 100).toFixed(1)) : 0;
+  const pctIntensidadMediaHoy = totalIntensidadHoy > 0 ? Number(((intensidadHoy.Media / totalIntensidadHoy) * 100).toFixed(1)) : 0;
+  const pctIntensidadBajaHoy = totalIntensidadHoy > 0 ? Number(((intensidadHoy.Baja / totalIntensidadHoy) * 100).toFixed(1)) : 0;
 
-  const activeIntensidadTotal = activeIntensidad.Alta + activeIntensidad.Media + activeIntensidad.Baja;
-  const pctIntensidadAlta = activeIntensidadTotal > 0 ? Number(((activeIntensidad.Alta / activeIntensidadTotal) * 100).toFixed(1)) : 0;
-  const pctIntensidadMedia = activeIntensidadTotal > 0 ? Number(((activeIntensidad.Media / activeIntensidadTotal) * 100).toFixed(1)) : 0;
-  const pctIntensidadBaja = activeIntensidadTotal > 0 ? Number(((activeIntensidad.Baja / activeIntensidadTotal) * 100).toFixed(1)) : 0;
+  // Matriz y espectros para HISTÓRICO
+  const matrizHistorica = stats.matrizCalidad || { Alta: { Alta: 0, Media: 0, Baja: 0 }, Media: { Alta: 0, Media: 0, Baja: 0 }, Baja: { Alta: 0, Media: 0, Baja: 0 } };
+  const totalIncomodidadHist = stats.distribucionIncomodidad.Alta + stats.distribucionIncomodidad.Media + stats.distribucionIncomodidad.Baja;
+  const pctIncomodidadAltaHist = totalIncomodidadHist > 0 ? Number(((stats.distribucionIncomodidad.Alta / totalIncomodidadHist) * 100).toFixed(1)) : 0;
+  const pctIncomodidadMediaHist = totalIncomodidadHist > 0 ? Number(((stats.distribucionIncomodidad.Media / totalIncomodidadHist) * 100).toFixed(1)) : 0;
+  const pctIncomodidadBajaHist = totalIncomodidadHist > 0 ? Number(((stats.distribucionIncomodidad.Baja / totalIncomodidadHist) * 100).toFixed(1)) : 0;
+
+  const totalIntensidadHist = stats.distribucionIntensidad.Alta + stats.distribucionIntensidad.Media + stats.distribucionIntensidad.Baja;
+  const pctIntensidadAltaHist = totalIntensidadHist > 0 ? Number(((stats.distribucionIntensidad.Alta / totalIntensidadHist) * 100).toFixed(1)) : 0;
+  const pctIntensidadMediaHist = totalIntensidadHist > 0 ? Number(((stats.distribucionIntensidad.Media / totalIntensidadHist) * 100).toFixed(1)) : 0;
+  const pctIntensidadBajaHist = totalIntensidadHist > 0 ? Number(((stats.distribucionIntensidad.Baja / totalIntensidadHist) * 100).toFixed(1)) : 0;
 
   const formatShortDate = (dateStr: string) => {
     try {
@@ -133,40 +140,68 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, onGoToDailyL
 
   return (
     <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 my-4 space-y-6 animate-fade-in">
-      {/* Top Header & Actions */}
+      {/* Top Header con Racha Élite en la Esquina y Acción de Ver Histórico */}
       <div className="card-midnight rounded-2xl p-5 sm:p-7 shadow-xl border border-white/7">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-pastel-mint animate-pulse"></span>
               <span className="text-xs font-mono uppercase tracking-widest text-slate-400">
-                Dashboard de Alto Rendimiento
+                Enfoque Radical Día a Día
               </span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
-              Estadísticas y Proceso Visual
+              Estadísticas de la Jornada
             </h2>
             <p className="text-xs sm:text-sm text-slate-400">
-              Evaluación cuantitativa y gráfica de Deep Work, intensidad de foco y hábitos psicofísicos
+              El marcador se resetea a cero cada mañana. Enfócate exclusivamente en conquistar el día de hoy.
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={fetchStats}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-mono bg-midnight-800 hover:bg-midnight-700 text-slate-300 hover:text-white border border-white/5 transition-all"
-              title="Recalcular métricas"
+          {/* Right Header: Racha en la Esquina y Botón Ver Histórico */}
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {/* Racha Élite Bonita en la Esquina (Mínimo 75% en todo) */}
+            <div
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
+                stats.rachaActual > 0
+                  ? 'bg-midnight-950 border-pastel-amber/40 shadow-glow-amber'
+                  : 'bg-midnight-950/70 border-white/10'
+              }`}
+              title="La racha solo se forja cuando el día concluye con esfuerzo riguroso (≥75% en trabajo, estudio, entrenamiento y cierre sellado)"
             >
-              <svg className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
-              </svg>
-              <span>{loading ? 'Sincronizando...' : 'Actualizar'}</span>
+              <span className="text-base">{stats.rachaActual > 0 ? '🔥' : '🕯️'}</span>
+              <div className="text-left">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-base font-bold font-mono text-pastel-amber leading-none">
+                    {stats.rachaActual}
+                  </span>
+                  <span className="text-[10px] font-mono text-pastel-amber/80 font-bold uppercase">
+                    {stats.rachaActual === 1 ? 'día racha' : 'días racha'}
+                  </span>
+                </div>
+                <span className="text-[9px] font-mono text-slate-500 block leading-tight">
+                  Esfuerzo Élite ≥75%
+                </span>
+              </div>
+            </div>
+
+            {/* Botón para ver/ocultar histórico acumulado */}
+            <button
+              type="button"
+              onClick={() => setMostrarHistorico(!mostrarHistorico)}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-mono font-medium border transition-all active:scale-95 ${
+                mostrarHistorico
+                  ? 'bg-pastel-lavender text-midnight-950 font-bold shadow-glow-lavender border-pastel-lavender'
+                  : 'bg-midnight-800 text-slate-300 hover:text-white hover:bg-midnight-700 border-white/10'
+              }`}
+            >
+              <span>{mostrarHistorico ? '✕ Ocultar Histórico' : '🏛️ Ver Histórico'}</span>
             </button>
 
             {onGoToDailyLog && (
               <button
                 onClick={onGoToDailyLog}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-midnight-950 bg-pastel-lavender hover:bg-pastel-lavenderDark shadow-glow-lavender transition-all"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-midnight-950 bg-pastel-mint hover:bg-pastel-mint/90 shadow-glow-mint transition-all"
               >
                 <span>+ Registrar Bloque</span>
               </button>
@@ -175,70 +210,119 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, onGoToDailyL
         </div>
       </div>
 
-      {/* KPI Cards Grid (Histórico Consolidado) */}
+      {/* KPI Cards Grid: ESTRICTAMENTE DEL DÍA DE HOY (Sin falsos alivios pasados) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 sm:gap-4">
-        {/* KPI 1: Horas Totales */}
-        <div className="card-midnight rounded-2xl p-4 sm:p-5 border border-white/5 space-y-1">
+        {/* KPI 1: Horas Netas de Hoy */}
+        <div className={`card-midnight rounded-2xl p-4 sm:p-5 border transition-all space-y-1 ${
+          horasHoy >= UMBRAL_TRABAJO_MIN_H
+            ? 'border-pastel-mint/40 shadow-glow-mint'
+            : horasHoy > 0
+            ? 'border-pastel-amber/30'
+            : 'border-white/5'
+        }`}>
           <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400">
-            Horas Netas Totales
+            Horas Netas de Hoy
           </span>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-2xl sm:text-3xl font-bold font-mono text-pastel-mint tabular-nums">
-              {stats.totalHorasNetas.toFixed(1)}
+            <span className={`text-2xl sm:text-3xl font-bold font-mono tabular-nums ${
+              horasHoy >= UMBRAL_TRABAJO_MIN_H
+                ? 'text-pastel-mint'
+                : horasHoy > 0
+                ? 'text-pastel-amber'
+                : 'text-pastel-coral'
+            }`}>
+              {horasHoy.toFixed(1)}
             </span>
-            <span className="text-xs font-mono text-pastel-mint/70 font-semibold">h</span>
+            <span className="text-xs font-mono text-slate-400 font-semibold">/ 3.0h meta</span>
           </div>
           <p className="text-[11px] text-slate-500 font-mono">
-            En {stats.diasActivosCount} {stats.diasActivosCount === 1 ? 'día activo' : 'días activos'}
+            {horasHoy >= UMBRAL_TRABAJO_MIN_H
+              ? '✓ Meta Newport lograda'
+              : deficitTrabajoHoy > 0
+              ? `Faltan ${deficitTrabajoHoy.toFixed(1)}h hoy`
+              : '0h registradas hoy'
+            }
           </p>
         </div>
 
-        {/* KPI 2: Promedio Diario */}
-        <div className="card-midnight rounded-2xl p-4 sm:p-5 border border-white/5 space-y-1">
+        {/* KPI 2: Fricción Cognitiva de Hoy */}
+        <div className={`card-midnight rounded-2xl p-4 sm:p-5 border transition-all space-y-1 ${
+          pctExigenteHoy >= UMBRAL_EXIGENCIA_MIN_PCT && horasHoy > 0
+            ? 'border-pastel-mint/40'
+            : 'border-white/5'
+        }`}>
           <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400">
-            Promedio Diario Activo
+            Fricción Mental de Hoy
           </span>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-2xl sm:text-3xl font-bold font-mono text-pastel-ice tabular-nums">
-              {stats.promedioHorasDiarias.toFixed(1)}
+            <span className={`text-2xl sm:text-3xl font-bold font-mono tabular-nums ${
+              pctExigenteHoy >= UMBRAL_EXIGENCIA_MIN_PCT && horasHoy > 0
+                ? 'text-pastel-mint'
+                : horasHoy > 0
+                ? 'text-pastel-amber'
+                : 'text-slate-500'
+            }`}>
+              {horasHoy > 0 ? `${pctExigenteHoy}%` : '0%'}
             </span>
-            <span className="text-xs font-mono text-pastel-ice/70 font-semibold">h / día</span>
+            <span className="text-xs font-mono text-slate-400 font-semibold">/ 50% min</span>
           </div>
           <p className="text-[11px] text-slate-500 font-mono">
-            {stats.totalSesiones} {stats.totalSesiones === 1 ? 'bloque registrado' : 'bloques registrados'}
+            {horasHoy > 0
+              ? `${horasFriccionHoy.toFixed(1)}h en fricción alta/media`
+              : 'Sin bloques de estudio hoy'
+            }
           </p>
         </div>
 
-        {/* KPI 3: Racha de Foco */}
-        <div className="card-midnight rounded-2xl p-4 sm:p-5 border border-white/5 space-y-1">
-          <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 flex items-center justify-between">
-            <span>Racha Actual</span>
-            <span className="text-pastel-amber">🔥</span>
+        {/* KPI 3: Entrenamiento de Hoy */}
+        <div className={`card-midnight rounded-2xl p-4 sm:p-5 border transition-all space-y-1 ${
+          ejercicioHoy >= UMBRAL_EJERCICIO_MIN_H
+            ? 'border-pastel-mint/40 shadow-glow-mint'
+            : 'border-white/5'
+        }`}>
+          <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400">
+            Entrenamiento de Hoy
           </span>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-2xl sm:text-3xl font-bold font-mono text-pastel-amber tabular-nums">
-              {stats.rachaActual}
+            <span className={`text-2xl sm:text-3xl font-bold font-mono tabular-nums ${
+              ejercicioHoy >= UMBRAL_EJERCICIO_MIN_H
+                ? 'text-pastel-mint'
+                : ejercicioHoy > 0
+                ? 'text-pastel-amber'
+                : 'text-pastel-coral'
+            }`}>
+              {ejercicioHoy.toFixed(1)}
             </span>
-            <span className="text-xs font-mono text-pastel-amber/70 font-semibold">días</span>
+            <span className="text-xs font-mono text-slate-400 font-semibold">/ 0.75h min</span>
           </div>
           <p className="text-[11px] text-slate-500 font-mono">
-            Racha máxima: {stats.rachaMaxima} días
+            {ejercicioHoy >= UMBRAL_EJERCICIO_MIN_H
+              ? '✓ Templo físico entrenado'
+              : ejercicioHoy > 0
+              ? `Faltan ${deficitEjercicioHoy.toFixed(1)}h`
+              : '0h entrenadas hoy'
+            }
           </p>
         </div>
 
-        {/* KPI 4: Ritual de Cierre Completado */}
-        <div className="card-midnight rounded-2xl p-4 sm:p-5 border border-white/5 space-y-1">
+        {/* KPI 4: Ritual de Cierre de Hoy */}
+        <div className={`card-midnight rounded-2xl p-4 sm:p-5 border transition-all space-y-1 ${
+          cierreHoy
+            ? 'border-pastel-mint/40 shadow-glow-mint'
+            : 'border-white/5'
+        }`}>
           <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400">
-            Tasa Cierre Global
+            Ritual de Cierre
           </span>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-2xl sm:text-3xl font-bold font-mono text-pastel-lavender tabular-nums">
-              {stats.tasaCierre.toFixed(0)}%
+            <span className={`text-2xl sm:text-3xl font-bold font-mono ${
+              cierreHoy ? 'text-pastel-mint' : 'text-pastel-lavender'
+            }`}>
+              {cierreHoy ? 'Sellado' : 'Pendiente'}
             </span>
-            <span className="text-xs font-mono text-pastel-lavender/70 font-semibold">tasa</span>
           </div>
           <p className="text-[11px] text-slate-500 font-mono">
-            Cierre a las 11:59 PM
+            {cierreHoy ? '✓ Mente liberada hasta mañana' : 'Cerrar antes de 11:59 PM'}
           </p>
         </div>
       </div>
@@ -250,14 +334,14 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, onGoToDailyL
             <div className="flex items-center gap-2">
               <span className={`w-2.5 h-2.5 rounded-full ${totalAlertas > 0 ? 'bg-pastel-coral animate-ping' : 'bg-pastel-mint'}`}></span>
               <span className="text-xs font-mono uppercase tracking-widest text-slate-400">
-                Auditoría de Hoy &amp; Semáforo de Disciplina ({stats.hoy?.fecha || 'Hoy'})
+                Auditoría del Día ({stats.hoy?.fecha || 'Hoy'})
               </span>
             </div>
             <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight flex items-center gap-2">
               <span>{totalAlertas > 0 ? `🚨 ${totalAlertas} ${totalAlertas === 1 ? 'Alerta Crítica Activa' : 'Alertas Críticas Activas'}` : '🏆 Estándar de Alto Rendimiento Conquistado'}</span>
             </h3>
             <p className="text-xs text-slate-400">
-              Evaluación estricta del día actual contra umbrales mínimos de trabajo (≥3.0h), fricción cognitiva (≥50%) y entrenamiento (≥0.75h)
+              Evaluación estricta de la jornada actual contra umbrales mínimos de trabajo (≥3.0h), fricción cognitiva (≥50%) y entrenamiento (≥0.75h)
             </p>
           </div>
 
@@ -578,155 +662,9 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, onGoToDailyL
         )}
       </section>
 
-      {/* Main Interactive Visual Chart: Daily Trend (Con Inspección Gráfica de Intensidad e Incomodidad) */}
-      <div className="card-midnight rounded-2xl p-5 sm:p-7 shadow-xl border border-white/7 space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/5">
-          <div className="space-y-0.5">
-            <h3 className="text-base font-semibold text-white tracking-tight flex items-center gap-2">
-              <svg className="w-4 h-4 text-pastel-mint" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M3 3v18h18" />
-                <path d="m19 9-5 5-4-4-3 3" />
-              </svg>
-              Tendencia Temporal de Horas Netas
-            </h3>
-            <p className="text-xs text-slate-400">
-              Total acumulado en el período: <span className="text-pastel-mint font-mono font-semibold">{totalHorasEnRango.toFixed(1)}h</span>
-            </p>
-          </div>
-
-          {/* Range Pills: 7, 14, 30 days */}
-          <div className="flex items-center gap-1 bg-midnight-950 p-1 rounded-xl border border-white/5 self-start sm:self-auto">
-            {([7, 14, 30] as const).map((r) => (
-              <button
-                key={r}
-                onClick={() => setRangoDias(r)}
-                className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all ${
-                  rangoDias === r
-                    ? 'bg-pastel-lavender text-midnight-950 font-bold shadow-glow-lavender'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                {r}d
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Hovered bar info banner con Intensidad e Incomodidad Gráfica */}
-        <div className="min-h-8 flex flex-wrap items-center justify-between text-xs font-mono px-2 gap-2">
-          {hoveredDay ? (
-            <div className="flex items-center gap-3 animate-fade-in flex-wrap">
-              <span className="text-white font-semibold">📅 {hoveredDay.fecha}</span>
-              <span className="text-pastel-mint font-bold">{hoveredDay.horasNetas.toFixed(2)}h netas</span>
-              <span className="text-slate-400">({hoveredDay.sesionesCount} bloques)</span>
-              
-              {hoveredDay.horasNetas > 0 && (
-                <div className="flex items-center gap-2 text-[11px] bg-midnight-950 px-2.5 py-1 rounded-lg border border-white/10">
-                  <span className="text-slate-400">Intensidad:</span>
-                  <span className="text-pastel-mint font-semibold">{hoveredDay.distribucionIntensidad?.Alta || 0}h A</span>
-                  <span className="text-pastel-amber font-semibold">{hoveredDay.distribucionIntensidad?.Media || 0}h M</span>
-                  <span className="text-slate-400">{hoveredDay.distribucionIntensidad?.Baja || 0}h B</span>
-                  <span className="text-slate-600">|</span>
-                  <span className="text-slate-400">Incomodidad:</span>
-                  <span className="text-pastel-coral font-semibold">{hoveredDay.distribucionIncomodidad?.Alta || 0}h A</span>
-                  <span className="text-pastel-amber font-semibold">{hoveredDay.distribucionIncomodidad?.Media || 0}h M</span>
-                  <span className="text-pastel-ice font-semibold">{hoveredDay.distribucionIncomodidad?.Baja || 0}h B</span>
-                </div>
-              )}
-
-              {hoveredDay.cierreRealizado ? (
-                <span className="text-pastel-mint text-[11px]">✓ Cierre sellado</span>
-              ) : (
-                <span className="text-slate-500 text-[11px]">Sin cierre</span>
-              )}
-            </div>
-          ) : (
-            <span className="text-slate-500 text-[11px]">Pasa el cursor sobre una barra para inspeccionar horas, intensidad e incomodidad</span>
-          )}
-
-          <div className="flex items-center gap-2 text-[10px] text-slate-400">
-            <span className="inline-block w-2.5 h-2.5 rounded-sm bg-pastel-mint"></span>
-            <span>Con Cierre</span>
-            <span className="inline-block w-2.5 h-2.5 rounded-sm bg-pastel-lavender ml-1"></span>
-            <span>Sin Cierre</span>
-          </div>
-        </div>
-
-        {/* SVG Continuous Bar Chart */}
-        <div className="relative pt-4 pb-2 overflow-x-auto">
-          <div className="min-w-[480px]">
-            {/* 4h Deep Work Benchmark Line */}
-            <div className="relative h-48 w-full border-b border-white/10 flex items-end justify-between gap-1.5 px-2">
-              <div
-                className="absolute left-0 right-0 border-b border-dashed border-pastel-lavender/30 pointer-events-none z-0"
-                style={{ bottom: `${(4.0 / maxHoursInTrend) * 100}%` }}
-              >
-                <span className="absolute right-0 -top-4 text-[10px] font-mono text-pastel-lavender/60">
-                  Meta Newport: 4.0h
-                </span>
-              </div>
-
-              {filteredTrend.map((day, idx) => {
-                const heightPercent = maxHoursInTrend > 0
-                  ? Math.min(100, Math.max(day.horasNetas > 0 ? 8 : 2, (day.horasNetas / maxHoursInTrend) * 100))
-                  : 4;
-
-                const isHovered = hoveredDay?.fecha === day.fecha;
-                const hasHours = day.horasNetas > 0;
-
-                return (
-                  <div
-                    key={day.fecha || idx}
-                    onMouseEnter={() => setHoveredDay(day)}
-                    onMouseLeave={() => setHoveredDay(null)}
-                    className="flex-1 flex flex-col items-center h-full justify-end cursor-pointer group relative z-10"
-                  >
-                    {/* The bar */}
-                    <div
-                      style={{ height: `${heightPercent}%` }}
-                      className={`w-full max-w-[28px] rounded-t-md transition-all duration-200 ${
-                        hasHours
-                          ? day.cierreRealizado
-                            ? 'bg-pastel-mint hover:bg-pastel-mint/90 shadow-glow-mint'
-                            : 'bg-pastel-lavender hover:bg-pastel-lavenderDark shadow-glow-lavender'
-                          : 'bg-midnight-800/80 hover:bg-slate-700/80 border border-white/5'
-                      } ${isHovered ? 'scale-105 brightness-125' : ''}`}
-                    ></div>
-
-                    {/* Value on top if active */}
-                    {hasHours && (
-                      <span className="absolute -top-5 text-[9px] font-mono font-semibold text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                        {day.horasNetas.toFixed(1)}h
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* X Axis Dates */}
-            <div className="flex items-center justify-between gap-1.5 px-2 pt-2 text-[10px] font-mono text-slate-500">
-              {filteredTrend.map((day, idx) => {
-                const showLabel =
-                  rangoDias === 7 ||
-                  (rangoDias === 14 && idx % 2 === 0) ||
-                  (rangoDias === 30 && idx % 4 === 0) ||
-                  idx === filteredTrend.length - 1;
-
-                return (
-                  <div key={day.fecha} className="flex-1 text-center truncate">
-                    {showLabel ? formatShortDate(day.fecha) : ''}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* SUITE GRÁFICA AVANZADA: INTENSIDAD, INCOMODIDAD Y MATRIZ 2D DE CAL NEWPORT */}
+      {/* SUITE GRÁFICA 2D DE LA JORNADA DE HOY (Intensidad x Incomodidad de Hoy) */}
       <section className="card-midnight rounded-2xl p-5 sm:p-7 shadow-xl border border-white/7 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-white/5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-white/5">
           <div className="space-y-0.5">
             <h3 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
               <span className="p-1 rounded-md bg-pastel-coral/10 text-pastel-coral">
@@ -734,435 +672,570 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, onGoToDailyL
                   <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                 </svg>
               </span>
-              Análisis Gráfico de Calidad Cognitiva: Intensidad &amp; Incomodidad
+              Calidad Cognitiva de Hoy: Intensidad &amp; Incomodidad
             </h3>
             <p className="text-xs text-slate-400">
-              Visualización continua de la frontera mental (Newport) y potencia de inmersión sin distracciones
+              Distribución de fricción mental y potencia de inmersión en la jornada actual
             </p>
           </div>
-
-          {/* Toggle: Vista de Hoy vs Histórico Acumulado */}
-          <div className="flex items-center gap-1 bg-midnight-950 p-1 rounded-xl border border-white/10 self-start sm:self-auto">
-            <button
-              onClick={() => setVistaCalidad('hoy')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all ${
-                vistaCalidad === 'hoy'
-                  ? 'bg-pastel-lavender text-midnight-950 font-bold shadow-glow-lavender'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              📅 Solo Hoy ({horasHoy.toFixed(1)}h)
-            </button>
-            <button
-              onClick={() => setVistaCalidad('historico')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all ${
-                vistaCalidad === 'historico'
-                  ? 'bg-pastel-lavender text-midnight-950 font-bold shadow-glow-lavender'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              🌐 Histórico ({stats.totalHorasNetas.toFixed(1)}h)
-            </button>
-          </div>
+          <span className="text-[11px] font-mono text-pastel-mint px-2.5 py-1 rounded-lg bg-midnight-950 border border-pastel-mint/20 self-start sm:self-auto">
+            Total Hoy: {horasHoy.toFixed(1)}h
+          </span>
         </div>
 
-        {/* Status banner if no sessions logged in current view */}
-        {activeHorasTotales === 0 && (
-          <div className="p-4 rounded-xl bg-midnight-950/70 border border-white/5 text-center space-y-1">
-            <p className="text-xs font-semibold text-slate-300">
-              {isVistaHoy ? 'No se registran bloques de trabajo ni estudio hoy.' : 'No hay datos de sesiones registrados.'}
+        {horasHoy === 0 ? (
+          <div className="p-6 rounded-2xl bg-midnight-950/70 border border-white/5 text-center space-y-2">
+            <p className="text-sm font-semibold text-slate-300">
+              Sin bloques registrados en la jornada de hoy
             </p>
-            <p className="text-[11px] text-slate-500 font-mono">
-              Los gráficos se mantendrán limpios en cero para reflejar la realidad del día.
+            <p className="text-xs text-slate-500 max-w-md mx-auto">
+              La matriz se encuentra limpia en ceros. Cuando registres sesiones de Deep Work, se mapearán en tiempo real según su grado de dificultad e inmersión.
             </p>
           </div>
-        )}
-
-        {/* 1. Gráficos de Espectro Gráfico Continuo (Barras Proporcionales Segmentadas) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {/* Espectro de Incomodidad Cognitiva (Frontera Mental) */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-midnight-950/80 border border-white/5 space-y-3">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-white flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-pastel-coral"></span>
-                Incomodidad (Frontera Cognitiva)
-              </span>
-              <span className="font-mono text-pastel-coral font-bold">
-                {activeIncomodidad.Alta.toFixed(1)}h Alta / {activeIncomodidadTotal.toFixed(1)}h total
-              </span>
-            </div>
-
-            {/* Segmented Progress Bar */}
-            <div className="h-4 w-full rounded-full bg-midnight-900 overflow-hidden flex border border-white/10 relative">
-              {/* Benchmark Reference Marker at 50% */}
-              <div
-                className="absolute top-0 bottom-0 w-0.5 bg-white z-10 shadow-glow-lavender"
-                style={{ left: '50%' }}
-                title="Umbral Newport: Mínimo 50% en Alta+Media"
-              ></div>
-
-              <div
-                style={{ width: `${pctIncomodidadAlta}%` }}
-                className="h-full bg-pastel-coral transition-all duration-500"
-                title={`Alta: ${activeIncomodidad.Alta.toFixed(1)}h (${pctIncomodidadAlta}%)`}
-              ></div>
-              <div
-                style={{ width: `${pctIncomodidadMedia}%` }}
-                className="h-full bg-pastel-amber transition-all duration-500"
-                title={`Media: ${activeIncomodidad.Media.toFixed(1)}h (${pctIncomodidadMedia}%)`}
-              ></div>
-              <div
-                style={{ width: `${pctIncomodidadBaja}%` }}
-                className="h-full bg-pastel-ice transition-all duration-500"
-                title={`Baja: ${activeIncomodidad.Baja.toFixed(1)}h (${pctIncomodidadBaja}%)`}
-              ></div>
-            </div>
-
-            {/* Legend & Breakdown Pills */}
-            <div className="grid grid-cols-3 gap-2 text-center text-xs pt-1">
-              <div className="p-2 rounded-xl bg-midnight-900/90 border border-pastel-coral/30">
-                <span className="text-[10px] font-mono text-pastel-coral uppercase block font-semibold">Alta (Frontera)</span>
-                <span className="text-sm font-bold font-mono text-white">{activeIncomodidad.Alta.toFixed(1)}h</span>
-                <span className="text-[10px] text-slate-500 block">{pctIncomodidadAlta}%</span>
+        ) : (
+          <div className="space-y-6">
+            {/* Espectros Proporcionales de Hoy */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Incomodidad de Hoy */}
+              <div className="p-4 rounded-xl bg-midnight-950/80 border border-white/5 space-y-2.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-white flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-pastel-coral"></span>
+                    Incomodidad Hoy (Frontera Mental)
+                  </span>
+                  <span className="font-mono text-pastel-coral font-bold">
+                    {incomodidadHoy.Alta.toFixed(1)}h Alta / {totalIncomodidadHoy.toFixed(1)}h
+                  </span>
+                </div>
+                <div className="h-3.5 w-full rounded-full bg-midnight-900 overflow-hidden flex border border-white/10 relative">
+                  <div
+                    style={{ width: `${pctIncomodidadAltaHoy}%` }}
+                    className="h-full bg-pastel-coral transition-all duration-500"
+                    title={`Alta: ${incomodidadHoy.Alta.toFixed(1)}h (${pctIncomodidadAltaHoy}%)`}
+                  ></div>
+                  <div
+                    style={{ width: `${pctIncomodidadMediaHoy}%` }}
+                    className="h-full bg-pastel-amber transition-all duration-500"
+                    title={`Media: ${incomodidadHoy.Media.toFixed(1)}h (${pctIncomodidadMediaHoy}%)`}
+                  ></div>
+                  <div
+                    style={{ width: `${pctIncomodidadBajaHoy}%` }}
+                    className="h-full bg-pastel-ice transition-all duration-500"
+                    title={`Baja: ${incomodidadHoy.Baja.toFixed(1)}h (${pctIncomodidadBajaHoy}%)`}
+                  ></div>
+                </div>
+                <div className="flex justify-between text-[10px] font-mono text-slate-400">
+                  <span>Alta: {incomodidadHoy.Alta.toFixed(1)}h</span>
+                  <span>Media: {incomodidadHoy.Media.toFixed(1)}h</span>
+                  <span>Baja: {incomodidadHoy.Baja.toFixed(1)}h</span>
+                </div>
               </div>
-              <div className="p-2 rounded-xl bg-midnight-900/90 border border-pastel-amber/30">
-                <span className="text-[10px] font-mono text-pastel-amber uppercase block font-semibold">Media (Esfuerzo)</span>
-                <span className="text-sm font-bold font-mono text-white">{activeIncomodidad.Media.toFixed(1)}h</span>
-                <span className="text-[10px] text-slate-500 block">{pctIncomodidadMedia}%</span>
-              </div>
-              <div className="p-2 rounded-xl bg-midnight-900/90 border border-pastel-ice/30">
-                <span className="text-[10px] font-mono text-pastel-ice uppercase block font-semibold">Baja (Confort)</span>
-                <span className="text-sm font-bold font-mono text-white">{activeIncomodidad.Baja.toFixed(1)}h</span>
-                <span className="text-[10px] text-slate-500 block">{pctIncomodidadBaja}%</span>
-              </div>
-            </div>
-          </div>
 
-          {/* Espectro de Intensidad de Atención (Potencia de Inmersión) */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-midnight-950/80 border border-white/5 space-y-3">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-white flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-pastel-mint"></span>
-                Intensidad (Inmersión de Foco)
-              </span>
-              <span className="font-mono text-pastel-mint font-bold">
-                {activeIntensidad.Alta.toFixed(1)}h Alta / {activeIntensidadTotal.toFixed(1)}h total
-              </span>
-            </div>
-
-            {/* Segmented Progress Bar */}
-            <div className="h-4 w-full rounded-full bg-midnight-900 overflow-hidden flex border border-white/10 relative">
-              <div
-                style={{ width: `${pctIntensidadAlta}%` }}
-                className="h-full bg-pastel-mint transition-all duration-500"
-                title={`Alta: ${activeIntensidad.Alta.toFixed(1)}h (${pctIntensidadAlta}%)`}
-              ></div>
-              <div
-                style={{ width: `${pctIntensidadMedia}%` }}
-                className="h-full bg-pastel-amber transition-all duration-500"
-                title={`Media: ${activeIntensidad.Media.toFixed(1)}h (${pctIntensidadMedia}%)`}
-              ></div>
-              <div
-                style={{ width: `${pctIntensidadBaja}%` }}
-                className="h-full bg-slate-700 transition-all duration-500"
-                title={`Baja: ${activeIntensidad.Baja.toFixed(1)}h (${pctIntensidadBaja}%)`}
-              ></div>
-            </div>
-
-            {/* Legend & Breakdown Pills */}
-            <div className="grid grid-cols-3 gap-2 text-center text-xs pt-1">
-              <div className="p-2 rounded-xl bg-midnight-900/90 border border-pastel-mint/30">
-                <span className="text-[10px] font-mono text-pastel-mint uppercase block font-semibold">Alta (Inmersión)</span>
-                <span className="text-sm font-bold font-mono text-white">{activeIntensidad.Alta.toFixed(1)}h</span>
-                <span className="text-[10px] text-slate-500 block">{pctIntensidadAlta}%</span>
-              </div>
-              <div className="p-2 rounded-xl bg-midnight-900/90 border border-pastel-amber/30">
-                <span className="text-[10px] font-mono text-pastel-amber uppercase block font-semibold">Media (Normal)</span>
-                <span className="text-sm font-bold font-mono text-white">{activeIntensidad.Media.toFixed(1)}h</span>
-                <span className="text-[10px] text-slate-500 block">{pctIntensidadMedia}%</span>
-              </div>
-              <div className="p-2 rounded-xl bg-midnight-900/90 border border-white/10">
-                <span className="text-[10px] font-mono text-slate-400 uppercase block font-semibold">Baja (Disperso)</span>
-                <span className="text-sm font-bold font-mono text-slate-300">{activeIntensidad.Baja.toFixed(1)}h</span>
-                <span className="text-[10px] text-slate-500 block">{pctIntensidadBaja}%</span>
+              {/* Intensidad de Hoy */}
+              <div className="p-4 rounded-xl bg-midnight-950/80 border border-white/5 space-y-2.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-white flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-pastel-mint"></span>
+                    Intensidad Hoy (Inmersión de Foco)
+                  </span>
+                  <span className="font-mono text-pastel-mint font-bold">
+                    {intensidadHoy.Alta.toFixed(1)}h Alta / {totalIntensidadHoy.toFixed(1)}h
+                  </span>
+                </div>
+                <div className="h-3.5 w-full rounded-full bg-midnight-900 overflow-hidden flex border border-white/10 relative">
+                  <div
+                    style={{ width: `${pctIntensidadAltaHoy}%` }}
+                    className="h-full bg-pastel-mint transition-all duration-500"
+                    title={`Alta: ${intensidadHoy.Alta.toFixed(1)}h (${pctIntensidadAltaHoy}%)`}
+                  ></div>
+                  <div
+                    style={{ width: `${pctIntensidadMediaHoy}%` }}
+                    className="h-full bg-pastel-amber transition-all duration-500"
+                    title={`Media: ${intensidadHoy.Media.toFixed(1)}h (${pctIntensidadMediaHoy}%)`}
+                  ></div>
+                  <div
+                    style={{ width: `${pctIntensidadBajaHoy}%` }}
+                    className="h-full bg-slate-700 transition-all duration-500"
+                    title={`Baja: ${intensidadHoy.Baja.toFixed(1)}h (${pctIntensidadBajaHoy}%)`}
+                  ></div>
+                </div>
+                <div className="flex justify-between text-[10px] font-mono text-slate-400">
+                  <span>Alta: {intensidadHoy.Alta.toFixed(1)}h</span>
+                  <span>Media: {intensidadHoy.Media.toFixed(1)}h</span>
+                  <span>Baja: {intensidadHoy.Baja.toFixed(1)}h</span>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* 2. Matriz 2D de Cal Newport: Intensidad x Incomodidad (Mapa de Calor 3x3) */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-midnight-950/80 border border-white/5 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-white/5">
-            <div>
-              <h4 className="text-xs font-bold font-mono uppercase tracking-wider text-white flex items-center gap-2">
-                <span>⚡ Matriz de Calidad Cognitiva 2D (Intensidad × Incomodidad)</span>
+            {/* Matriz 2D de Hoy */}
+            <div className="p-4 rounded-xl bg-midnight-950/80 border border-white/5 space-y-3">
+              <h4 className="text-xs font-bold font-mono uppercase tracking-wider text-white">
+                Matriz 2D de la Jornada (Intensidad × Incomodidad)
               </h4>
-              <p className="text-[11px] text-slate-400">
-                Cuadrantes de valor real según Cal Newport: el crecimiento ocurre al cruzar Intensidad Alta e Incomodidad Alta
-              </p>
-            </div>
-            <span className="text-[10px] font-mono text-pastel-lavender px-2 py-0.5 rounded bg-pastel-lavender/10 border border-pastel-lavender/20">
-              {isVistaHoy ? 'Mostrando Hoy' : 'Mostrando Histórico'}
-            </span>
-          </div>
+              <div className="overflow-x-auto">
+                <div className="min-w-[400px] space-y-2">
+                  <div className="grid grid-cols-4 gap-2 text-center text-[11px] font-mono text-slate-400">
+                    <div className="text-left font-semibold text-slate-500 self-center">Intensidad \ Incomodidad</div>
+                    <div className="p-1 rounded bg-pastel-coral/10 text-pastel-coral font-bold">Alta (Frontera)</div>
+                    <div className="p-1 rounded bg-pastel-amber/10 text-pastel-amber font-bold">Media (Esfuerzo)</div>
+                    <div className="p-1 rounded bg-pastel-ice/10 text-pastel-ice font-bold">Baja (Confort)</div>
+                  </div>
 
-          {/* 3x3 Heatmap Grid Table */}
-          <div className="overflow-x-auto">
-            <div className="min-w-[420px] space-y-2">
-              {/* Columns Header (Incomodidad) */}
-              <div className="grid grid-cols-4 gap-2 text-center text-[11px] font-mono text-slate-400">
-                <div className="text-left font-semibold text-slate-500 self-center">Intensidad \ Incomodidad</div>
-                <div className="p-1 rounded bg-pastel-coral/10 text-pastel-coral font-bold">Alta (Frontera)</div>
-                <div className="p-1 rounded bg-pastel-amber/10 text-pastel-amber font-bold">Media (Esfuerzo)</div>
-                <div className="p-1 rounded bg-pastel-ice/10 text-pastel-ice font-bold">Baja (Confort)</div>
-              </div>
-
-              {/* Row 1: Intensidad Alta */}
-              <div className="grid grid-cols-4 gap-2 text-center text-xs">
-                <div className="flex items-center text-left text-[11px] font-mono text-pastel-mint font-bold px-1">
-                  Alta (Inmersión)
-                </div>
-                {/* Alta x Alta: Deep Work Élite */}
-                <div className={`p-3 rounded-xl border transition-all ${
-                  activeMatriz.Alta.Alta > 0
-                    ? 'bg-pastel-coral/20 border-pastel-coral/60 shadow-glow-coral'
-                    : 'bg-midnight-900/70 border-white/5 text-slate-600'
-                }`}>
-                  <span className="text-xs font-bold font-mono text-white block">{activeMatriz.Alta.Alta.toFixed(1)}h</span>
-                  <span className="text-[10px] font-mono text-pastel-coral font-semibold">Deep Work Élite</span>
-                </div>
-                {/* Alta x Media: Flujo Deliberado */}
-                <div className={`p-3 rounded-xl border transition-all ${
-                  activeMatriz.Alta.Media > 0
-                    ? 'bg-pastel-mint/20 border-pastel-mint/60 shadow-glow-mint'
-                    : 'bg-midnight-900/70 border-white/5 text-slate-600'
-                }`}>
-                  <span className="text-xs font-bold font-mono text-white block">{activeMatriz.Alta.Media.toFixed(1)}h</span>
-                  <span className="text-[10px] font-mono text-pastel-mint font-semibold">Flujo Deliberado</span>
-                </div>
-                {/* Alta x Baja: Foco Mecánico */}
-                <div className={`p-3 rounded-xl border transition-all ${
-                  activeMatriz.Alta.Baja > 0
-                    ? 'bg-pastel-ice/15 border-pastel-ice/40'
-                    : 'bg-midnight-900/70 border-white/5 text-slate-600'
-                }`}>
-                  <span className="text-xs font-bold font-mono text-white block">{activeMatriz.Alta.Baja.toFixed(1)}h</span>
-                  <span className="text-[10px] font-mono text-pastel-ice">Foco Mecánico</span>
-                </div>
-              </div>
-
-              {/* Row 2: Intensidad Media */}
-              <div className="grid grid-cols-4 gap-2 text-center text-xs">
-                <div className="flex items-center text-left text-[11px] font-mono text-pastel-amber font-bold px-1">
-                  Media (Normal)
-                </div>
-                {/* Media x Alta: Fricción sin Inmersión */}
-                <div className={`p-3 rounded-xl border transition-all ${
-                  activeMatriz.Media.Alta > 0
-                    ? 'bg-pastel-amber/20 border-pastel-amber/50'
-                    : 'bg-midnight-900/70 border-white/5 text-slate-600'
-                }`}>
-                  <span className="text-xs font-bold font-mono text-white block">{activeMatriz.Media.Alta.toFixed(1)}h</span>
-                  <span className="text-[10px] font-mono text-pastel-amber">Desafío Pesado</span>
-                </div>
-                {/* Media x Media: Práctica Sostenible */}
-                <div className={`p-3 rounded-xl border transition-all ${
-                  activeMatriz.Media.Media > 0
-                    ? 'bg-pastel-ice/20 border-pastel-ice/50 shadow-sm'
-                    : 'bg-midnight-900/70 border-white/5 text-slate-600'
-                }`}>
-                  <span className="text-xs font-bold font-mono text-white block">{activeMatriz.Media.Media.toFixed(1)}h</span>
-                  <span className="text-[10px] font-mono text-pastel-ice">Práctica Sostenible</span>
-                </div>
-                {/* Media x Baja: Trabajo Rutinario */}
-                <div className={`p-3 rounded-xl border transition-all ${
-                  activeMatriz.Media.Baja > 0
-                    ? 'bg-slate-800/60 border-white/10'
-                    : 'bg-midnight-900/70 border-white/5 text-slate-600'
-                }`}>
-                  <span className="text-xs font-bold font-mono text-slate-300 block">{activeMatriz.Media.Baja.toFixed(1)}h</span>
-                  <span className="text-[10px] font-mono text-slate-500">Rutinario</span>
-                </div>
-              </div>
-
-              {/* Row 3: Intensidad Baja */}
-              <div className="grid grid-cols-4 gap-2 text-center text-xs">
-                <div className="flex items-center text-left text-[11px] font-mono text-slate-400 font-semibold px-1">
-                  Baja (Fragmentado)
-                </div>
-                {/* Baja x Alta: Frustración */}
-                <div className={`p-3 rounded-xl border transition-all ${
-                  activeMatriz.Baja.Alta > 0
-                    ? 'bg-slate-800/70 border-white/10'
-                    : 'bg-midnight-900/70 border-white/5 text-slate-600'
-                }`}>
-                  <span className="text-xs font-bold font-mono text-slate-300 block">{activeMatriz.Baja.Alta.toFixed(1)}h</span>
-                  <span className="text-[10px] font-mono text-slate-500">Sobrecarga</span>
-                </div>
-                {/* Baja x Media: Distracción */}
-                <div className={`p-3 rounded-xl border transition-all ${
-                  activeMatriz.Baja.Media > 0
-                    ? 'bg-slate-800/70 border-white/10'
-                    : 'bg-midnight-900/70 border-white/5 text-slate-600'
-                }`}>
-                  <span className="text-xs font-bold font-mono text-slate-300 block">{activeMatriz.Baja.Media.toFixed(1)}h</span>
-                  <span className="text-[10px] font-mono text-slate-500">Distracción</span>
-                </div>
-                {/* Baja x Baja: Shallow Work */}
-                <div className={`p-3 rounded-xl border transition-all ${
-                  activeMatriz.Baja.Baja > 0
-                    ? 'bg-slate-900 border-pastel-coral/30'
-                    : 'bg-midnight-900/70 border-white/5 text-slate-600'
-                }`}>
-                  <span className="text-xs font-bold font-mono text-slate-400 block">{activeMatriz.Baja.Baja.toFixed(1)}h</span>
-                  <span className="text-[10px] font-mono text-slate-500">Superficial</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Focus Types Breakdown & Psychophysical Indicators */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Left: Focus Types Breakdown */}
-        <div className="card-midnight rounded-2xl p-5 sm:p-6 shadow-xl border border-white/7 space-y-4">
-          <div className="flex items-center justify-between pb-2 border-b border-white/5">
-            <h3 className="text-sm font-semibold text-white tracking-tight flex items-center gap-2">
-              <span className="p-1 rounded-md bg-pastel-ice/10 text-pastel-ice">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-                </svg>
-              </span>
-              Distribución por Tipo de Enfoque
-            </h3>
-            <span className="text-xs font-mono text-slate-400">
-              {stats.distribucionTipos.length} categorías
-            </span>
-          </div>
-
-          {stats.distribucionTipos.length === 0 ? (
-            <p className="text-xs text-slate-500 text-center py-6">
-              Aún no hay bloques categorizados registrados.
-            </p>
-          ) : (
-            <div className="space-y-3.5">
-              {stats.distribucionTipos.map((item, idx) => {
-                const colors = [
-                  'bg-pastel-lavender',
-                  'bg-pastel-mint',
-                  'bg-pastel-ice',
-                  'bg-pastel-amber',
-                  'bg-pastel-coral',
-                ];
-                const barColor = colors[idx % colors.length];
-
-                return (
-                  <div key={item.tipo} className="space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-medium text-slate-200">{item.tipo}</span>
-                      <div className="flex items-center gap-2 font-mono">
-                        <span className="text-slate-400 text-[11px]">({item.count} sesiones)</span>
-                        <span className="font-bold text-white">{item.horas.toFixed(1)}h</span>
-                        <span className="text-slate-500 text-[11px] w-9 text-right">{item.porcentaje}%</span>
-                      </div>
+                  {/* Fila Alta */}
+                  <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                    <div className="flex items-center text-left text-[11px] font-mono text-pastel-mint font-bold px-1">
+                      Alta
                     </div>
-
-                    <div className="h-2 w-full rounded-full bg-midnight-950 overflow-hidden border border-white/5">
-                      <div
-                        style={{ width: `${Math.min(100, item.porcentaje)}%` }}
-                        className={`h-full rounded-full ${barColor} transition-all duration-500`}
-                      ></div>
+                    <div className={`p-2.5 rounded-xl border ${matrizHoy.Alta.Alta > 0 ? 'bg-pastel-coral/20 border-pastel-coral/60' : 'bg-midnight-900/60 border-white/5 text-slate-600'}`}>
+                      <span className="text-xs font-bold font-mono text-white block">{matrizHoy.Alta.Alta.toFixed(1)}h</span>
+                      <span className="text-[10px] font-mono text-pastel-coral">Élite</span>
+                    </div>
+                    <div className={`p-2.5 rounded-xl border ${matrizHoy.Alta.Media > 0 ? 'bg-pastel-mint/20 border-pastel-mint/60' : 'bg-midnight-900/60 border-white/5 text-slate-600'}`}>
+                      <span className="text-xs font-bold font-mono text-white block">{matrizHoy.Alta.Media.toFixed(1)}h</span>
+                      <span className="text-[10px] font-mono text-pastel-mint">Flujo</span>
+                    </div>
+                    <div className={`p-2.5 rounded-xl border ${matrizHoy.Alta.Baja > 0 ? 'bg-pastel-ice/15 border-pastel-ice/40' : 'bg-midnight-900/60 border-white/5 text-slate-600'}`}>
+                      <span className="text-xs font-bold font-mono text-white block">{matrizHoy.Alta.Baja.toFixed(1)}h</span>
+                      <span className="text-[10px] font-mono text-pastel-ice">Mecánico</span>
                     </div>
                   </div>
-                );
-              })}
+
+                  {/* Fila Media */}
+                  <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                    <div className="flex items-center text-left text-[11px] font-mono text-pastel-amber font-bold px-1">
+                      Media
+                    </div>
+                    <div className={`p-2.5 rounded-xl border ${matrizHoy.Media.Alta > 0 ? 'bg-pastel-amber/20 border-pastel-amber/50' : 'bg-midnight-900/60 border-white/5 text-slate-600'}`}>
+                      <span className="text-xs font-bold font-mono text-white block">{matrizHoy.Media.Alta.toFixed(1)}h</span>
+                      <span className="text-[10px] font-mono text-pastel-amber">Desafío</span>
+                    </div>
+                    <div className={`p-2.5 rounded-xl border ${matrizHoy.Media.Media > 0 ? 'bg-pastel-ice/20 border-pastel-ice/50' : 'bg-midnight-900/60 border-white/5 text-slate-600'}`}>
+                      <span className="text-xs font-bold font-mono text-white block">{matrizHoy.Media.Media.toFixed(1)}h</span>
+                      <span className="text-[10px] font-mono text-pastel-ice">Sostenible</span>
+                    </div>
+                    <div className={`p-2.5 rounded-xl border ${matrizHoy.Media.Baja > 0 ? 'bg-slate-800/60 border-white/10' : 'bg-midnight-900/60 border-white/5 text-slate-600'}`}>
+                      <span className="text-xs font-bold font-mono text-slate-300 block">{matrizHoy.Media.Baja.toFixed(1)}h</span>
+                      <span className="text-[10px] font-mono text-slate-500">Rutinario</span>
+                    </div>
+                  </div>
+
+                  {/* Fila Baja */}
+                  <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                    <div className="flex items-center text-left text-[11px] font-mono text-slate-400 font-semibold px-1">
+                      Baja
+                    </div>
+                    <div className={`p-2.5 rounded-xl border ${matrizHoy.Baja.Alta > 0 ? 'bg-slate-800/70 border-white/10' : 'bg-midnight-900/60 border-white/5 text-slate-600'}`}>
+                      <span className="text-xs font-bold font-mono text-slate-300 block">{matrizHoy.Baja.Alta.toFixed(1)}h</span>
+                      <span className="text-[10px] font-mono text-slate-500">Sobrecarga</span>
+                    </div>
+                    <div className={`p-2.5 rounded-xl border ${matrizHoy.Baja.Media > 0 ? 'bg-slate-800/70 border-white/10' : 'bg-midnight-900/60 border-white/5 text-slate-600'}`}>
+                      <span className="text-xs font-bold font-mono text-slate-300 block">{matrizHoy.Baja.Media.toFixed(1)}h</span>
+                      <span className="text-[10px] font-mono text-slate-500">Distracción</span>
+                    </div>
+                    <div className={`p-2.5 rounded-xl border ${matrizHoy.Baja.Baja > 0 ? 'bg-slate-900 border-pastel-coral/30' : 'bg-midnight-900/60 border-white/5 text-slate-600'}`}>
+                      <span className="text-xs font-bold font-mono text-slate-400 block">{matrizHoy.Baja.Baja.toFixed(1)}h</span>
+                      <span className="text-[10px] font-mono text-slate-500">Superficial</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          )}
-        </div>
-
-        {/* Right: Indicadores Psicofísicos y Hábitos */}
-        <div className="card-midnight rounded-2xl p-5 sm:p-6 shadow-xl border border-white/7 space-y-4">
-          <div className="flex items-center justify-between pb-2 border-b border-white/5">
-            <h3 className="text-sm font-semibold text-white tracking-tight flex items-center gap-2">
-              <span className="p-1 rounded-md bg-pastel-mint/10 text-pastel-mint">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-                </svg>
-              </span>
-              Indicadores Psicofísicos y Hábitos
-            </h3>
-            <span className="text-xs font-mono text-slate-400">
-              Soporte biológico de energía
-            </span>
           </div>
+        )}
+      </section>
 
-          <div className="space-y-3">
-            {/* Calidad de Alimentación */}
-            <div className="p-3.5 rounded-xl bg-midnight-950/70 border border-white/5 flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 block">
-                  Alimentación Promedio
-                </span>
-                <span className="text-xl font-bold font-mono text-pastel-mint">
-                  {stats.salud.promedioAlimento.toFixed(1)} / 5.0
+      {/* DRAWER / SECCIÓN HISTÓRICA ACUMULADA (Solo visible al hacer clic en "Ver Histórico") */}
+      {mostrarHistorico && (
+        <section className="p-6 sm:p-8 rounded-3xl bg-midnight-950 border-2 border-pastel-lavender/40 shadow-2xl space-y-7 animate-fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/10">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-base">🏛️</span>
+                <span className="text-xs font-mono uppercase tracking-widest text-pastel-lavender font-semibold">
+                  Bóveda Histórica Consolidada
                 </span>
               </div>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <span
-                    key={star}
-                    className={`text-sm ${
-                      star <= Math.round(stats.salud.promedioAlimento)
-                        ? 'text-pastel-mint'
-                        : 'text-slate-700'
+              <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+                Auditoría Retrospectiva y Tendencias Pasadas
+              </h3>
+              <p className="text-xs text-slate-400">
+                Consulta de trayectoria acumulada. Recuerda: el pasado no justifica la inercia del día actual.
+              </p>
+            </div>
+
+            <button
+              onClick={() => setMostrarHistorico(false)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono text-slate-400 hover:text-white bg-midnight-900 hover:bg-slate-800 border border-white/10 self-start sm:self-auto transition-all"
+            >
+              <span>✕ Cerrar Histórico</span>
+            </button>
+          </div>
+
+          {/* KPI Cards Históricas */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 sm:gap-4">
+            <div className="card-midnight rounded-2xl p-4 sm:p-5 border border-white/10 space-y-1">
+              <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400">
+                Horas Netas Totales
+              </span>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl sm:text-3xl font-bold font-mono text-pastel-mint tabular-nums">
+                  {stats.totalHorasNetas.toFixed(1)}
+                </span>
+                <span className="text-xs font-mono text-pastel-mint/70 font-semibold">h</span>
+              </div>
+              <p className="text-[11px] text-slate-500 font-mono">
+                En {stats.diasActivosCount} días con actividad
+              </p>
+            </div>
+
+            <div className="card-midnight rounded-2xl p-4 sm:p-5 border border-white/10 space-y-1">
+              <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400">
+                Promedio Diario Activo
+              </span>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl sm:text-3xl font-bold font-mono text-pastel-ice tabular-nums">
+                  {stats.promedioHorasDiarias.toFixed(1)}
+                </span>
+                <span className="text-xs font-mono text-pastel-ice/70 font-semibold">h / día</span>
+              </div>
+              <p className="text-[11px] text-slate-500 font-mono">
+                {stats.totalSesiones} bloques registrados
+              </p>
+            </div>
+
+            <div className="card-midnight rounded-2xl p-4 sm:p-5 border border-white/10 space-y-1">
+              <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400">
+                Racha Máxima Élite
+              </span>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl sm:text-3xl font-bold font-mono text-pastel-amber tabular-nums">
+                  {stats.rachaMaxima}
+                </span>
+                <span className="text-xs font-mono text-pastel-amber/70 font-semibold">días</span>
+              </div>
+              <p className="text-[11px] text-slate-500 font-mono">
+                Días continuos con esfuerzo ≥75%
+              </p>
+            </div>
+
+            <div className="card-midnight rounded-2xl p-4 sm:p-5 border border-white/10 space-y-1">
+              <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400">
+                Tasa Cierre Global
+              </span>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl sm:text-3xl font-bold font-mono text-pastel-lavender tabular-nums">
+                  {stats.tasaCierre.toFixed(0)}%
+                </span>
+                <span className="text-xs font-mono text-pastel-lavender/70 font-semibold">tasa</span>
+              </div>
+              <p className="text-[11px] text-slate-500 font-mono">
+                Cierres sellados
+              </p>
+            </div>
+          </div>
+
+          {/* Gráfico de Tendencia Temporal Histórica */}
+          <div className="card-midnight rounded-2xl p-5 sm:p-6 shadow-xl border border-white/7 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/5">
+              <div className="space-y-0.5">
+                <h4 className="text-sm font-semibold text-white tracking-tight flex items-center gap-2">
+                  <svg className="w-4 h-4 text-pastel-mint" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M3 3v18h18" />
+                    <path d="m19 9-5 5-4-4-3 3" />
+                  </svg>
+                  Tendencia Temporal Histórica
+                </h4>
+                <p className="text-xs text-slate-400">
+                  Total acumulado en el período: <span className="text-pastel-mint font-mono font-semibold">{totalHorasEnRango.toFixed(1)}h</span>
+                </p>
+              </div>
+
+              <div className="flex items-center gap-1 bg-midnight-950 p-1 rounded-xl border border-white/5 self-start sm:self-auto">
+                {([7, 14, 30] as const).map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => setRangoDias(r)}
+                    className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all ${
+                      rangoDias === r
+                        ? 'bg-pastel-lavender text-midnight-950 font-bold shadow-glow-lavender'
+                        : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    ★
-                  </span>
+                    {r}d
+                  </button>
                 ))}
               </div>
             </div>
 
-            {/* Ejercicio Físico Acumulado */}
-            <div className="p-3.5 rounded-xl bg-midnight-950/70 border border-white/5 flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 block">
-                  Entrenamiento Total Acumulado
-                </span>
-                <span className="text-xl font-bold font-mono text-pastel-ice">
-                  {stats.salud.totalEjercicioHoras.toFixed(1)} horas
-                </span>
-              </div>
-              <span className="text-xs text-slate-400 font-mono">
-                {stats.salud.diasConEjercicio} días con sesión
-              </span>
+            {/* Hovered bar info banner */}
+            <div className="min-h-8 flex flex-wrap items-center justify-between text-xs font-mono px-2 gap-2">
+              {hoveredDay ? (
+                <div className="flex items-center gap-3 animate-fade-in flex-wrap">
+                  <span className="text-white font-semibold">📅 {hoveredDay.fecha}</span>
+                  <span className="text-pastel-mint font-bold">{hoveredDay.horasNetas.toFixed(2)}h netas</span>
+                  <span className="text-slate-400">({hoveredDay.sesionesCount} bloques)</span>
+                  {hoveredDay.horasNetas > 0 && (
+                    <div className="flex items-center gap-2 text-[11px] bg-midnight-950 px-2.5 py-0.5 rounded-lg border border-white/10">
+                      <span className="text-slate-400">Intensidad:</span>
+                      <span className="text-pastel-mint font-semibold">{hoveredDay.distribucionIntensidad?.Alta || 0}h A</span>
+                      <span className="text-pastel-amber font-semibold">{hoveredDay.distribucionIntensidad?.Media || 0}h M</span>
+                      <span className="text-slate-400">{hoveredDay.distribucionIntensidad?.Baja || 0}h B</span>
+                      <span className="text-slate-600">|</span>
+                      <span className="text-slate-400">Incomodidad:</span>
+                      <span className="text-pastel-coral font-semibold">{hoveredDay.distribucionIncomodidad?.Alta || 0}h A</span>
+                      <span className="text-pastel-amber font-semibold">{hoveredDay.distribucionIncomodidad?.Media || 0}h M</span>
+                      <span className="text-pastel-ice font-semibold">{hoveredDay.distribucionIncomodidad?.Baja || 0}h B</span>
+                    </div>
+                  )}
+                  {hoveredDay.cierreRealizado ? (
+                    <span className="text-pastel-mint text-[11px]">✓ Cierre sellado</span>
+                  ) : (
+                    <span className="text-slate-500 text-[11px]">Sin cierre</span>
+                  )}
+                </div>
+              ) : (
+                <span className="text-slate-500 text-[11px]">Pasa el cursor sobre una barra para inspeccionar el día histórico</span>
+              )}
             </div>
 
-            {/* Estado de Frío Mental */}
-            <div className="p-3.5 rounded-xl bg-midnight-950/70 border border-white/5 space-y-1.5">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 block">
-                Estados Mentales Registrados
-              </span>
-              <div className="grid grid-cols-3 gap-2 text-center text-xs font-mono pt-0.5">
-                <div className="p-1.5 rounded-lg bg-midnight-900 border border-white/5">
-                  <span className="text-[10px] text-slate-400 block">Inspirado</span>
-                  <span className="text-pastel-lavender font-bold">{stats.salud.distribucionFrioMental['Inspirado'] || 0}</span>
+            {/* SVG Continuous Bar Chart */}
+            <div className="relative pt-4 pb-2 overflow-x-auto">
+              <div className="min-w-[480px]">
+                <div className="relative h-44 w-full border-b border-white/10 flex items-end justify-between gap-1.5 px-2">
+                  <div
+                    className="absolute left-0 right-0 border-b border-dashed border-pastel-lavender/30 pointer-events-none z-0"
+                    style={{ bottom: `${(4.0 / maxHoursInTrend) * 100}%` }}
+                  >
+                    <span className="absolute right-0 -top-4 text-[10px] font-mono text-pastel-lavender/60">
+                      Meta Newport: 4.0h
+                    </span>
+                  </div>
+
+                  {filteredTrend.map((day, idx) => {
+                    const heightPercent = maxHoursInTrend > 0
+                      ? Math.min(100, Math.max(day.horasNetas > 0 ? 8 : 2, (day.horasNetas / maxHoursInTrend) * 100))
+                      : 4;
+
+                    const isHovered = hoveredDay?.fecha === day.fecha;
+                    const hasHours = day.horasNetas > 0;
+
+                    return (
+                      <div
+                        key={day.fecha || idx}
+                        onMouseEnter={() => setHoveredDay(day)}
+                        onMouseLeave={() => setHoveredDay(null)}
+                        className="flex-1 flex flex-col items-center h-full justify-end cursor-pointer group relative z-10"
+                      >
+                        <div
+                          style={{ height: `${heightPercent}%` }}
+                          className={`w-full max-w-[28px] rounded-t-md transition-all duration-200 ${
+                            hasHours
+                              ? day.cierreRealizado
+                                ? 'bg-pastel-mint hover:bg-pastel-mint/90 shadow-glow-mint'
+                                : 'bg-pastel-lavender hover:bg-pastel-lavenderDark shadow-glow-lavender'
+                              : 'bg-midnight-800/80 hover:bg-slate-700/80 border border-white/5'
+                          } ${isHovered ? 'scale-105 brightness-125' : ''}`}
+                        ></div>
+
+                        {hasHours && (
+                          <span className="absolute -top-5 text-[9px] font-mono font-semibold text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                            {day.horasNetas.toFixed(1)}h
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-                <div className="p-1.5 rounded-lg bg-midnight-900 border border-white/5">
-                  <span className="text-[10px] text-slate-400 block">Frío total</span>
-                  <span className="text-pastel-ice font-bold">{stats.salud.distribucionFrioMental['Frio total'] || 0}</span>
-                </div>
-                <div className="p-1.5 rounded-lg bg-midnight-900 border border-white/5">
-                  <span className="text-[10px] text-slate-400 block">Ávido</span>
-                  <span className="text-pastel-amber font-bold">{stats.salud.distribucionFrioMental['Avido'] || 0}</span>
+
+                <div className="flex items-center justify-between gap-1.5 px-2 pt-2 text-[10px] font-mono text-slate-500">
+                  {filteredTrend.map((day, idx) => {
+                    const showLabel =
+                      rangoDias === 7 ||
+                      (rangoDias === 14 && idx % 2 === 0) ||
+                      (rangoDias === 30 && idx % 4 === 0) ||
+                      idx === filteredTrend.length - 1;
+
+                    return (
+                      <div key={day.fecha} className="flex-1 text-center truncate">
+                        {showLabel ? formatShortDate(day.fecha) : ''}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
+
+          {/* Matriz 2D y Espectros Históricos Acumulados */}
+          <div className="card-midnight rounded-2xl p-5 sm:p-6 border border-white/7 space-y-5">
+            <div className="space-y-0.5 pb-2 border-b border-white/5">
+              <h4 className="text-sm font-bold font-mono uppercase tracking-wider text-white flex items-center gap-2">
+                <span>⚡ Calidad Cognitiva Histórica Acumulada (Intensidad × Incomodidad)</span>
+              </h4>
+              <p className="text-[11px] text-slate-400">
+                Espectros y matriz de calor de todas las sesiones registradas en la historia de la aplicación
+              </p>
+            </div>
+
+            {/* Espectros Históricos */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-3.5 rounded-xl bg-midnight-900/80 border border-white/5 space-y-2">
+                <div className="flex justify-between text-xs font-mono">
+                  <span className="text-slate-300 font-semibold">Incomodidad Histórica</span>
+                  <span className="text-pastel-coral font-bold">{stats.distribucionIncomodidad.Alta.toFixed(1)}h Alta / {totalIncomodidadHist.toFixed(1)}h</span>
+                </div>
+                <div className="h-3 w-full rounded-full bg-midnight-950 overflow-hidden flex border border-white/10">
+                  <div style={{ width: `${pctIncomodidadAltaHist}%` }} className="h-full bg-pastel-coral" title={`Alta: ${stats.distribucionIncomodidad.Alta.toFixed(1)}h`}></div>
+                  <div style={{ width: `${pctIncomodidadMediaHist}%` }} className="h-full bg-pastel-amber" title={`Media: ${stats.distribucionIncomodidad.Media.toFixed(1)}h`}></div>
+                  <div style={{ width: `${pctIncomodidadBajaHist}%` }} className="h-full bg-pastel-ice" title={`Baja: ${stats.distribucionIncomodidad.Baja.toFixed(1)}h`}></div>
+                </div>
+                <div className="flex justify-between text-[10px] font-mono text-slate-400">
+                  <span>Alta: {pctIncomodidadAltaHist}%</span>
+                  <span>Media: {pctIncomodidadMediaHist}%</span>
+                  <span>Baja: {pctIncomodidadBajaHist}%</span>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-midnight-900/80 border border-white/5 space-y-2">
+                <div className="flex justify-between text-xs font-mono">
+                  <span className="text-slate-300 font-semibold">Intensidad Histórica</span>
+                  <span className="text-pastel-mint font-bold">{stats.distribucionIntensidad.Alta.toFixed(1)}h Alta / {totalIntensidadHist.toFixed(1)}h</span>
+                </div>
+                <div className="h-3 w-full rounded-full bg-midnight-950 overflow-hidden flex border border-white/10">
+                  <div style={{ width: `${pctIntensidadAltaHist}%` }} className="h-full bg-pastel-mint" title={`Alta: ${stats.distribucionIntensidad.Alta.toFixed(1)}h`}></div>
+                  <div style={{ width: `${pctIntensidadMediaHist}%` }} className="h-full bg-pastel-amber" title={`Media: ${stats.distribucionIntensidad.Media.toFixed(1)}h`}></div>
+                  <div style={{ width: `${pctIntensidadBajaHist}%` }} className="h-full bg-slate-700" title={`Baja: ${stats.distribucionIntensidad.Baja.toFixed(1)}h`}></div>
+                </div>
+                <div className="flex justify-between text-[10px] font-mono text-slate-400">
+                  <span>Alta: {pctIntensidadAltaHist}%</span>
+                  <span>Media: {pctIntensidadMediaHist}%</span>
+                  <span>Baja: {pctIntensidadBajaHist}%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Matriz 2D Histórica */}
+            <div className="overflow-x-auto pt-1">
+              <div className="min-w-[400px] space-y-1.5">
+                <div className="grid grid-cols-4 gap-2 text-center text-[10px] font-mono text-slate-400">
+                  <div className="text-left font-semibold text-slate-500 self-center">Intensidad \ Incomodidad</div>
+                  <div className="p-1 rounded bg-pastel-coral/10 text-pastel-coral font-bold">Alta (Frontera)</div>
+                  <div className="p-1 rounded bg-pastel-amber/10 text-pastel-amber font-bold">Media (Esfuerzo)</div>
+                  <div className="p-1 rounded bg-pastel-ice/10 text-pastel-ice font-bold">Baja (Confort)</div>
+                </div>
+
+                <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                  <div className="flex items-center text-left text-[11px] font-mono text-pastel-mint font-bold px-1">Alta</div>
+                  <div className={`p-2.5 rounded-xl border ${matrizHistorica.Alta.Alta > 0 ? 'bg-pastel-coral/20 border-pastel-coral/60' : 'bg-midnight-900/60 border-white/5 text-slate-600'}`}>
+                    <span className="text-xs font-bold font-mono text-white block">{matrizHistorica.Alta.Alta.toFixed(1)}h</span>
+                    <span className="text-[10px] font-mono text-pastel-coral">Élite</span>
+                  </div>
+                  <div className={`p-2.5 rounded-xl border ${matrizHistorica.Alta.Media > 0 ? 'bg-pastel-mint/20 border-pastel-mint/60' : 'bg-midnight-900/60 border-white/5 text-slate-600'}`}>
+                    <span className="text-xs font-bold font-mono text-white block">{matrizHistorica.Alta.Media.toFixed(1)}h</span>
+                    <span className="text-[10px] font-mono text-pastel-mint">Flujo</span>
+                  </div>
+                  <div className={`p-2.5 rounded-xl border ${matrizHistorica.Alta.Baja > 0 ? 'bg-pastel-ice/15 border-pastel-ice/40' : 'bg-midnight-900/60 border-white/5 text-slate-600'}`}>
+                    <span className="text-xs font-bold font-mono text-white block">{matrizHistorica.Alta.Baja.toFixed(1)}h</span>
+                    <span className="text-[10px] font-mono text-pastel-ice">Mecánico</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                  <div className="flex items-center text-left text-[11px] font-mono text-pastel-amber font-bold px-1">Media</div>
+                  <div className={`p-2.5 rounded-xl border ${matrizHistorica.Media.Alta > 0 ? 'bg-pastel-amber/20 border-pastel-amber/50' : 'bg-midnight-900/60 border-white/5 text-slate-600'}`}>
+                    <span className="text-xs font-bold font-mono text-white block">{matrizHistorica.Media.Alta.toFixed(1)}h</span>
+                    <span className="text-[10px] font-mono text-pastel-amber">Desafío</span>
+                  </div>
+                  <div className={`p-2.5 rounded-xl border ${matrizHistorica.Media.Media > 0 ? 'bg-pastel-ice/20 border-pastel-ice/50' : 'bg-midnight-900/60 border-white/5 text-slate-600'}`}>
+                    <span className="text-xs font-bold font-mono text-white block">{matrizHistorica.Media.Media.toFixed(1)}h</span>
+                    <span className="text-[10px] font-mono text-pastel-ice">Sostenible</span>
+                  </div>
+                  <div className={`p-2.5 rounded-xl border ${matrizHistorica.Media.Baja > 0 ? 'bg-slate-800/60 border-white/10' : 'bg-midnight-900/60 border-white/5 text-slate-600'}`}>
+                    <span className="text-xs font-bold font-mono text-slate-300 block">{matrizHistorica.Media.Baja.toFixed(1)}h</span>
+                    <span className="text-[10px] font-mono text-slate-500">Rutinario</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                  <div className="flex items-center text-left text-[11px] font-mono text-slate-400 font-semibold px-1">Baja</div>
+                  <div className={`p-2.5 rounded-xl border ${matrizHistorica.Baja.Alta > 0 ? 'bg-slate-800/70 border-white/10' : 'bg-midnight-900/60 border-white/5 text-slate-600'}`}>
+                    <span className="text-xs font-bold font-mono text-slate-300 block">{matrizHistorica.Baja.Alta.toFixed(1)}h</span>
+                    <span className="text-[10px] font-mono text-slate-500">Sobrecarga</span>
+                  </div>
+                  <div className={`p-2.5 rounded-xl border ${matrizHistorica.Baja.Media > 0 ? 'bg-slate-800/70 border-white/10' : 'bg-midnight-900/60 border-white/5 text-slate-600'}`}>
+                    <span className="text-xs font-bold font-mono text-slate-300 block">{matrizHistorica.Baja.Media.toFixed(1)}h</span>
+                    <span className="text-[10px] font-mono text-slate-500">Distracción</span>
+                  </div>
+                  <div className={`p-2.5 rounded-xl border ${matrizHistorica.Baja.Baja > 0 ? 'bg-slate-900 border-pastel-coral/30' : 'bg-midnight-900/60 border-white/5 text-slate-600'}`}>
+                    <span className="text-xs font-bold font-mono text-slate-400 block">{matrizHistorica.Baja.Baja.toFixed(1)}h</span>
+                    <span className="text-[10px] font-mono text-slate-500">Superficial</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Matriz 2D Histórica y Tipos de Enfoque */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Tipos de Enfoque */}
+            <div className="card-midnight rounded-2xl p-5 sm:p-6 border border-white/7 space-y-4">
+              <h4 className="text-sm font-semibold text-white tracking-tight flex items-center gap-2">
+                <span className="p-1 rounded-md bg-pastel-ice/10 text-pastel-ice">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                  </svg>
+                </span>
+                Distribución Histórica por Tipo
+              </h4>
+              <div className="space-y-3">
+                {stats.distribucionTipos.map((item, idx) => {
+                  const colors = ['bg-pastel-lavender', 'bg-pastel-mint', 'bg-pastel-ice', 'bg-pastel-amber', 'bg-pastel-coral'];
+                  const barColor = colors[idx % colors.length];
+                  return (
+                    <div key={item.tipo} className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-medium text-slate-200">{item.tipo}</span>
+                        <span className="font-mono text-white font-bold">{item.horas.toFixed(1)}h ({item.porcentaje}%)</span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-midnight-900 overflow-hidden">
+                        <div style={{ width: `${Math.min(100, item.porcentaje)}%` }} className={`h-full ${barColor}`}></div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Hábitos e Indicadores Psicofísicos Históricos */}
+            <div className="card-midnight rounded-2xl p-5 sm:p-6 border border-white/7 space-y-4">
+              <h4 className="text-sm font-semibold text-white tracking-tight flex items-center gap-2">
+                <span className="p-1 rounded-md bg-pastel-mint/10 text-pastel-mint">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                  </svg>
+                </span>
+                Hábitos y Cuerpo (Histórico)
+              </h4>
+              <div className="space-y-3">
+                <div className="p-3 rounded-xl bg-midnight-900/80 border border-white/5 flex justify-between items-center">
+                  <span className="text-xs text-slate-300">Alimentación Promedio:</span>
+                  <span className="text-base font-bold font-mono text-pastel-mint">{stats.salud.promedioAlimento.toFixed(1)} / 5.0</span>
+                </div>
+                <div className="p-3 rounded-xl bg-midnight-900/80 border border-white/5 flex justify-between items-center">
+                  <span className="text-xs text-slate-300">Entrenamiento Acumulado:</span>
+                  <span className="text-base font-bold font-mono text-pastel-ice">{stats.salud.totalEjercicioHoras.toFixed(1)}h ({stats.salud.diasConEjercicio} días)</span>
+                </div>
+                <div className="p-3 rounded-xl bg-midnight-900/80 border border-white/5 flex justify-between items-center text-xs font-mono">
+                  <span className="text-slate-300">Inspirado: <b className="text-pastel-lavender">{stats.salud.distribucionFrioMental['Inspirado'] || 0}</b></span>
+                  <span className="text-slate-300">Frío: <b className="text-pastel-ice">{stats.salud.distribucionFrioMental['Frio total'] || 0}</b></span>
+                  <span className="text-slate-300">Ávido: <b className="text-pastel-amber">{stats.salud.distribucionFrioMental['Avido'] || 0}</b></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 };

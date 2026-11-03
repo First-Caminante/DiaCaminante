@@ -661,17 +661,43 @@ app.get('/estadisticas', async (c) => {
     const diasActivosCount = fechasConSesiones.length;
     const promedioHorasDiarias = diasActivosCount > 0 ? Number((totalHorasNetas / diasActivosCount).toFixed(2)) : 0;
 
+    // Días calificados para racha: EXCLUSIVAMENTE cuando el día acabó con esfuerzo riguroso (≥75% en todo)
+    // 1. Trabajo profundo: >= 2.25h (75% de la meta de 3.0h)
+    // 2. Fricción cognitiva: >= 37.5% de incomodidad Alta/Media
+    // 3. Entrenamiento: >= 0.55h (75% de 0.75h = 33+ minutos de entrenamiento físico)
+    // 4. Ritual de cierre: cierre_realizado === true
+    const fechasCalificadasSet = new Set<string>();
+    dias.forEach((d) => {
+      const sesList = fechaToSesiones.get(d.fecha) || [];
+      const horasNetas = sesList.reduce((sum, s) => sum + (parseFloat(String(s.horas_netas)) || 0), 0);
+      const incAltaMedia = sesList
+        .filter((s) => s.incomodidad === 'Alta' || s.incomodidad === 'Media')
+        .reduce((sum, s) => sum + (parseFloat(String(s.horas_netas)) || 0), 0);
+      const pctFriccion = horasNetas > 0 ? (incAltaMedia / horasNetas) * 100 : 0;
+      const ejercicio = parseFloat(String(d.ejercicio_horas)) || 0;
+      const cierre = Boolean(d.cierre_realizado);
+
+      const cumpleTrabajo = horasNetas >= 2.25;
+      const cumpleFriccion = pctFriccion >= 37.5;
+      const cumpleEjercicio = ejercicio >= 0.55;
+      const cumpleCierre = cierre;
+
+      if (cumpleTrabajo && cumpleFriccion && cumpleEjercicio && cumpleCierre) {
+        fechasCalificadasSet.add(d.fecha);
+      }
+    });
+
+    const fechasCalificadasSorted = Array.from(fechasCalificadasSet).sort();
+
     // Streaks calculation ending on fechaHoy or yesterday
     let rachaActual = 0;
     let rachaMaxima = 0;
 
-    if (fechasConSesiones.length > 0) {
-      const sessionDateSet = new Set(fechasConSesiones);
-      
-      // Calculate max streak
+    if (fechasCalificadasSorted.length > 0) {
+      // Calculate max streak of qualified days
       let tempStreak = 0;
       let prevDateObj: Date | null = null;
-      for (const f of fechasConSesiones) {
+      for (const f of fechasCalificadasSorted) {
         const curr = new Date(f + 'T00:00:00Z');
         if (!prevDateObj) {
           tempStreak = 1;
@@ -693,12 +719,12 @@ app.get('/estadisticas', async (c) => {
       const yestDateObj = new Date(hoyDateObj.getTime() - 24 * 60 * 60 * 1000);
       const yestStr = yestDateObj.toISOString().split('T')[0];
 
-      let checkDate = sessionDateSet.has(fechaHoy) ? hoyDateObj : (sessionDateSet.has(yestStr) ? yestDateObj : null);
+      let checkDate = fechasCalificadasSet.has(fechaHoy) ? hoyDateObj : (fechasCalificadasSet.has(yestStr) ? yestDateObj : null);
       if (checkDate) {
         let cursor = new Date(checkDate.getTime());
         while (true) {
           const cStr = cursor.toISOString().split('T')[0];
-          if (sessionDateSet.has(cStr)) {
+          if (fechasCalificadasSet.has(cStr)) {
             rachaActual++;
             cursor = new Date(cursor.getTime() - 24 * 60 * 60 * 1000);
           } else {
