@@ -71,6 +71,8 @@ export interface TendenciaDia {
   alimento?: number | null;
   ejercicioHoras?: number | null;
   frioMental?: string | null;
+  distribucionIntensidad?: { Alta: number; Media: number; Baja: number };
+  distribucionIncomodidad?: { Alta: number; Media: number; Baja: number };
 }
 
 export interface DistribucionTipo {
@@ -78,6 +80,24 @@ export interface DistribucionTipo {
   horas: number;
   porcentaje: number;
   count: number;
+}
+
+export interface MetricasHoy {
+  fecha: string;
+  horasNetas: number;
+  sesionesCount: number;
+  cierreRealizado: boolean;
+  ejercicioHoras: number;
+  alimento?: number | null;
+  frioMental?: string | null;
+  distribucionIntensidad: { Alta: number; Media: number; Baja: number };
+  distribucionIncomodidad: { Alta: number; Media: number; Baja: number };
+}
+
+export interface MatrizCalidad {
+  Alta: { Alta: number; Media: number; Baja: number };
+  Media: { Alta: number; Media: number; Baja: number };
+  Baja: { Alta: number; Media: number; Baja: number };
 }
 
 export interface EstadisticasResponse {
@@ -91,6 +111,9 @@ export interface EstadisticasResponse {
   distribucionTipos: DistribucionTipo[];
   distribucionIntensidad: { Alta: number; Media: number; Baja: number };
   distribucionIncomodidad: { Alta: number; Media: number; Baja: number };
+  matrizCalidad: MatrizCalidad;
+  matrizCalidadHoy: MatrizCalidad;
+  hoy: MetricasHoy;
   tendenciaDias: TendenciaDia[];
   salud: {
     promedioAlimento: number;

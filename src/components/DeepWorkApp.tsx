@@ -22,14 +22,19 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
   const [isDailyReflectionOpen, setIsDailyReflectionOpen] = useState<boolean>(false);
   const [notification, setNotification] = useState<string | null>(null);
 
+  const getLocalTodayDate = (): string => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
   const todayReflection: ReflexionDiaria = getReflexionDeHoy();
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalTodayDate();
 
   // Fetch today's state
   const fetchHoy = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/dia/hoy');
+      const res = await fetch(`/api/dia/hoy?fecha=${todayStr}`);
       if (!res.ok) throw new Error('Error al cargar datos');
       const json: DiaHoyResponse = await res.json();
       setData(json);
@@ -291,7 +296,7 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
       {/* MAIN VIEW CONTENT (Switch between tabs) */}
       <main className="flex-1">
         {currentTab === 'stats' && (
-          <VisualStats onGoToDailyLog={() => setCurrentTab('today')} />
+          <VisualStats fechaHoy={todayStr} onGoToDailyLog={() => setCurrentTab('today')} />
         )}
 
         {currentTab === 'today' && (

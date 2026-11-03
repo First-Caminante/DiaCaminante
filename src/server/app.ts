@@ -1,18 +1,20 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { getSupabaseAdmin } from '../lib/supabase';
+import type { MatrizCalidad } from '../types/database';
 
 export const app = new Hono().basePath('/api');
 
 // Enable CORS
 app.use('*', cors());
 
-// Helper to get YYYY-MM-DD
+// Helper to get YYYY-MM-DD (usando fecha local o parámetro explícito)
 function getFormattedDate(dateStr?: string): string {
   if (dateStr && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
     return dateStr;
   }
-  return new Date().toISOString().split('T')[0];
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }
 
 // Helper to get tomorrow's date string YYYY-MM-DD
@@ -40,6 +42,20 @@ app.get('/dia/hoy', async (c) => {
   try {
     const supabase = getSupabaseAdmin(c.env);
     const fecha = getFormattedDate(c.req.query('fecha'));
+
+    // Auto-cierre preventivo de días anteriores que hayan quedado sin cerrar al cruzar medianoche (11:59 PM)
+    try {
+      await supabase
+        .from('dias_salud')
+        .update({
+          cierre_realizado: true,
+          cierre_timestamp: new Date().toISOString()
+        })
+        .lt('fecha', fecha)
+        .eq('cierre_realizado', false);
+    } catch (autoCloseErr) {
+      console.warn('Auto-close past days warning:', autoCloseErr);
+    }
 
     // Check or create dia in dias_salud
     let { data: dia, error: diaErr } = await supabase
@@ -527,6 +543,21 @@ app.get('/exportar', async (c) => {
 app.get('/estadisticas', async (c) => {
   try {
     const supabase = getSupabaseAdmin(c.env);
+    const fechaHoy = getFormattedDate(c.req.query('fecha'));
+
+    // Auto-cierre de días anteriores que hayan quedado sin cerrar al cruzar medianoche (11:59 PM)
+    try {
+      await supabase
+        .from('dias_salud')
+        .update({
+          cierre_realizado: true,
+          cierre_timestamp: new Date().toISOString()
+        })
+        .lt('fecha', fechaHoy)
+        .eq('cierre_realizado', false);
+    } catch (e) {
+      console.warn('Auto-close past days in stats warning:', e);
+    }
 
     // Fetch dias_salud
     const { data: diasData, error: diasErr } = await supabase
@@ -575,6 +606,13 @@ app.get('/estadisticas', async (c) => {
     const intensidadMap = { Alta: 0, Media: 0, Baja: 0 };
     const incomodidadMap = { Alta: 0, Media: 0, Baja: 0 };
 
+    // Matriz de Calidad 3x3: Intensidad x Incomodidad
+    const matrizCalidad: MatrizCalidad = {
+      Alta: { Alta: 0, Media: 0, Baja: 0 },
+      Media: { Alta: 0, Media: 0, Baja: 0 },
+      Baja: { Alta: 0, Media: 0, Baja: 0 },
+    };
+
     sesiones.forEach((s) => {
       const fecha = diaIdToFecha.get(s.dia_id) || (s.registrado_a ? s.registrado_a.split('T')[0] : '');
       const h = parseFloat(String(s.horas_netas)) || 0;
@@ -592,14 +630,19 @@ app.get('/estadisticas', async (c) => {
       const prevTipo = tiposMap.get(tipo) || { horas: 0, count: 0 };
       tiposMap.set(tipo, { horas: prevTipo.horas + h, count: prevTipo.count + 1 });
 
+      const intKey: 'Alta' | 'Media' | 'Baja' = (s.intensidad === 'Alta' || s.intensidad === 'Baja') ? s.intensidad : 'Media';
+      const incKey: 'Alta' | 'Media' | 'Baja' = (s.incomodidad === 'Alta' || s.incomodidad === 'Baja') ? s.incomodidad : 'Media';
+
+      matrizCalidad[intKey][incKey] = Number((matrizCalidad[intKey][incKey] + h).toFixed(2));
+
       // Intensidad
-      if (s.intensidad === 'Alta') intensidadMap.Alta += h;
-      else if (s.intensidad === 'Baja') intensidadMap.Baja += h;
+      if (intKey === 'Alta') intensidadMap.Alta += h;
+      else if (intKey === 'Baja') intensidadMap.Baja += h;
       else intensidadMap.Media += h;
 
       // Incomodidad
-      if (s.incomodidad === 'Alta') incomodidadMap.Alta += h;
-      else if (s.incomodidad === 'Baja') incomodidadMap.Baja += h;
+      if (incKey === 'Alta') incomodidadMap.Alta += h;
+      else if (incKey === 'Baja') incomodidadMap.Baja += h;
       else incomodidadMap.Media += h;
     });
 
@@ -618,7 +661,7 @@ app.get('/estadisticas', async (c) => {
     const diasActivosCount = fechasConSesiones.length;
     const promedioHorasDiarias = diasActivosCount > 0 ? Number((totalHorasNetas / diasActivosCount).toFixed(2)) : 0;
 
-    // Streaks calculation
+    // Streaks calculation ending on fechaHoy or yesterday
     let rachaActual = 0;
     let rachaMaxima = 0;
 
@@ -644,13 +687,13 @@ app.get('/estadisticas', async (c) => {
         prevDateObj = curr;
       }
 
-      // Calculate current streak ending today or yesterday
-      const now = new Date();
-      const todayStr = now.toISOString().split('T')[0];
-      const yest = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      const yestStr = yest.toISOString().split('T')[0];
+      // Calculate current streak ending on fechaHoy or yesterday
+      const [hy, hm, hd] = fechaHoy.split('-').map(Number);
+      const hoyDateObj = new Date(Date.UTC(hy, hm - 1, hd));
+      const yestDateObj = new Date(hoyDateObj.getTime() - 24 * 60 * 60 * 1000);
+      const yestStr = yestDateObj.toISOString().split('T')[0];
 
-      let checkDate = sessionDateSet.has(todayStr) ? now : (sessionDateSet.has(yestStr) ? yest : null);
+      let checkDate = sessionDateSet.has(fechaHoy) ? hoyDateObj : (sessionDateSet.has(yestStr) ? yestDateObj : null);
       if (checkDate) {
         let cursor = new Date(checkDate.getTime());
         while (true) {
@@ -670,15 +713,79 @@ app.get('/estadisticas', async (c) => {
     const diasConCierre = dias.filter((d) => d.cierre_realizado).length;
     const tasaCierre = Number(((diasConCierre / totalDiasRegistrados) * 100).toFixed(1));
 
-    // Tendencia últimos 30 días continuos
+    // Desglose métricas exclusivas de HOY
+    const sesionesHoy = fechaToSesiones.get(fechaHoy) || [];
+    const horasHoy = sesionesHoy.reduce((sum, s) => sum + (parseFloat(String(s.horas_netas)) || 0), 0);
+    const intensidadHoy = { Alta: 0, Media: 0, Baja: 0 };
+    const incomodidadHoy = { Alta: 0, Media: 0, Baja: 0 };
+    const matrizCalidadHoy: MatrizCalidad = {
+      Alta: { Alta: 0, Media: 0, Baja: 0 },
+      Media: { Alta: 0, Media: 0, Baja: 0 },
+      Baja: { Alta: 0, Media: 0, Baja: 0 },
+    };
+
+    sesionesHoy.forEach((s) => {
+      const h = parseFloat(String(s.horas_netas)) || 0;
+      const intKey: 'Alta' | 'Media' | 'Baja' = (s.intensidad === 'Alta' || s.intensidad === 'Baja') ? s.intensidad : 'Media';
+      const incKey: 'Alta' | 'Media' | 'Baja' = (s.incomodidad === 'Alta' || s.incomodidad === 'Baja') ? s.incomodidad : 'Media';
+
+      matrizCalidadHoy[intKey][incKey] = Number((matrizCalidadHoy[intKey][incKey] + h).toFixed(2));
+
+      if (intKey === 'Alta') intensidadHoy.Alta += h;
+      else if (intKey === 'Baja') intensidadHoy.Baja += h;
+      else intensidadHoy.Media += h;
+
+      if (incKey === 'Alta') incomodidadHoy.Alta += h;
+      else if (incKey === 'Baja') incomodidadHoy.Baja += h;
+      else incomodidadHoy.Media += h;
+    });
+
+    const diaHoyObj = fechaToDia.get(fechaHoy);
+    const hoy = {
+      fecha: fechaHoy,
+      horasNetas: Number(horasHoy.toFixed(2)),
+      sesionesCount: sesionesHoy.length,
+      cierreRealizado: Boolean(diaHoyObj?.cierre_realizado),
+      ejercicioHoras: diaHoyObj?.ejercicio_horas ? parseFloat(String(diaHoyObj.ejercicio_horas)) : 0,
+      alimento: diaHoyObj?.alimento || null,
+      frioMental: diaHoyObj?.frio_mental || null,
+      distribucionIntensidad: {
+        Alta: Number(intensidadHoy.Alta.toFixed(2)),
+        Media: Number(intensidadHoy.Media.toFixed(2)),
+        Baja: Number(intensidadHoy.Baja.toFixed(2)),
+      },
+      distribucionIncomodidad: {
+        Alta: Number(incomodidadHoy.Alta.toFixed(2)),
+        Media: Number(incomodidadHoy.Media.toFixed(2)),
+        Baja: Number(incomodidadHoy.Baja.toFixed(2)),
+      },
+    };
+
+    // Tendencia últimos 30 días continuos anclada en fechaHoy
+    const [hy, hm, hd] = fechaHoy.split('-').map(Number);
+    const baseDate = new Date(Date.UTC(hy, hm - 1, hd));
     const tendenciaDias: any[] = [];
-    const todayDate = new Date();
     for (let i = 29; i >= 0; i--) {
-      const d = new Date(todayDate.getTime() - i * 24 * 60 * 60 * 1000);
-      const fStr = d.toISOString().split('T')[0];
+      const cur = new Date(baseDate.getTime() - i * 24 * 60 * 60 * 1000);
+      const fStr = cur.toISOString().split('T')[0];
       const diaObj = fechaToDia.get(fStr);
       const sesList = fechaToSesiones.get(fStr) || [];
       const horasNetas = sesList.reduce((sum, item) => sum + (parseFloat(String(item.horas_netas)) || 0), 0);
+
+      const dayIntensidad = { Alta: 0, Media: 0, Baja: 0 };
+      const dayIncomodidad = { Alta: 0, Media: 0, Baja: 0 };
+      sesList.forEach((s) => {
+        const h = parseFloat(String(s.horas_netas)) || 0;
+        const intKey = (s.intensidad === 'Alta' || s.intensidad === 'Baja') ? s.intensidad : 'Media';
+        const incKey = (s.incomodidad === 'Alta' || s.incomodidad === 'Baja') ? s.incomodidad : 'Media';
+        if (intKey === 'Alta') dayIntensidad.Alta += h;
+        else if (intKey === 'Baja') dayIntensidad.Baja += h;
+        else dayIntensidad.Media += h;
+
+        if (incKey === 'Alta') dayIncomodidad.Alta += h;
+        else if (incKey === 'Baja') dayIncomodidad.Baja += h;
+        else dayIncomodidad.Media += h;
+      });
 
       tendenciaDias.push({
         fecha: fStr,
@@ -688,6 +795,16 @@ app.get('/estadisticas', async (c) => {
         alimento: diaObj?.alimento || null,
         ejercicioHoras: diaObj?.ejercicio_horas ? parseFloat(String(diaObj.ejercicio_horas)) : null,
         frioMental: diaObj?.frio_mental || null,
+        distribucionIntensidad: {
+          Alta: Number(dayIntensidad.Alta.toFixed(2)),
+          Media: Number(dayIntensidad.Media.toFixed(2)),
+          Baja: Number(dayIntensidad.Baja.toFixed(2)),
+        },
+        distribucionIncomodidad: {
+          Alta: Number(dayIncomodidad.Alta.toFixed(2)),
+          Media: Number(dayIncomodidad.Media.toFixed(2)),
+          Baja: Number(dayIncomodidad.Baja.toFixed(2)),
+        },
       });
     }
 
@@ -745,6 +862,9 @@ app.get('/estadisticas', async (c) => {
         Media: Number(incomodidadMap.Media.toFixed(2)),
         Baja: Number(incomodidadMap.Baja.toFixed(2)),
       },
+      matrizCalidad,
+      matrizCalidadHoy,
+      hoy,
       tendenciaDias,
       salud: {
         promedioAlimento,
