@@ -3,13 +3,14 @@ import { Scoreboard } from './Scoreboard';
 import { QuickLog } from './QuickLog';
 import { ShutdownModal } from './ShutdownModal';
 import { VisualStats } from './VisualStats';
+import { TasksManager } from './TasksManager';
 import { PhilosophyView } from './PhilosophyView';
 import { DailyReflectionModal } from './DailyReflectionModal';
 import { SnowEffect } from './SnowEffect';
 import { getReflexionDeHoy, getDiaDelCiclo, type ReflexionDiaria } from '../data/reflections';
 import type { DiaHoyResponse, SesionFlujo, TareaPlanificada } from '../types/database';
 
-type NavigationTab = 'stats' | 'today' | 'philosophy';
+type NavigationTab = 'stats' | 'tasks' | 'today' | 'philosophy';
 
 interface DeepWorkAppProps {
   initialData?: DiaHoyResponse | null;
@@ -228,6 +229,27 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
     });
   };
 
+  const handleTaskCreated = (nuevasTareas: TareaPlanificada[]) => {
+    setData((prev) => {
+      if (!prev) return prev;
+      const deHoy = nuevasTareas.filter((t) => t.fecha_objetivo === fechaHoy);
+      return {
+        ...prev,
+        tareas: [...(prev.tareas || []), ...deHoy],
+      };
+    });
+  };
+
+  const handleTaskDeleted = (id: string) => {
+    setData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        tareas: (prev.tareas || []).filter((t) => t.id !== id),
+      };
+    });
+  };
+
   const handleTaskUpdated = (tareaActualizada: TareaPlanificada) => {
     setData((prev) => {
       if (!prev) return prev;
@@ -413,7 +435,36 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
             )}
           </button>
 
-          {/* Tab 2: Registro de Foco */}
+          {/* Tab 2: Plan de Tareas */}
+          <button
+            type="button"
+            onClick={() => {
+              setCurrentTab('tasks');
+              setIsMobileSidebarOpen(false);
+            }}
+            className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-sm font-medium transition-all ${
+              currentTab === 'tasks'
+                ? 'bg-gradient-to-r from-[#2563eb] to-[#3b82f6] text-white shadow-midnight-glow'
+                : 'text-[#94a3b8] hover:text-white hover:bg-[#0d1a3d]'
+            }`}
+            title="Plan de Vuelo y Tareas Planificadas"
+          >
+            <div className="flex items-center gap-3">
+              <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              {!isSidebarCollapsed && (
+                <span className="truncate">Plan de Tareas</span>
+              )}
+            </div>
+            {!isSidebarCollapsed && (data?.tareas?.length ?? 0) > 0 && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-[#eed59b]/20 text-[#eed59b] font-mono font-semibold">
+                {data?.tareas?.filter((t) => t.estado === 'hecho').length}/{data?.tareas?.length}
+              </span>
+            )}
+          </button>
+
+          {/* Tab 3: Registro de Foco */}
           <button
             type="button"
             onClick={() => {
@@ -425,7 +476,7 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
                 ? 'bg-gradient-to-r from-[#2563eb] to-[#3b82f6] text-white shadow-midnight-glow'
                 : 'text-[#94a3b8] hover:text-white hover:bg-[#0d1a3d]'
             }`}
-            title="Registro de Sesiones de Foco"
+            title="Registro de Sesiones de Foco y Salud"
           >
             <div className="flex items-center gap-3">
               <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -433,7 +484,7 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
                 <polyline points="12 6 12 12 16 14" />
               </svg>
               {!isSidebarCollapsed && (
-                <span className="truncate">Registro de Foco</span>
+                <span className="truncate">Registro Diario</span>
               )}
             </div>
             {!isSidebarCollapsed && totalHoras > 0 && (
@@ -443,7 +494,7 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
             )}
           </button>
 
-          {/* Tab 3: Biblioteca de Pensamiento */}
+          {/* Tab 4: Biblioteca de Pensamiento */}
           <button
             type="button"
             onClick={() => {
@@ -532,11 +583,13 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
             <div>
               <h1 className="font-serif text-lg sm:text-xl font-bold text-white tracking-wide">
                 {currentTab === 'stats' && 'Panel General y Ritmo Diario'}
+                {currentTab === 'tasks' && 'Plan de Vuelo & Tareas'}
                 {currentTab === 'today' && 'Registro de Sesiones de Foco'}
                 {currentTab === 'philosophy' && 'Biblioteca de Pensamiento'}
               </h1>
               <p className="text-xs text-[#94a3b8] font-sans">
                 {currentTab === 'stats' && 'Visualización circadiana, intensidad y auditoría retrospectiva.'}
+                {currentTab === 'tasks' && 'Gestión y checklist de objetivos para hoy y mañana.'}
                 {currentTab === 'today' && 'Control cronológico de horas netas e incomodidad cognitiva.'}
                 {currentTab === 'philosophy' && 'Compendio de reflexiones para la excelencia y la disciplina.'}
               </p>
@@ -576,6 +629,19 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
             />
           )}
 
+          {currentTab === 'tasks' && (
+            <div className="space-y-6 animate-fade-in">
+              <TasksManager
+                fechaHoy={todayStr}
+                tareasHoy={data?.tareas || []}
+                onTaskCreated={handleTaskCreated}
+                onTaskUpdated={handleTaskUpdated}
+                onTaskDeleted={handleTaskDeleted}
+                onRefresh={fetchHoy}
+              />
+            </div>
+          )}
+
           {currentTab === 'today' && (
             <div className="space-y-6 animate-fade-in">
               <Scoreboard
@@ -583,6 +649,15 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
                 totalHorasNetas={totalHoras}
                 cierreRealizado={cierreRealizado}
                 onOpenShutdown={() => setIsShutdownOpen(true)}
+                onRefresh={fetchHoy}
+              />
+
+              <TasksManager
+                fechaHoy={todayStr}
+                tareasHoy={data?.tareas || []}
+                onTaskCreated={handleTaskCreated}
+                onTaskUpdated={handleTaskUpdated}
+                onTaskDeleted={handleTaskDeleted}
                 onRefresh={fetchHoy}
               />
 

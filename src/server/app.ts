@@ -846,26 +846,250 @@ app.delete('/ejercicio/:id', async (c) => {
 });
 
 /**
+ * GET /api/tareas
+ * Obtiene las tareas planificadas para una fecha específica (por defecto hoy).
+ */
+app.get('/tareas', async (c) => {
+  try {
+    const supabase = getSupabaseAdmin(c.env);
+    const fechaParam = c.req.query('fecha');
+    const fecha = fechaParam ? getFormattedDate(fechaParam) : getFormattedDate();
+
+    const { data: tareas, error } = await supabase
+      .from('tareas_planificadas')
+      .select('*')
+      .eq('fecha_objetivo', fecha)
+      .order('hora_inicio', { ascending: true });
+
+    if (error) {
+      return c.json({ error: error.message }, 500);
+    }
+
+    return c.json({ success: true, fecha, tareas: tareas || [] });
+  } catch (err: any) {
+    console.error('Error in GET /api/tareas:', err);
+    return c.json({ error: err.message || 'Error al obtener tareas' }, 500);
+  }
+});
+
+/**
+ * POST /api/tareas
+ * Crea una o varias tareas para hoy o para una fecha futura/mañana.
+ * Permite inserción individual o por bloque Markdown (formato Cal Newport).
+ */
+app.post('/tareas', async (c) => {
+  try {
+    const supabase = getSupabaseAdmin(c.env);
+    const body = await c.req.json();
+    const {
+      fecha_objetivo: targetDateParam,
+      descripcion,
+      hora_inicio,
+      hora_fin,
+      tipo_trabajo,
+      horas_netas_estimadas,
+      planificacion_markdown,
+      tareas: batchTareas,
+    } = body;
+
+    const fechaHoy = getFormattedDate();
+    const fechaObjetivo = targetDateParam ? getFormattedDate(targetDateParam) : fechaHoy;
+
+    // Asegurar que exista el día en dias_salud para referencia relacional
+    let { data: dia } = await supabase
+      .from('dias_salud')
+      .select('*')
+      .eq('fecha', fechaObjetivo)
+      .maybeSingle();
+
+    if (!dia) {
+      const { data: newDia } = await supabase
+        .from('dias_salud')
+        .insert({ fecha: fechaObjetivo, cierre_realizado: false })
+        .select('*')
+        .single();
+      dia = newDia;
+    }
+
+    const diaId = dia?.id || null;
+    const tareasToInsert: any[] = [];
+
+    // Opción A: Parseo de bloque Markdown
+    if (typeof planificacion_markdown === 'string' && planificacion_markdown.trim()) {
+      const regex = /^\s*-\s*\[\s*\]\s*\[(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})\]\s*\[(PROFUNDO|SUPERFICIAL)\]\s*(.+?)(?:\s*\((\d+(?:\.\d+)?)\s*h\s*netas\))?\s*$/i;
+      const lineas = planificacion_markdown.split('\n');
+      for (const line of lineas) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        const match = trimmed.match(regex);
+        if (match) {
+          const hIni = match[1];
+          const hFin = match[2];
+          const tipo = match[3].toUpperCase() as 'PROFUNDO' | 'SUPERFICIAL';
+          const desc = match[4].trim();
+          const horasEst = match[5]
+            ? parseFloat(match[5])
+            : calculateTimeDiffHours(hIni, hFin);
+
+          tareasToInsert.push({
+            dia_origen_id: diaId,
+            fecha_objetivo: fechaObjetivo,
+            hora_inicio: hIni,
+            hora_fin: hFin,
+            tipo_trabajo: tipo,
+            descripcion: desc,
+            horas_netas_estimadas: isNaN(horasEst) ? 1.0 : horasEst,
+            estado: 'pendiente',
+            motivo_desvio: null,
+            creado_a: new Date().toISOString(),
+          });
+        } else if (trimmed.startsWith('-')) {
+          // Línea simple de lista con guión
+          const cleanDesc = trimmed.replace(/^-\s*(\[[ x~]\])?\s*/i, '').trim();
+          if (cleanDesc) {
+            tareasToInsert.push({
+              dia_origen_id: diaId,
+              fecha_objetivo: fechaObjetivo,
+              hora_inicio: '09:00',
+              hora_fin: '10:30',
+              tipo_trabajo: 'PROFUNDO',
+              descripcion: cleanDesc,
+              horas_netas_estimadas: 1.5,
+              estado: 'pendiente',
+              motivo_desvio: null,
+              creado_a: new Date().toISOString(),
+            });
+          }
+        }
+      }
+    } else if (Array.isArray(batchTareas) && batchTareas.length > 0) {
+      // Opción B: Array de tareas
+      for (const t of batchTareas) {
+        if (!t.descripcion) continue;
+        const hIni = t.hora_inicio || '09:00';
+        const hFin = t.hora_fin || '10:30';
+        const horasEst = typeof t.horas_netas_estimadas === 'number'
+          ? t.horas_netas_estimadas
+          : calculateTimeDiffHours(hIni, hFin);
+
+        tareasToInsert.push({
+          dia_origen_id: diaId,
+          fecha_objetivo: t.fecha_objetivo || fechaObjetivo,
+          hora_inicio: hIni,
+          hora_fin: hFin,
+          tipo_trabajo: t.tipo_trabajo === 'SUPERFICIAL' ? 'SUPERFICIAL' : 'PROFUNDO',
+          descripcion: String(t.descripcion).trim(),
+          horas_netas_estimadas: isNaN(horasEst) || horasEst <= 0 ? 1.0 : horasEst,
+          estado: t.estado || 'pendiente',
+          motivo_desvio: t.motivo_desvio || null,
+          creado_a: new Date().toISOString(),
+        });
+      }
+    } else if (descripcion) {
+      // Opción C: Tarea individual
+      const hIni = hora_inicio || '09:00';
+      const hFin = hora_fin || '10:30';
+      const horasEst = typeof horas_netas_estimadas === 'number'
+        ? horas_netas_estimadas
+        : calculateTimeDiffHours(hIni, hFin);
+
+      tareasToInsert.push({
+        dia_origen_id: diaId,
+        fecha_objetivo: fechaObjetivo,
+        hora_inicio: hIni,
+        hora_fin: hFin,
+        tipo_trabajo: tipo_trabajo === 'SUPERFICIAL' ? 'SUPERFICIAL' : 'PROFUNDO',
+        descripcion: String(descripcion).trim(),
+        horas_netas_estimadas: isNaN(horasEst) || horasEst <= 0 ? 1.0 : horasEst,
+        estado: 'pendiente',
+        motivo_desvio: null,
+        creado_a: new Date().toISOString(),
+      });
+    }
+
+    if (tareasToInsert.length === 0) {
+      return c.json({ error: 'Debes proporcionar una descripción o un bloque de planificación válido' }, 400);
+    }
+
+    const { data: inserted, error: insertErr } = await supabase
+      .from('tareas_planificadas')
+      .insert(tareasToInsert)
+      .select('*');
+
+    if (insertErr) {
+      console.error('Error inserting tasks:', insertErr);
+      return c.json({ error: insertErr.message || 'Error al guardar tareas' }, 500);
+    }
+
+    return c.json({
+      success: true,
+      tareas: inserted || [],
+      tarea: inserted?.[0] || null,
+    }, 201);
+  } catch (err: any) {
+    console.error('Error in POST /api/tareas:', err);
+    return c.json({ error: err.message || 'Error al procesar tarea' }, 500);
+  }
+});
+
+/**
  * PUT /api/tareas/:id
- * Actualiza el estado ('pendiente', 'hecho', 'incompleto', 'no_hecho') y 'motivo_desvio'.
+ * Actualiza cualquier propiedad de una tarea planificada (estado, motivo, descripción, horas, tipo).
  */
 app.put('/tareas/:id', async (c) => {
   try {
     const supabase = getSupabaseAdmin(c.env);
     const id = c.req.param('id');
     const body = await c.req.json();
-    const { estado, motivo_desvio } = body;
+    const {
+      estado,
+      motivo_desvio,
+      descripcion,
+      hora_inicio,
+      hora_fin,
+      tipo_trabajo,
+      horas_netas_estimadas,
+      fecha_objetivo,
+    } = body;
 
-    const validEstados = ['pendiente', 'hecho', 'incompleto', 'no_hecho'];
-    if (!validEstados.includes(estado)) {
-      return c.json({
-        error: `Estado inválido: ${estado}. Valores permitidos: ${validEstados.join(', ')}`
-      }, 400);
+    const updatePayload: Record<string, any> = {};
+
+    if (estado !== undefined) {
+      const validEstados = ['pendiente', 'hecho', 'incompleto', 'no_hecho'];
+      if (!validEstados.includes(estado)) {
+        return c.json({
+          error: `Estado inválido: ${estado}. Valores permitidos: ${validEstados.join(', ')}`
+        }, 400);
+      }
+      updatePayload.estado = estado;
     }
 
-    const updatePayload: Record<string, any> = { estado };
     if (motivo_desvio !== undefined) {
       updatePayload.motivo_desvio = motivo_desvio ? String(motivo_desvio).trim() : null;
+    }
+
+    if (descripcion !== undefined) {
+      updatePayload.descripcion = String(descripcion).trim();
+    }
+
+    if (hora_inicio !== undefined) {
+      updatePayload.hora_inicio = hora_inicio;
+    }
+
+    if (hora_fin !== undefined) {
+      updatePayload.hora_fin = hora_fin;
+    }
+
+    if (tipo_trabajo !== undefined) {
+      updatePayload.tipo_trabajo = tipo_trabajo === 'SUPERFICIAL' ? 'SUPERFICIAL' : 'PROFUNDO';
+    }
+
+    if (horas_netas_estimadas !== undefined) {
+      updatePayload.horas_netas_estimadas = parseFloat(String(horas_netas_estimadas)) || 1.0;
+    }
+
+    if (fecha_objetivo !== undefined) {
+      updatePayload.fecha_objetivo = getFormattedDate(fecha_objetivo);
     }
 
     const { data: tarea, error: updateErr } = await supabase
@@ -883,6 +1107,31 @@ app.put('/tareas/:id', async (c) => {
   } catch (err: any) {
     console.error('Error in PUT /api/tareas/:id:', err);
     return c.json({ error: err.message || 'Error al actualizar tarea' }, 500);
+  }
+});
+
+/**
+ * DELETE /api/tareas/:id
+ * Elimina una tarea planificada por su ID.
+ */
+app.delete('/tareas/:id', async (c) => {
+  try {
+    const supabase = getSupabaseAdmin(c.env);
+    const id = c.req.param('id');
+
+    const { error } = await supabase
+      .from('tareas_planificadas')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      return c.json({ error: error.message }, 500);
+    }
+
+    return c.json({ success: true, message: 'Tarea eliminada exitosamente' });
+  } catch (err: any) {
+    console.error('Error in DELETE /api/tareas/:id:', err);
+    return c.json({ error: err.message || 'Error al eliminar tarea' }, 500);
   }
 });
 
