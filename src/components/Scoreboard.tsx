@@ -49,7 +49,7 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `deep-work-resumen-${fecha || 'export'}.json`;
+      a.download = `diacaminante-registro-${fecha || 'export'}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -66,59 +66,59 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
 
   return (
     <header className="w-full">
-      <div className="card-tactical p-5 sm:p-7 border-2 border-[#74a47b]/40 space-y-4">
+      <div className="card-midnight p-5 sm:p-7 border border-[#5b9bd5]/25 space-y-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           
-          {/* Left: Date & Subtitle */}
+          {/* Left: Date & Title */}
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
-              <span className="tag-tactical px-2 py-0.5 rounded text-[10px] bg-[#215e28] text-[#d9f2c4] border-[#74a47b]">
-                ▲ PROTOCOLO ACTIVO
+              <span className="tag-formal px-3 py-0.5 rounded-full text-[10px] bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30 font-medium">
+                Jornada Activa
               </span>
-              <span className="text-xs font-mono uppercase tracking-widest text-[#92aa95] font-bold">
-                DEEP WORK &amp; RIGOR
+              <span className="text-xs text-[#eed59b] font-medium tracking-wide uppercase">
+                Control de Sesiones Diarias
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-display font-extrabold tracking-tight text-[#f8fafc] uppercase">
+            <h2 className="text-2xl sm:text-3xl font-serif font-bold tracking-wide text-white">
               {formattedDate}
-            </h1>
-            <p className="text-xs sm:text-sm text-[#92aa95] font-mono">
-              Auditoría de concentración profunda y ritual de cierre diario
+            </h2>
+            <p className="text-xs sm:text-sm text-[#94a3b8]">
+              Registro riguroso de bloques de foco, intensidad y protocolo de cierre diario.
             </p>
           </div>
 
           {/* Center / Stat: Total Net Hours */}
-          <div className="flex items-center gap-6 sm:gap-8 bg-[#000000] rounded-2xl px-5 py-3 border-2 border-[#74a47b]/30 shadow-inner">
+          <div className="flex items-center gap-6 sm:gap-8 bg-[#081229]/90 rounded-2xl px-5 py-3.5 border border-[#5b9bd5]/20 shadow-inner">
             <div>
-              <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#92aa95]">
-                Horas Netas Hoy
+              <div className="text-[11px] font-sans font-medium text-[#94a3b8] uppercase tracking-wider">
+                Horas Netas de Hoy
               </div>
               <div className="flex items-baseline gap-1.5 mt-0.5">
-                <span className="text-3xl sm:text-4xl font-display font-extrabold text-[#d9f2c4] tabular-nums">
+                <span className="text-3xl sm:text-4xl font-serif font-bold text-[#eed59b] tabular-nums">
                   {totalHorasNetas.toFixed(2)}
                 </span>
-                <span className="text-xs font-mono text-[#d9f2c4] font-bold uppercase">
-                  h
+                <span className="text-xs text-[#eed59b] font-medium">
+                  horas
                 </span>
               </div>
             </div>
 
-            <div className="h-10 w-0.5 bg-[#74a47b]/20"></div>
+            <div className="h-10 w-px bg-[#5b9bd5]/20"></div>
 
             {/* Status indicator: Shutdown Ritual */}
             <div>
-              <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#92aa95] mb-1">
-                Ritual de Cierre
+              <div className="text-[11px] font-sans font-medium text-[#94a3b8] uppercase tracking-wider mb-1">
+                Estado de Cierre
               </div>
               {cierreRealizado ? (
-                <div className="tag-tactical inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs bg-[#215e28] text-[#d9f2c4] border-[#74a47b]">
+                <div className="tag-formal inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-medium">
                   <span>✓</span>
-                  <span>Mente Liberada</span>
+                  <span>Jornada Concluida</span>
                 </div>
               ) : (
-                <div className="tag-tactical inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs bg-[#121c13] text-[#fde68a] border-[#fde68a]/40">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#fde68a] animate-pulse"></span>
-                  <span>Pendiente</span>
+                <div className="tag-formal inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs bg-amber-500/15 text-amber-300 border border-amber-500/30 font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                  <span>En Curso</span>
                 </div>
               )}
             </div>
@@ -130,7 +130,7 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
             {onRefresh && (
               <button
                 onClick={onRefresh}
-                className="btn-tactical-ghost p-2.5 rounded-xl text-[#f8fafc] hover:text-[#d9f2c4]"
+                className="btn-formal-outline p-2.5 rounded-full text-[#94a3b8] hover:text-white"
                 title="Actualizar datos"
                 aria-label="Actualizar datos"
               >
@@ -144,17 +144,17 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
             <button
               onClick={handleExportJson}
               disabled={exporting}
-              className="btn-tactical-ghost relative inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-mono font-bold uppercase"
-              title="Exportar dataset completo en JSON"
+              className="btn-formal-outline relative inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-medium"
+              title="Descargar copia de seguridad en formato JSON"
             >
-              <svg className="w-4 h-4 text-[#74a47b]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg className="w-4 h-4 text-[#93c5fd]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
-              <span>{exporting ? 'Exportando...' : 'Exportar JSON'}</span>
+              <span>{exporting ? 'Exportando...' : 'Exportar Datos'}</span>
               
               {copiedToast && (
-                <span className="tag-tactical absolute -bottom-9 right-0 bg-[#d9f2c4] text-[#000000] text-[10px] py-1 px-2.5 rounded-md whitespace-nowrap animate-bounce border-[#74a47b]">
-                  ¡Copiado &amp; Descargado!
+                <span className="tag-formal absolute -bottom-9 right-0 bg-[#eed59b] text-[#070e1e] text-[10px] py-1 px-3 rounded-full whitespace-nowrap animate-bounce font-bold shadow-md">
+                  ¡Copia descargada!
                 </span>
               )}
             </button>
@@ -162,12 +162,12 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
             {/* Shutdown Ritual Modal trigger button */}
             <button
               onClick={onOpenShutdown}
-              className="btn-tactical inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase"
+              className="btn-formal inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
-              <span>{cierreRealizado ? 'Ver Ritual Cierre' : 'Ritual Cierre'}</span>
+              <span>{cierreRealizado ? 'Revisar Cierre' : 'Cierre de Jornada'}</span>
             </button>
           </div>
 

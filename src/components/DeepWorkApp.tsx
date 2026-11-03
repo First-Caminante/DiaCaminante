@@ -5,6 +5,7 @@ import { ShutdownModal } from './ShutdownModal';
 import { VisualStats } from './VisualStats';
 import { PhilosophyView } from './PhilosophyView';
 import { DailyReflectionModal } from './DailyReflectionModal';
+import { SnowEffect } from './SnowEffect';
 import { getReflexionDeHoy, getDiaDelCiclo, type ReflexionDiaria } from '../data/reflections';
 import type { DiaHoyResponse, SesionFlujo, TareaPlanificada } from '../types/database';
 
@@ -22,14 +23,31 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
   const [isDailyReflectionOpen, setIsDailyReflectionOpen] = useState<boolean>(false);
   const [notification, setNotification] = useState<string | null>(null);
 
-  // Reloj local en tiempo real para el menú
+  // Estado del Sidebar retráctil / desplegable (persistido en memoria / storage)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
+
+  // Reloj local en tiempo real con formato formal
   const [clockTime, setClockTime] = useState<string>('');
+  const [formattedDate, setFormattedDate] = useState<string>('');
 
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
       setClockTime(
-        `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`
+        now.toLocaleTimeString('es-ES', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false,
+        })
+      );
+      setFormattedDate(
+        now.toLocaleDateString('es-ES', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+        })
       );
     };
     updateTime();
@@ -119,7 +137,7 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
         totalHorasNetas: Number(updatedTotal.toFixed(2)),
       };
     });
-    setNotification('Bloque de foco actualizado');
+    setNotification('Sesión de trabajo actualizada correctamente');
     setTimeout(() => setNotification(null), 3000);
   };
 
@@ -137,7 +155,7 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
         totalHorasNetas: Number(updatedTotal.toFixed(2)),
       };
     });
-    setNotification('Bloque de foco eliminado');
+    setNotification('Sesión de trabajo eliminada');
     setTimeout(() => setNotification(null), 3000);
   };
 
@@ -163,19 +181,19 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
         dia: resData.dia || { ...prev.dia, cierre_realizado: true },
       };
     });
-    setNotification('Ritual de cierre completado. Mente sellada hasta mañana.');
+    setNotification('Protocolo de cierre completado con serenidad.');
     setTimeout(() => setNotification(null), 5000);
   };
 
   if (loading && !data) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-        <div className="w-12 h-12 rounded-xl bg-[#121c13] border-2 border-[#74a47b] shadow-[0_0_20px_rgba(217,242,196,0.3)] animate-pulse flex items-center justify-center text-[#d9f2c4] font-mono text-xl">
-          ▲
+      <div className="flex flex-col items-center justify-center min-h-screen space-y-4 bg-[#070e1e] text-[#f8fafc]">
+        <div className="w-12 h-12 rounded-2xl bg-[#0d1733] border border-[#5b9bd5]/30 shadow-midnight flex items-center justify-center text-[#e5c179] font-serif text-2xl animate-pulse">
+          ✦
         </div>
-        <span className="text-xs font-mono tracking-widest text-[#92aa95] uppercase">
-          Inicializando Consola de Deep Work...
-        </span>
+        <p className="text-sm font-serif italic tracking-wide text-[#94a3b8]">
+          Cargando biblioteca y jornada...
+        </p>
       </div>
     );
   }
@@ -185,179 +203,337 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
   const cierreRealizado = Boolean(data?.cierreRealizado);
 
   return (
-    <div className="min-h-screen pb-16 flex flex-col bg-[#000000] text-[#f8fafc]">
+    <div className="relative min-h-screen w-full flex bg-[#070e1e] text-[#f8fafc] overflow-x-hidden">
+      {/* Fondo de Nieve Suave */}
+      <SnowEffect />
+
       {/* Toast Notification Banner */}
       {notification && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 animate-bounce">
-          <div className="px-5 py-2.5 rounded-xl bg-[#121c13] text-[#d9f2c4] border-2 border-[#74a47b] shadow-[0_10px_25px_rgba(0,0,0,0.9),0_0_15px_rgba(217,242,196,0.3)] flex items-center gap-2.5 text-xs font-mono font-bold backdrop-blur-md">
-            <span>✓</span>
+        <div className="fixed top-5 right-6 z-50 animate-fade-in">
+          <div className="px-5 py-3 rounded-full bg-[#0d1a3d]/90 text-[#f8fafc] border border-[#5b9bd5]/40 shadow-midnight-glow flex items-center gap-2.5 text-xs font-sans font-medium backdrop-blur-md">
+            <span className="text-[#eed59b]">✓</span>
             <span>{notification}</span>
           </div>
         </div>
       )}
 
-      {/* TOP COMMAND BAR: CONSOLA DE MANDO OBSIDIAN EMERALD */}
-      <header className="w-full max-w-7xl mx-auto pt-4 px-3 sm:px-6 sticky top-0 z-40">
-        <nav
-          className="bg-[#121c13]/95 backdrop-blur-md p-3 sm:p-4 rounded-2xl border-2 border-[#74a47b]/40 shadow-[0_10px_30px_rgba(0,0,0,0.9)] flex flex-col md:flex-row md:items-center justify-between gap-3.5"
-          aria-label="Navegación principal táctica"
-        >
-          {/* Brand & Status HUD */}
-          <div className="flex items-center justify-between gap-3">
+      {/* BACKDROP PARA MÓVILES */}
+      {isMobileSidebarOpen && (
+        <div
+          onClick={() => setIsMobileSidebarOpen(false)}
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden transition-opacity"
+          aria-hidden="true"
+        />
+      )}
+
+      {/* =========================================================================
+          SIDEBAR DESPLEGABLE / RETRÁCTIL (INSPIRADO EN BIBLIOTECA ENCANTADA)
+          ========================================================================= */}
+      <aside
+        className={`fixed md:sticky top-0 left-0 z-50 h-screen flex flex-col justify-between bg-[#081229]/95 backdrop-blur-xl border-r border-[#5b9bd5]/20 shadow-2xl transition-all duration-300 ease-in-out ${
+          isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        } ${isSidebarCollapsed ? 'w-20' : 'w-72'}`}
+        aria-label="Barra lateral de navegación"
+      >
+        {/* Cabecera del Sidebar */}
+        <div className="p-4 border-b border-[#5b9bd5]/15 flex items-center justify-between">
+          {!isSidebarCollapsed ? (
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-[#215e28] border-2 border-[#74a47b] flex items-center justify-center font-bold text-[#d9f2c4] text-sm shadow-[0_0_12px_rgba(217,242,196,0.35)]">
-                ▲
+              {/* Icono de Libro Dorado */}
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#1a336e] to-[#0d1a3d] border border-[#e5c179]/40 flex items-center justify-center text-[#e5c179] shadow-midnight">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
               </div>
               <div className="flex flex-col">
-                <div className="flex items-center gap-2">
-                  <span className="text-base sm:text-lg font-display font-extrabold tracking-tight text-[#f8fafc] uppercase">
-                    DiaCaminante
-                  </span>
-                  <span className="tag-tactical bg-[#215e28] text-[#d9f2c4] text-[10px] px-2 py-0.5 rounded border-[#74a47b]">
-                    DÍA {diaCiclo} / 365
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-[10px] font-mono text-[#92aa95]">
-                  <span>RELOJ: <strong className="text-[#d9f2c4] font-mono">{clockTime || '00:00:00'}</strong></span>
-                  <span>•</span>
-                  <span>ESTADO: <strong className={cierreRealizado ? 'text-[#d9f2c4]' : 'text-[#fde68a]'}>{cierreRealizado ? 'SELLADO' : 'EN COMBATE'}</strong></span>
-                </div>
+                <span className="font-serif text-lg font-bold tracking-wide text-white leading-tight">
+                  Día Caminante
+                </span>
+                <span className="text-[11px] font-sans text-[#e5c179] tracking-wider uppercase">
+                  Sistema de Foco
+                </span>
               </div>
             </div>
+          ) : (
+            <div className="mx-auto">
+              <div className="w-10 h-10 rounded-2xl bg-[#0d1a3d] border border-[#e5c179]/40 flex items-center justify-center text-[#e5c179]">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+              </div>
+            </div>
+          )}
 
-            {/* Mobile Action for Daily Reflection */}
-            <button
-              onClick={() => setIsDailyReflectionOpen(true)}
-              className="md:hidden tag-tactical bg-[#1a281b] text-[#d9f2c4] px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 border-[#74a47b]"
-              title="Ver reflexión del día"
+          {/* Botón para Colapsar / Expandir (Solo Desktop) */}
+          <button
+            type="button"
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className="hidden md:flex p-1.5 rounded-xl text-[#94a3b8] hover:text-[#f8fafc] hover:bg-[#132247] transition-colors"
+            title={isSidebarCollapsed ? 'Expandir barra lateral' : 'Contraer barra lateral'}
+          >
+            <svg
+              className={`w-4 h-4 transition-transform duration-300 ${isSidebarCollapsed ? 'rotate-180' : ''}`}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
             >
-              <span>✦</span>
-              <span>Sabiduría</span>
-            </button>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+            </svg>
+          </button>
+
+          {/* Botón Cerrar en Móvil */}
+          <button
+            type="button"
+            onClick={() => setIsMobileSidebarOpen(false)}
+            className="md:hidden p-1.5 rounded-xl text-[#94a3b8] hover:text-white"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Tarjeta de Estado de la Jornada (Solo expandido) */}
+        {!isSidebarCollapsed && (
+          <div className="mx-4 my-3 p-3.5 rounded-2xl bg-gradient-to-br from-[#0d1a3d]/80 to-[#070e1e]/90 border border-[#5b9bd5]/20 shadow-midnight">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-sans font-bold tracking-widest text-[#eed59b] uppercase">
+                Día {diaCiclo} de 365
+              </span>
+              <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                cierreRealizado
+                  ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                  : 'bg-blue-500/15 text-blue-300 border border-blue-500/30'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${cierreRealizado ? 'bg-emerald-400' : 'bg-blue-400 animate-pulse'}`}></span>
+                <span>{cierreRealizado ? 'Jornada Concluida' : 'En Curso'}</span>
+              </span>
+            </div>
+
+            <div className="flex items-baseline justify-between">
+              <span className="text-xl font-mono font-bold tracking-tight text-white">
+                {clockTime || '00:00:00'}
+              </span>
+              <span className="text-xs text-[#94a3b8] capitalize">
+                {formattedDate}
+              </span>
+            </div>
           </div>
+        )}
 
-          {/* Navigation Tabs - Switcher Táctico */}
-          <div className="flex items-center gap-1.5 bg-[#000000] p-1.5 rounded-xl border border-[#74a47b]/40 overflow-x-auto">
-            {/* Tab 1: Panel de Estadísticas */}
-            <button
-              type="button"
-              onClick={() => setCurrentTab('stats')}
-              className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-lg text-xs font-mono font-bold transition-all whitespace-nowrap ${
-                currentTab === 'stats'
-                  ? 'bg-[#d9f2c4] text-[#000000] shadow-[0_0_15px_rgba(217,242,196,0.4)]'
-                  : 'text-[#92aa95] hover:text-[#f8fafc] hover:bg-[#1a281b]'
-              }`}
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M3 3v18h18" />
-                <path d="m19 9-5 5-4-4-3 3" />
-              </svg>
-              <span>[01] Tablero Hoy</span>
-            </button>
+        {/* Navegación Principal */}
+        <div className="flex-1 px-3 py-2 space-y-1.5 overflow-y-auto">
+          {/* Tab 1: Panel General */}
+          <button
+            type="button"
+            onClick={() => {
+              setCurrentTab('stats');
+              setIsMobileSidebarOpen(false);
+            }}
+            className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-sm font-medium transition-all ${
+              currentTab === 'stats'
+                ? 'bg-gradient-to-r from-[#2563eb] to-[#3b82f6] text-white shadow-midnight-glow'
+                : 'text-[#94a3b8] hover:text-white hover:bg-[#0d1a3d]'
+            }`}
+            title="Panel General y Estadísticas"
+          >
+            <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+            </svg>
+            {!isSidebarCollapsed && (
+              <span className="truncate">Panel General</span>
+            )}
+          </button>
 
-            {/* Tab 2: Estación de Registro */}
-            <button
-              type="button"
-              onClick={() => setCurrentTab('today')}
-              className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-lg text-xs font-mono font-bold transition-all whitespace-nowrap ${
-                currentTab === 'today'
-                  ? 'bg-[#d9f2c4] text-[#000000] shadow-[0_0_15px_rgba(217,242,196,0.4)]'
-                  : 'text-[#92aa95] hover:text-[#f8fafc] hover:bg-[#1a281b]'
-              }`}
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          {/* Tab 2: Registro de Foco */}
+          <button
+            type="button"
+            onClick={() => {
+              setCurrentTab('today');
+              setIsMobileSidebarOpen(false);
+            }}
+            className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-sm font-medium transition-all ${
+              currentTab === 'today'
+                ? 'bg-gradient-to-r from-[#2563eb] to-[#3b82f6] text-white shadow-midnight-glow'
+                : 'text-[#94a3b8] hover:text-white hover:bg-[#0d1a3d]'
+            }`}
+            title="Registro de Sesiones de Foco"
+          >
+            <div className="flex items-center gap-3">
+              <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="10" />
                 <polyline points="12 6 12 12 16 14" />
               </svg>
-              <span>[02] Registro &amp; Log</span>
-              {totalHoras > 0 && (
-                <span className={`text-[10px] px-1.5 py-0.2 rounded font-mono font-bold border ${
-                  currentTab === 'today'
-                    ? 'bg-[#000000] text-[#d9f2c4] border-[#000000]'
-                    : 'bg-[#215e28] text-[#d9f2c4] border-[#74a47b]'
-                }`}>
-                  {totalHoras.toFixed(1)}h
-                </span>
+              {!isSidebarCollapsed && (
+                <span className="truncate">Registro de Foco</span>
               )}
-            </button>
+            </div>
+            {!isSidebarCollapsed && totalHoras > 0 && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-white/20 text-white font-mono font-semibold">
+                {totalHoras.toFixed(1)}h
+              </span>
+            )}
+          </button>
 
-            {/* Tab 3: Bóveda Filosófica */}
+          {/* Tab 3: Biblioteca de Pensamiento */}
+          <button
+            type="button"
+            onClick={() => {
+              setCurrentTab('philosophy');
+              setIsMobileSidebarOpen(false);
+            }}
+            className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-sm font-medium transition-all ${
+              currentTab === 'philosophy'
+                ? 'bg-gradient-to-r from-[#2563eb] to-[#3b82f6] text-white shadow-midnight-glow'
+                : 'text-[#94a3b8] hover:text-white hover:bg-[#0d1a3d]'
+            }`}
+            title="Biblioteca de Pensamiento (365 Días)"
+          >
+            <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+            </svg>
+            {!isSidebarCollapsed && (
+              <span className="truncate">Biblioteca 365</span>
+            )}
+          </button>
+        </div>
+
+        {/* Acciones Rápidas en la Base del Sidebar */}
+        <div className="p-3 border-t border-[#5b9bd5]/15 space-y-2">
+          {/* Botón Perla Diaria */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsDailyReflectionOpen(true);
+              setIsMobileSidebarOpen(false);
+            }}
+            className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all text-[#eed59b] bg-[#0d1a3d] hover:bg-[#132247] border border-[#e5c179]/30 ${
+              isSidebarCollapsed ? 'justify-center' : ''
+            }`}
+            title="Leer reflexión del día"
+          >
+            <span className="text-sm">✦</span>
+            {!isSidebarCollapsed && <span>Reflexión del Día</span>}
+          </button>
+
+          {/* Botón Cierre de Jornada */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsShutdownOpen(true);
+              setIsMobileSidebarOpen(false);
+            }}
+            className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all text-white bg-gradient-to-r from-[#1e3a8a] to-[#2563eb] hover:brightness-110 border border-[#60a5fa]/40 shadow-midnight ${
+              isSidebarCollapsed ? 'justify-center' : ''
+            }`}
+            title="Realizar protocolo de cierre de jornada"
+          >
+            <span>🌙</span>
+            {!isSidebarCollapsed && (
+              <span>{cierreRealizado ? 'Cierre Efectuado' : 'Cierre de Jornada'}</span>
+            )}
+          </button>
+
+          {!isSidebarCollapsed && (
+            <p className="pt-2 text-center text-[10px] text-[#94a3b8]/70 italic font-serif">
+              &ldquo;La quietud engendra claridad.&rdquo;
+            </p>
+          )}
+        </div>
+      </aside>
+
+      {/* =========================================================================
+          ÁREA PRINCIPAL DE CONTENIDO
+          ========================================================================= */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen relative z-10">
+        {/* Cabecera Móvil y Barra Superior Sutil */}
+        <header className="sticky top-0 z-30 flex items-center justify-between px-4 sm:px-8 py-3.5 bg-[#070e1e]/80 backdrop-blur-md border-b border-[#5b9bd5]/15">
+          <div className="flex items-center gap-3">
+            {/* Botón Menú Móvil */}
             <button
               type="button"
-              onClick={() => setCurrentTab('philosophy')}
-              className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-lg text-xs font-mono font-bold transition-all whitespace-nowrap ${
-                currentTab === 'philosophy'
-                  ? 'bg-[#d9f2c4] text-[#000000] shadow-[0_0_15px_rgba(217,242,196,0.4)]'
-                  : 'text-[#92aa95] hover:text-[#f8fafc] hover:bg-[#1a281b]'
-              }`}
+              onClick={() => setIsMobileSidebarOpen(true)}
+              className="md:hidden p-2 rounded-xl bg-[#0d1a3d] border border-[#5b9bd5]/30 text-[#f8fafc]"
+              aria-label="Abrir menú de navegación"
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
               </svg>
-              <span>[03] Filosofía 365</span>
             </button>
+
+            <div>
+              <h1 className="font-serif text-lg sm:text-xl font-bold text-white tracking-wide">
+                {currentTab === 'stats' && 'Panel General y Ritmo Diario'}
+                {currentTab === 'today' && 'Registro de Sesiones de Foco'}
+                {currentTab === 'philosophy' && 'Biblioteca de Pensamiento'}
+              </h1>
+              <p className="text-xs text-[#94a3b8] font-sans">
+                {currentTab === 'stats' && 'Visualización circadiana, intensidad y auditoría retrospectiva.'}
+                {currentTab === 'today' && 'Control cronológico de horas netas e incomodidad cognitiva.'}
+                {currentTab === 'philosophy' && 'Compendio de reflexiones para la excelencia y la disciplina.'}
+              </p>
+            </div>
           </div>
 
-          {/* Desktop Right Actions: Sabiduría & Ritual de Cierre Rápido */}
-          <div className="hidden md:flex items-center gap-2">
+          {/* Acciones de Cabecera Superior */}
+          <div className="flex items-center gap-2.5">
             <button
               onClick={() => setIsDailyReflectionOpen(true)}
-              className="btn-tactical-ghost px-3.5 py-2 rounded-xl text-xs font-mono flex items-center gap-1.5"
-              title="Abrir reflexión del día"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium text-[#eed59b] bg-[#0d1a3d] border border-[#e5c179]/30 hover:bg-[#132247] transition-all shadow-sm"
             >
-              <span className="text-[#d9f2c4]">✦</span>
-              <span>Perla Diaria</span>
+              <span>✦</span>
+              <span>Reflexión del Día</span>
             </button>
 
             <button
               onClick={() => setIsShutdownOpen(true)}
-              className="btn-tactical px-3.5 py-2 rounded-xl text-xs font-mono flex items-center gap-1.5"
-              title="Abrir ritual de cierre"
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold text-white bg-gradient-to-r from-[#2563eb] to-[#3b82f6] border border-[#60a5fa]/40 hover:brightness-110 shadow-midnight transition-all"
             >
               <span>🌙</span>
-              <span>{cierreRealizado ? 'Cierre Sellado' : 'Ritual Cierre'}</span>
+              <span>{cierreRealizado ? 'Cierre Realizado' : 'Cerrar Jornada'}</span>
             </button>
           </div>
-        </nav>
-      </header>
+        </header>
 
-      {/* MAIN VIEW CONTENT (SWITCH ENTRE TABS) */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 my-4">
-        {currentTab === 'stats' && (
-          <VisualStats
-            fechaHoy={todayStr}
-            sesionesHoy={data?.sesiones || []}
-            onGoToDailyLog={() => setCurrentTab('today')}
-          />
-        )}
-
-        {currentTab === 'today' && (
-          <div className="space-y-5 animate-fade-in">
-            {/* Scoreboard Táctico */}
-            <Scoreboard
-              fecha={fechaHoy}
-              totalHorasNetas={totalHoras}
-              cierreRealizado={cierreRealizado}
-              onOpenShutdown={() => setIsShutdownOpen(true)}
-              onRefresh={fetchHoy}
+        {/* CONTENEDOR DE PESTAÑAS */}
+        <main className="flex-1 p-4 sm:p-8 max-w-7xl w-full mx-auto">
+          {currentTab === 'stats' && (
+            <VisualStats
+              fechaHoy={todayStr}
+              sesionesHoy={data?.sesiones || []}
+              onGoToDailyLog={() => setCurrentTab('today')}
             />
+          )}
 
-            {/* Quick Log & Timeline */}
-            <QuickLog
-              fecha={fechaHoy}
-              sesiones={data?.sesiones || []}
-              onSesionRegistrada={handleSesionRegistrada}
-              onSesionActualizada={handleSesionActualizada}
-              onSesionEliminada={handleSesionEliminada}
-            />
-          </div>
-        )}
+          {currentTab === 'today' && (
+            <div className="space-y-6 animate-fade-in">
+              <Scoreboard
+                fecha={fechaHoy}
+                totalHorasNetas={totalHoras}
+                cierreRealizado={cierreRealizado}
+                onOpenShutdown={() => setIsShutdownOpen(true)}
+                onRefresh={fetchHoy}
+              />
 
-        {currentTab === 'philosophy' && (
-          <PhilosophyView />
-        )}
-      </main>
+              <QuickLog
+                fecha={fechaHoy}
+                sesiones={data?.sesiones || []}
+                onSesionRegistrada={handleSesionRegistrada}
+                onSesionActualizada={handleSesionActualizada}
+                onSesionEliminada={handleSesionEliminada}
+              />
+            </div>
+          )}
+
+          {currentTab === 'philosophy' && (
+            <PhilosophyView />
+          )}
+        </main>
+
+        {/* Footer Formal */}
+        <footer className="w-full px-6 py-6 border-t border-[#5b9bd5]/10 text-center text-xs text-[#94a3b8]/70 font-sans">
+          <p>Día Caminante • Sistema Formal de Trabajo Profundo &amp; Reflexión Cotidiana</p>
+        </footer>
+      </div>
 
       {/* Shutdown Ritual Modal */}
       <ShutdownModal
@@ -369,18 +545,13 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
         onCierreCompletado={handleCierreCompletado}
       />
 
-      {/* Daily Reflection Awakening Modal (Primer visita del día) */}
+      {/* Daily Reflection Modal */}
       <DailyReflectionModal
         isOpen={isDailyReflectionOpen}
         onClose={() => setIsDailyReflectionOpen(false)}
         reflection={todayReflection}
         onMarkAsReadForToday={handleMarkDailyReflectionRead}
       />
-
-      {/* Footer Táctico */}
-      <footer className="w-full max-w-7xl mx-auto px-4 sm:px-6 pt-10 pb-6 text-center text-xs font-mono text-[#92aa95]/80">
-        <p>DiaCaminante • Sistema Táctico de Auditoría de Deep Work &amp; Ritual de Cierre</p>
-      </footer>
     </div>
   );
 };

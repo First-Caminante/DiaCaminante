@@ -444,11 +444,11 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
   if (loading && !stats) {
     return (
       <div className="w-full flex flex-col items-center justify-center min-h-[50vh] space-y-4">
-        <div className="w-12 h-12 rounded-xl bg-[#121c13] border-2 border-[#74a47b] shadow-[0_0_20px_rgba(217,242,196,0.3)] animate-pulse flex items-center justify-center text-[#d9f2c4] font-mono text-xl">
-          ▲
+        <div className="w-12 h-12 rounded-2xl bg-[#0d1a3d] border border-[#5b9bd5]/30 shadow-midnight flex items-center justify-center text-[#e5c179] font-serif text-2xl animate-pulse">
+          ✦
         </div>
-        <p className="text-xs font-mono font-bold tracking-widest text-[#92aa95] uppercase">
-          Trazando telemetría y relieve de la jornada...
+        <p className="text-xs font-serif italic tracking-wide text-[#94a3b8]">
+          Calculando ritmo circadiano y métricas de la jornada...
         </p>
       </div>
     );
@@ -457,17 +457,17 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
   if (error && !stats) {
     return (
       <div className="w-full">
-        <div className="card-tactical p-8 text-center space-y-4 border-2 border-[#e28080]">
+        <div className="card-midnight p-8 text-center space-y-4 border border-rose-500/30">
           <span className="text-3xl">⚠️</span>
-          <p className="text-sm font-display font-bold text-[#e28080] uppercase tracking-wider">
-            Fallo en la lectura de métricas
+          <p className="text-sm font-serif font-bold text-rose-300 tracking-wide">
+            No se pudieron obtener las estadísticas
           </p>
-          <p className="text-xs font-mono text-[#92aa95]">{error}</p>
+          <p className="text-xs text-[#94a3b8]">{error}</p>
           <button
             onClick={fetchStats}
-            className="btn-tactical px-5 py-2.5 rounded-xl text-xs font-mono font-bold uppercase"
+            className="btn-formal px-5 py-2.5 rounded-full text-xs font-medium"
           >
-            Reconectar
+            Reintentar
           </button>
         </div>
       </div>
@@ -560,64 +560,64 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
       {/* ========================================================= */}
       {/* 1. ZONA HERO PANORÁMICA: GRAN MONTAÑA CIRCADIANA + HUD KPIs */}
       {/* ========================================================= */}
-      <section className="card-tactical p-5 sm:p-7 space-y-6 border-2 border-[#74a47b]/40 relative overflow-hidden">
-        {/* Glow de fondo superior */}
-        <div className="absolute -top-24 right-1/4 w-96 h-96 bg-[#215e28]/25 rounded-full blur-[120px] pointer-events-none"></div>
+      <section className="card-midnight p-5 sm:p-7 space-y-6 border border-[#5b9bd5]/25 relative overflow-hidden">
+        {/* Glow de fondo superior etéreo */}
+        <div className="absolute -top-24 right-1/4 w-96 h-96 bg-[#3b82f6]/15 rounded-full blur-[140px] pointer-events-none"></div>
 
         {/* Header de la Zona Hero */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10 pb-2 border-b border-[#74a47b]/20">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10 pb-3 border-b border-[#5b9bd5]/15">
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="tag-tactical px-2.5 py-0.5 rounded text-[10px] bg-[#215e28] text-[#d9f2c4] border-[#74a47b]">
-                TELEMETRÍA EN VIVO
+              <span className="tag-formal px-3 py-1 rounded-full text-[10px] bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30 font-medium">
+                Ritmo en Vivo
               </span>
-              <span className="text-xs font-mono text-[#92aa95] font-semibold">
+              <span className="text-xs font-sans text-[#94a3b8] font-medium">
                 {fechaFormateadaCapital}
               </span>
-              <span className="text-xs font-mono text-[#74a47b]">
+              <span className="text-xs font-sans text-[#eed59b]">
                 • {horasRestantesHoy}h {minRestantesHoy}m para medianoche
               </span>
             </div>
-            <h1 className="text-2xl sm:text-4xl font-display font-extrabold text-[#f8fafc] uppercase tracking-tight">
-              Relieve Circadiano de Hoy
-            </h1>
-            <p className="text-xs sm:text-sm font-mono text-[#92aa95] max-w-2xl">
-              Curva spline de concentración hora a hora (00:00 — 23:59). Cero distracciones: el marcador se resetea al inicio de cada jornada.
+            <h2 className="text-2xl sm:text-3xl font-serif font-bold text-white tracking-wide">
+              Ritmo y Concentración Circadiana
+            </h2>
+            <p className="text-xs sm:text-sm font-sans text-[#94a3b8] max-w-2xl">
+              Curva continua de inmersión hora a hora (00:00 — 23:59). Registro limpio y enfocado exclusivamente en la jornada de hoy.
             </p>
           </div>
 
           <div className="flex items-center gap-2.5 flex-wrap self-start lg:self-auto">
-            {/* Botón Flotante para Abrir Bóveda Histórica */}
+            {/* Botón para Abrir Archivo Histórico */}
             <button
               type="button"
               onClick={() => setMostrarModalHistorico(true)}
-              className="btn-tactical-ghost px-4 py-2 rounded-xl text-xs font-mono font-bold flex items-center gap-2"
-              title="Abrir ventana flotante con el histórico acumulado y auditoría por día"
+              className="btn-formal-outline px-4 py-2 rounded-full text-xs font-medium flex items-center gap-2"
+              title="Abrir ventana del archivo histórico y auditoría de días anteriores"
             >
-              <span className="text-[#d9f2c4]">🏛️</span>
-              <span>Bóveda Histórica</span>
+              <span className="text-[#eed59b]">🏛️</span>
+              <span>Archivo Histórico</span>
             </button>
 
             {onGoToDailyLog && (
               <button
                 onClick={onGoToDailyLog}
-                className="btn-tactical px-4 py-2 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5"
+                className="btn-formal px-4 py-2 rounded-full text-xs font-semibold flex items-center gap-1.5"
               >
-                <span>+ Registrar Bloque</span>
+                <span>+ Registrar Sesión</span>
               </button>
             )}
           </div>
         </div>
 
-        {/* GRAN MONTAÑA CIRCADIANA SVG (PANORÁMICA DE CLASE MUNDIAL) */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-[#000000] border-2 border-[#74a47b]/30 shadow-inner space-y-2 relative">
-          <div className="flex items-center justify-between text-xs font-mono text-[#92aa95] pb-1">
-            <span className="flex items-center gap-2 font-bold text-[#f8fafc] uppercase">
-              <span className="w-2 h-2 rounded-full bg-[#d9f2c4] animate-ping"></span>
-              Relieve de Flujo 24 Horas
+        {/* GRAN MONTAÑA CIRCADIANA SVG (ESTILO NOCHE DE INVIERNO & BIBLIOTECA) */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-[#081229]/80 border border-[#5b9bd5]/20 shadow-inner space-y-2 relative">
+          <div className="flex items-center justify-between text-xs text-[#94a3b8] pb-1">
+            <span className="flex items-center gap-2 font-medium text-[#f8fafc]">
+              <span className="w-2 h-2 rounded-full bg-[#60a5fa] animate-ping"></span>
+              Relieve de Concentración 24 Horas
             </span>
-            <span className="text-[#d9f2c4] font-bold">
-              {horasHoy > 0 ? `${(horasHoy * 60).toFixed(0)} min netos de inmersión hoy` : 'Esperando primer bloque del día'}
+            <span className="text-[#eed59b] font-medium font-serif">
+              {horasHoy > 0 ? `${(horasHoy * 60).toFixed(0)} minutos de inmersión hoy` : 'Esperando primera sesión del día'}
             </span>
           </div>
 
@@ -627,15 +627,15 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
               className="w-full h-32 sm:h-44 overflow-visible"
             >
               <defs>
-                <linearGradient id="tacticalCircadianGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#d9f2c4" stopOpacity="0.45" />
-                  <stop offset="45%" stopColor="#215e28" stopOpacity="0.25" />
-                  <stop offset="100%" stopColor="#000000" stopOpacity="0.0" />
+                <linearGradient id="midnightCircadianGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.4" />
+                  <stop offset="50%" stopColor="#1e3a8a" stopOpacity="0.18" />
+                  <stop offset="100%" stopColor="#070e1e" stopOpacity="0.0" />
                 </linearGradient>
-                <linearGradient id="tacticalCircadianStroke" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#74a47b" />
-                  <stop offset="50%" stopColor="#d9f2c4" />
-                  <stop offset="100%" stopColor="#74a47b" />
+                <linearGradient id="midnightCircadianStroke" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#5b9bd5" />
+                  <stop offset="50%" stopColor="#eed59b" />
+                  <stop offset="100%" stopColor="#5b9bd5" />
                 </linearGradient>
               </defs>
 
@@ -645,17 +645,17 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
                 y1={mountainHoyData.baselineY}
                 x2={mountainHoyData.width}
                 y2={mountainHoyData.baselineY}
-                stroke="#1a281b"
-                strokeWidth="2"
+                stroke="#11224d"
+                strokeWidth="1.5"
               />
               <line
                 x1="0"
                 y1={mountainHoyData.baselineY - 50}
                 x2={mountainHoyData.width}
                 y2={mountainHoyData.baselineY - 50}
-                stroke="#215e28"
+                stroke="#19336e"
                 strokeDasharray="4 4"
-                strokeWidth="1.2"
+                strokeWidth="1"
                 opacity="0.6"
               />
 
@@ -663,7 +663,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
               {horasHoy > 0 && (
                 <path
                   d={mountainHoyData.areaPath}
-                  fill="url(#tacticalCircadianGrad)"
+                  fill="url(#midnightCircadianGrad)"
                   className="transition-all duration-700"
                 />
               )}
@@ -672,8 +672,8 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
               <path
                 d={mountainHoyData.linePath}
                 fill="none"
-                stroke={horasHoy > 0 ? 'url(#tacticalCircadianStroke)' : '#215e28'}
-                strokeWidth="3"
+                stroke={horasHoy > 0 ? 'url(#midnightCircadianStroke)' : '#19336e'}
+                strokeWidth="2.5"
                 strokeLinecap="round"
                 className="transition-all duration-700"
               />
@@ -694,27 +694,27 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
                       <circle
                         cx={pt.x}
                         cy={pt.y}
-                        r="10"
+                        r="9"
                         fill="none"
-                        stroke="#d9f2c4"
-                        strokeWidth="2"
+                        stroke="#eed59b"
+                        strokeWidth="1.5"
                         className="animate-ping opacity-75"
                       />
                     )}
                     <circle
                       cx={pt.x}
                       cy={pt.y}
-                      r={isSelected ? 6.5 : hasFocus ? 5 : 2.5}
+                      r={isSelected ? 6 : hasFocus ? 4.5 : 2.5}
                       fill={
                         isSelected
                           ? '#ffffff'
                           : isCurrent
-                          ? '#d9f2c4'
+                          ? '#eed59b'
                           : hasFocus
-                          ? '#74a47b'
-                          : '#1a281b'
+                          ? '#60a5fa'
+                          : '#11224d'
                       }
-                      stroke="#000000"
+                      stroke="#070e1e"
                       strokeWidth="2"
                       className="transition-all duration-200 group-hover:scale-150"
                     />
@@ -725,85 +725,85 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
           </div>
         </div>
 
-        {/* HUD DE 4 MÉTRICAS CLAVE (HEADS-UP DISPLAY EN PIE DE MONTAÑA) */}
+        {/* HUD DE 4 MÉTRICAS CLAVE (ESTILO FORMAL MEDIANOCHE) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           {/* KPI 1: Horas Netas de Hoy */}
-          <div className="card-elevated p-4 border border-[#74a47b]/40 space-y-1 relative overflow-hidden">
-            <div className="flex items-center justify-between text-[10px] font-mono font-bold uppercase text-[#92aa95]">
-              <span>[01] DEEP WORK HOY</span>
-              <span className="text-[#d9f2c4]">⚡</span>
+          <div className="card-elevated p-4 border border-[#5b9bd5]/25 space-y-1 relative overflow-hidden">
+            <div className="flex items-center justify-between text-[11px] font-sans font-medium text-[#94a3b8]">
+              <span>TIEMPO DE FOCO</span>
+              <span className="text-[#eed59b]">✦</span>
             </div>
             <div className="flex items-baseline gap-1.5 pt-0.5">
-              <span className="text-3xl sm:text-4xl font-display font-extrabold text-[#d9f2c4] tabular-nums">
+              <span className="text-3xl sm:text-4xl font-serif font-bold text-white tabular-nums">
                 {horasHoy.toFixed(1)}
               </span>
-              <span className="text-xs font-mono text-[#92aa95] font-bold">/ 3.0h meta</span>
+              <span className="text-xs text-[#94a3b8]">/ 3.0h sugeridas</span>
             </div>
-            <p className="text-[11px] font-mono text-[#92aa95]">
+            <p className="text-[11px] text-[#94a3b8]">
               {horasHoy >= UMBRAL_TRABAJO_MIN_H
-                ? '✓ Meta Newport superada'
+                ? '✓ Objetivo diario alcanzado'
                 : deficitTrabajoHoy > 0
-                ? `Faltan ${deficitTrabajoHoy.toFixed(1)}h hoy`
-                : '0.0h registradas hoy'}
+                ? `Resta ${deficitTrabajoHoy.toFixed(1)}h hoy`
+                : 'Sin sesiones aún hoy'}
             </p>
           </div>
 
-          {/* KPI 2: Fricción Mental de Hoy */}
-          <div className="card-elevated p-4 border border-[#74a47b]/40 space-y-1 relative overflow-hidden">
-            <div className="flex items-center justify-between text-[10px] font-mono font-bold uppercase text-[#92aa95]">
-              <span>[02] FRICCIÓN MENTAL</span>
-              <span className="text-[#e28080]">🔥</span>
+          {/* KPI 2: Fricción / Incomodidad de Hoy */}
+          <div className="card-elevated p-4 border border-[#5b9bd5]/25 space-y-1 relative overflow-hidden">
+            <div className="flex items-center justify-between text-[11px] font-sans font-medium text-[#94a3b8]">
+              <span>INCOMODIDAD MENTAL</span>
+              <span className="text-[#60a5fa]">⚡</span>
             </div>
             <div className="flex items-baseline gap-1.5 pt-0.5">
-              <span className="text-3xl sm:text-4xl font-display font-extrabold text-[#f8fafc] tabular-nums">
+              <span className="text-3xl sm:text-4xl font-serif font-bold text-white tabular-nums">
                 {horasHoy > 0 ? `${pctExigenteHoy}%` : '0%'}
               </span>
-              <span className="text-xs font-mono text-[#92aa95] font-bold">/ 50% min</span>
+              <span className="text-xs text-[#94a3b8]">/ 50% ideal</span>
             </div>
-            <p className="text-[11px] font-mono text-[#92aa95]">
+            <p className="text-[11px] text-[#94a3b8]">
               {horasHoy > 0
-                ? `${horasFriccionHoy.toFixed(1)}h en incomodidad alta/media`
-                : 'Sin bloques desafiantes hoy'}
+                ? `${horasFriccionHoy.toFixed(1)}h en incomodidad alta o media`
+                : 'Sin sesiones desafiantes hoy'}
             </p>
           </div>
 
           {/* KPI 3: Entrenamiento de Hoy */}
-          <div className="card-elevated p-4 border border-[#74a47b]/40 space-y-1 relative overflow-hidden">
-            <div className="flex items-center justify-between text-[10px] font-mono font-bold uppercase text-[#92aa95]">
-              <span>[03] TEMPLO FÍSICO</span>
-              <span className="text-[#74a47b]">🏃</span>
+          <div className="card-elevated p-4 border border-[#5b9bd5]/25 space-y-1 relative overflow-hidden">
+            <div className="flex items-center justify-between text-[11px] font-sans font-medium text-[#94a3b8]">
+              <span>EJERCICIO FÍSICO</span>
+              <span className="text-[#4ecdc4]">🏃</span>
             </div>
             <div className="flex items-baseline gap-1.5 pt-0.5">
-              <span className="text-3xl sm:text-4xl font-display font-extrabold text-[#f8fafc] tabular-nums">
+              <span className="text-3xl sm:text-4xl font-serif font-bold text-white tabular-nums">
                 {ejercicioHoy.toFixed(1)}
               </span>
-              <span className="text-xs font-mono text-[#92aa95] font-bold">/ 0.75h min</span>
+              <span className="text-xs text-[#94a3b8]">/ 0.75h meta</span>
             </div>
-            <p className="text-[11px] font-mono text-[#92aa95]">
+            <p className="text-[11px] text-[#94a3b8]">
               {ejercicioHoy >= UMBRAL_EJERCICIO_MIN_H
-                ? '✓ Templo forjado con rigor'
+                ? '✓ Ejercicio completado'
                 : deficitEjercicioHoy > 0
-                ? `Faltan ${deficitEjercicioHoy.toFixed(1)}h de entreno`
+                ? `Resta ${deficitEjercicioHoy.toFixed(1)}h de actividad`
                 : 'Sin entrenamiento hoy'}
             </p>
           </div>
 
-          {/* KPI 4: Ritual de Cierre */}
-          <div className="card-elevated p-4 border border-[#74a47b]/40 space-y-1 relative overflow-hidden">
-            <div className="flex items-center justify-between text-[10px] font-mono font-bold uppercase text-[#92aa95]">
-              <span>[04] RITUAL CIERRE</span>
-              <span className="text-[#d9f2c4]">🌙</span>
+          {/* KPI 4: Cierre de Jornada */}
+          <div className="card-elevated p-4 border border-[#5b9bd5]/25 space-y-1 relative overflow-hidden">
+            <div className="flex items-center justify-between text-[11px] font-sans font-medium text-[#94a3b8]">
+              <span>CIERRE DIARIO</span>
+              <span className="text-[#eed59b]">🌙</span>
             </div>
             <div className="flex items-baseline gap-1.5 pt-0.5">
-              <span className={`text-2xl sm:text-3xl font-display font-extrabold ${cierreHoy ? 'text-[#d9f2c4]' : 'text-[#92aa95]'}`}>
-                {cierreHoy ? 'SELLADO' : 'ABIERTO'}
+              <span className={`text-2xl sm:text-3xl font-serif font-bold ${cierreHoy ? 'text-[#eed59b]' : 'text-[#94a3b8]'}`}>
+                {cierreHoy ? 'Concluido' : 'En Curso'}
               </span>
-              <span className="text-xs font-mono text-[#92aa95] font-bold">
+              <span className="text-xs text-[#94a3b8]">
                 {cierreHoy ? '✓' : '11:59 PM'}
               </span>
             </div>
-            <p className="text-[11px] font-mono text-[#92aa95]">
-              {cierreHoy ? 'Día confinado con rigor' : 'Pendiente antes de medianoche'}
+            <p className="text-[11px] text-[#94a3b8]">
+              {cierreHoy ? 'Jornada cerrada con serenidad' : 'Pendiente antes del descanso'}
             </p>
           </div>
         </div>
@@ -816,26 +816,26 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
         {/* COLUMNA PRINCIPAL (65% -> col-span-8): CRONOGRAMA 24H & MATRIZ 2D */}
         <div className="lg:col-span-8 space-y-6">
           {/* CRONOGRAMA DE 24 RANURAS HORARIAS */}
-          <section className="card-tactical p-5 sm:p-6 space-y-5 border-2 border-[#74a47b]/40">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#74a47b]/20">
+          <section className="card-midnight p-5 sm:p-6 space-y-5 border border-[#5b9bd5]/20">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#5b9bd5]/15">
               <div className="space-y-0.5">
-                <h3 className="text-base sm:text-lg font-display font-bold text-[#f8fafc] uppercase tracking-tight flex items-center gap-2">
-                  <span className="tag-tactical px-2 py-0.5 rounded text-[10px] bg-[#215e28] text-[#d9f2c4] border-[#74a47b]">
-                    24H
+                <h3 className="text-base sm:text-lg font-serif font-bold text-white tracking-wide flex items-center gap-2">
+                  <span className="tag-formal px-2.5 py-0.5 rounded-full text-[10px] bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30 font-medium">
+                    24 Horas
                   </span>
-                  Ranuras Circadianas de Hoy (00:00 — 23:59)
+                  Distribución Horaria del Día (00:00 — 23:59)
                 </h3>
-                <p className="text-xs font-mono text-[#92aa95]">
-                  Haz clic en cualquier tramo para auditar su intensidad, incomodidad y sesiones ejecutadas.
+                <p className="text-xs text-[#94a3b8]">
+                  Selecciona cualquier franja para revisar las sesiones ejecutadas y su nivel de concentración.
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 text-[11px] font-mono">
-                <span className="tag-tactical px-2.5 py-1 rounded bg-[#000000] text-[#f8fafc] border-[#74a47b]/40">
-                  Activas: <strong className="text-[#d9f2c4] font-mono">{horasConFocoCount}</strong>/24h
+              <div className="flex items-center gap-2 text-[11px]">
+                <span className="tag-formal px-3 py-1 rounded-full bg-[#0d1733] text-[#f8fafc] border border-[#5b9bd5]/25">
+                  Activas: <strong className="text-[#eed59b] font-mono">{horasConFocoCount}</strong> / 24h
                 </span>
-                <span className="tag-tactical px-2.5 py-1 rounded bg-[#215e28] text-[#d9f2c4] border-[#74a47b]">
-                  📍 AHORA: <strong>{String(horaActual).padStart(2, '0')}:00</strong>
+                <span className="tag-formal px-3 py-1 rounded-full bg-[#1e3a8a]/50 text-[#93c5fd] border border-[#60a5fa]/30">
+                  Ahora: <strong className="font-mono">{String(horaActual).padStart(2, '0')}:00</strong>
                 </span>
               </div>
             </div>
@@ -843,21 +843,21 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
             {/* Pista de las 24 Columnas */}
             <div className="overflow-x-auto pb-2 pt-1">
               <div className="min-w-[620px]">
-                <div className="flex items-end justify-between gap-1 sm:gap-1.5 h-32 border-b-2 border-[#74a47b]/30 px-1">
+                <div className="flex items-end justify-between gap-1 sm:gap-1.5 h-32 border-b border-[#5b9bd5]/20 px-1">
                   {horasSlotsHoy.map((slot) => {
                     const isSelected = (selectedHora !== null ? selectedHora : horaActual) === slot.hora;
                     const hasFocus = slot.minutosFoco > 0;
                     const fillPercent = Math.max(hasFocus ? 16 : 0, Math.round((slot.minutosFoco / 60) * 100));
 
-                    let barColor = 'bg-[#1a281b]';
-                    if (slot.intensidadPredominante === 'Alta') barColor = 'bg-[#d9f2c4] shadow-[0_0_10px_rgba(217,242,196,0.4)]';
-                    else if (slot.intensidadPredominante === 'Media') barColor = 'bg-[#74a47b]';
-                    else if (slot.intensidadPredominante === 'Baja') barColor = 'bg-[#215e28]';
+                    let barColor = 'bg-[#11224d]';
+                    if (slot.intensidadPredominante === 'Alta') barColor = 'bg-gradient-to-t from-[#2563eb] to-[#60a5fa] shadow-[0_0_10px_rgba(96,165,250,0.35)]';
+                    else if (slot.intensidadPredominante === 'Media') barColor = 'bg-gradient-to-t from-[#1e3a8a] to-[#3b82f6]';
+                    else if (slot.intensidadPredominante === 'Baja') barColor = 'bg-[#19336e]';
 
                     let dotColor = null;
-                    if (slot.incomodidadPredominante === 'Alta') dotColor = 'bg-[#e28080]';
-                    else if (slot.incomodidadPredominante === 'Media') dotColor = 'bg-[#fde68a]';
-                    else if (slot.incomodidadPredominante === 'Baja') dotColor = 'bg-[#74a47b]';
+                    if (slot.incomodidadPredominante === 'Alta') dotColor = 'bg-[#eed59b]';
+                    else if (slot.incomodidadPredominante === 'Media') dotColor = 'bg-[#60a5fa]';
+                    else if (slot.incomodidadPredominante === 'Baja') dotColor = 'bg-[#4ecdc4]';
 
                     return (
                       <div
@@ -869,36 +869,36 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
                         title={`${slot.rangoLabel}: ${slot.minutosFoco} min foco`}
                       >
                         {slot.esHoraActual && (
-                          <span className="tag-tactical absolute -top-6 text-[8px] px-1 py-0.5 rounded bg-[#d9f2c4] text-[#000000] border-[#74a47b] whitespace-nowrap animate-bounce font-bold">
-                            📍 AHORA
+                          <span className="tag-formal absolute -top-6 text-[8px] px-1.5 py-0.5 rounded-full bg-[#eed59b] text-[#070e1e] border-none whitespace-nowrap font-bold shadow-sm">
+                            AHORA
                           </span>
                         )}
 
                         <div className="h-2.5 flex items-center justify-center mb-1">
                           {dotColor ? (
-                            <span className={`w-2 h-2 rounded-full ${dotColor} border border-black shadow-sm`}></span>
+                            <span className={`w-2 h-2 rounded-full ${dotColor} shadow-sm`}></span>
                           ) : (
                             <span className="w-1 h-1 rounded-full bg-white/10"></span>
                           )}
                         </div>
 
                         <div
-                          className={`w-full max-w-[26px] h-20 rounded-md flex flex-col justify-end p-0.5 transition-all duration-200 border-2 ${
+                          className={`w-full max-w-[26px] h-20 rounded-lg flex flex-col justify-end p-0.5 transition-all duration-200 border ${
                             slot.esHoraActual
-                              ? 'bg-[#121c13] border-[#d9f2c4] shadow-[0_0_12px_rgba(217,242,196,0.35)]'
+                              ? 'bg-[#0d1a3d] border-[#eed59b] shadow-midnight-glow'
                               : isSelected
-                              ? 'bg-[#1a281b] border-white shadow-[0_0_10px_rgba(255,255,255,0.4)]'
+                              ? 'bg-[#132247] border-white shadow-md'
                               : hasFocus
-                              ? 'bg-[#121c13] border-[#74a47b]/60 hover:border-[#d9f2c4]'
+                              ? 'bg-[#0d1a3d] border-[#5b9bd5]/40 hover:border-[#60a5fa]'
                               : slot.esFutura
-                              ? 'bg-[#000000] border-dashed border-[#74a47b]/20'
-                              : 'bg-[#000000] border-[#74a47b]/20 hover:border-[#74a47b]/50'
+                              ? 'bg-[#070e1e]/60 border-dashed border-[#5b9bd5]/15'
+                              : 'bg-[#070e1e]/80 border-[#5b9bd5]/15 hover:border-[#5b9bd5]/35'
                           } ${isSelected ? 'scale-105' : ''}`}
                         >
                           {hasFocus ? (
                             <div
                               style={{ height: `${fillPercent}%` }}
-                              className={`w-full rounded-sm transition-all duration-300 ${barColor}`}
+                              className={`w-full rounded-md transition-all duration-300 ${barColor}`}
                             ></div>
                           ) : (
                             <div className="w-full h-0.5 bg-transparent"></div>
@@ -908,12 +908,12 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
                         <span
                           className={`mt-1.5 text-[10px] font-mono leading-none transition-colors ${
                             slot.esHoraActual
-                              ? 'text-[#d9f2c4] font-bold'
+                              ? 'text-[#eed59b] font-bold'
                               : isSelected
                               ? 'text-white font-bold'
                               : hasFocus
-                              ? 'text-[#f8fafc] font-semibold'
-                              : 'text-[#92aa95]/60'
+                              ? 'text-[#f8fafc] font-medium'
+                              : 'text-[#94a3b8]/60'
                           }`}
                         >
                           {String(slot.hora).padStart(2, '0')}
@@ -925,26 +925,26 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
               </div>
             </div>
 
-            {/* Inspección de la Hora Seleccionada */}
-            <div className="p-4 rounded-xl bg-[#000000] border-2 border-[#74a47b]/40 shadow-inner space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-[#74a47b]/20">
+            {/* Inspección de la Franja Horaria Seleccionada */}
+            <div className="p-4 rounded-2xl bg-[#081229]/80 border border-[#5b9bd5]/20 shadow-inner space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-[#5b9bd5]/15">
                 <div className="flex items-center gap-2.5 flex-wrap">
-                  <span className="text-base font-display font-bold text-[#f8fafc] uppercase">
-                    🕒 Tramo: {slotActivoHoy.rangoLabel}
+                  <span className="text-sm sm:text-base font-serif font-bold text-white">
+                    Franja: {slotActivoHoy.rangoLabel}
                   </span>
                   {slotActivoHoy.esHoraActual && (
-                    <span className="tag-tactical px-2 py-0.5 rounded text-[10px] bg-[#215e28] text-[#d9f2c4] border-[#74a47b]">
-                      📍 HORA EN CURSO
+                    <span className="tag-formal px-2.5 py-0.5 rounded-full text-[10px] bg-[#eed59b]/20 text-[#eed59b] border border-[#eed59b]/40 font-medium">
+                      Hora en Curso
                     </span>
                   )}
                   {slotActivoHoy.minutosFoco > 0 && !slotActivoHoy.esHoraActual && (
-                    <span className="tag-tactical px-2 py-0.5 rounded text-[10px] bg-[#1a281b] text-[#d9f2c4] border-[#74a47b]">
-                      ✓ FOCO EJECUTADO
+                    <span className="tag-formal px-2.5 py-0.5 rounded-full text-[10px] bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30 font-medium">
+                      Sesión Registrada
                     </span>
                   )}
                 </div>
 
-                <span className="text-xs font-mono text-[#d9f2c4] font-bold">
+                <span className="text-xs text-[#eed59b] font-mono font-semibold">
                   {slotActivoHoy.minutosFoco} min netos ({slotActivoHoy.horasNetas.toFixed(2)}h)
                 </span>
               </div>
@@ -955,156 +955,156 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
                   {slotActivoHoy.sesiones.map((item, idx) => (
                     <div
                       key={item.sesion.id || idx}
-                      className="p-3 rounded-lg bg-[#121c13] border border-[#74a47b]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono"
+                      className="p-3.5 rounded-xl bg-[#0d1733]/90 border border-[#5b9bd5]/25 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
                     >
-                      <div className="space-y-0.5">
+                      <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-[#f8fafc]">{item.sesion.tipo}</span>
-                          <span className="tag-tactical text-[9px] px-1.5 py-0.5 rounded bg-[#215e28] text-[#d9f2c4] border-[#74a47b]">
+                          <span className="font-serif font-bold text-white text-sm">{item.sesion.tipo}</span>
+                          <span className="tag-formal text-[10px] px-2 py-0.5 rounded-full bg-[#1e3a8a]/50 text-[#93c5fd] border border-[#60a5fa]/30">
                             {item.minutos} min en este tramo
                           </span>
                         </div>
                         {item.sesion.calidad && (
-                          <p className="text-[11px] text-[#92aa95] italic font-serif">
+                          <p className="text-xs text-[#94a3b8] italic font-serif">
                             &ldquo;{item.sesion.calidad}&rdquo;
                           </p>
                         )}
                       </div>
 
                       <div className="flex items-center gap-2 text-[10px] shrink-0">
-                        <span className="tag-tactical px-2 py-0.5 rounded bg-[#000000] text-[#92aa95] border-[#74a47b]/40">
-                          Int: <b className="text-[#d9f2c4]">{item.sesion.intensidad}</b>
+                        <span className="tag-formal px-2.5 py-1 rounded-full bg-[#070e1e] text-[#94a3b8] border border-[#5b9bd5]/25">
+                          Intensidad: <b className="text-[#60a5fa]">{item.sesion.intensidad}</b>
                         </span>
-                        <span className="tag-tactical px-2 py-0.5 rounded bg-[#000000] text-[#92aa95] border-[#74a47b]/40">
-                          Incom: <b className="text-[#e28080]">{item.sesion.incomodidad}</b>
+                        <span className="tag-formal px-2.5 py-1 rounded-full bg-[#070e1e] text-[#94a3b8] border border-[#5b9bd5]/25">
+                          Incomodidad: <b className="text-[#eed59b]">{item.sesion.incomodidad}</b>
                         </span>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-2 text-xs font-mono text-[#92aa95]">
+                <div className="text-center py-2 text-xs text-[#94a3b8]">
                   {slotActivoHoy.esHoraActual
-                    ? 'Estás en este tramo ahora mismo. Conquístalo registrando un bloque de foco.'
+                    ? 'Franja activa en este momento. Aprovecha para registrar una sesión de foco.'
                     : slotActivoHoy.esPasada
-                    ? 'Sin bloques registrados en este intervalo.'
-                    : 'Tramo futuro de la jornada.'}
+                    ? 'Sin sesiones de trabajo en este intervalo.'
+                    : 'Franja futura de la jornada.'}
                 </div>
               )}
             </div>
           </section>
 
-          {/* MATRIZ 2D DE CALIDAD COGNITIVA & ESPECTRO */}
-          <section className="card-tactical p-5 sm:p-6 space-y-5 border-2 border-[#74a47b]/40">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#74a47b]/20">
+          {/* MATRIZ DE CALIDAD COGNITIVA & ESPECTRO */}
+          <section className="card-midnight p-5 sm:p-6 space-y-5 border border-[#5b9bd5]/20">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#5b9bd5]/15">
               <div className="space-y-0.5">
-                <h3 className="text-base font-display font-bold text-[#f8fafc] uppercase tracking-tight flex items-center gap-2">
-                  <span className="tag-tactical px-2 py-0.5 rounded text-[10px] bg-[#1a281b] text-[#d9f2c4] border-[#74a47b]">
-                    ESPECTRO
+                <h3 className="text-base font-serif font-bold text-white tracking-wide flex items-center gap-2">
+                  <span className="tag-formal px-2.5 py-0.5 rounded-full text-[10px] bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30 font-medium">
+                    Espectro
                   </span>
-                  Calidad Cognitiva: Intensidad × Incomodidad
+                  Matriz de Esfuerzo e Incomodidad
                 </h3>
-                <p className="text-xs font-mono text-[#92aa95]">
-                  Distribución matricial de potencia de foco y fricción mental de la jornada actual
+                <p className="text-xs text-[#94a3b8]">
+                  Distribución cruzada de profundidad mental y fricción cognitiva de la jornada de hoy
                 </p>
               </div>
-              <span className="tag-tactical text-[11px] text-[#000000] px-3 py-1 rounded-lg bg-[#d9f2c4] border-[#74a47b]">
-                TOTAL HOY: {horasHoy.toFixed(1)}h
+              <span className="tag-formal text-xs text-[#eed59b] px-3.5 py-1 rounded-full bg-[#0d1733] border border-[#e5c179]/30 font-semibold font-mono">
+                Total Hoy: {horasHoy.toFixed(1)}h
               </span>
             </div>
 
             {/* Espectros Proporcionales */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-3.5 rounded-xl bg-[#000000] border border-[#74a47b]/30 space-y-2">
-                <div className="flex justify-between text-xs font-mono">
-                  <span className="text-[#f8fafc] font-bold uppercase">Incomodidad Hoy</span>
-                  <span className="text-[#d9f2c4] font-bold">{incomodidadHoy.Alta.toFixed(1)}h Alta / {totalIncomodidadHoy.toFixed(1)}h</span>
+              <div className="p-4 rounded-2xl bg-[#081229]/80 border border-[#5b9bd5]/20 space-y-2.5">
+                <div className="flex justify-between text-xs">
+                  <span className="text-white font-medium">Incomodidad Cognitiva</span>
+                  <span className="text-[#eed59b] font-mono font-medium">{incomodidadHoy.Alta.toFixed(1)}h Alta / {totalIncomodidadHoy.toFixed(1)}h</span>
                 </div>
-                <div className="h-3.5 w-full rounded-md bg-[#121c13] overflow-hidden flex border border-[#74a47b]/40 p-0.5">
-                  <div style={{ width: `${pctIncomodidadAltaHoy}%` }} className="h-full bg-[#e28080] rounded-l-sm" title={`Alta: ${incomodidadHoy.Alta.toFixed(1)}h`}></div>
-                  <div style={{ width: `${pctIncomodidadMediaHoy}%` }} className="h-full bg-[#fde68a]" title={`Media: ${incomodidadHoy.Media.toFixed(1)}h`}></div>
-                  <div style={{ width: `${pctIncomodidadBajaHoy}%` }} className="h-full bg-[#74a47b] rounded-r-sm" title={`Baja: ${incomodidadHoy.Baja.toFixed(1)}h`}></div>
+                <div className="h-3 w-full rounded-full bg-[#070e1e] overflow-hidden flex border border-[#5b9bd5]/25 p-0.5">
+                  <div style={{ width: `${pctIncomodidadAltaHoy}%` }} className="h-full bg-[#eed59b] rounded-l-full" title={`Alta: ${incomodidadHoy.Alta.toFixed(1)}h`}></div>
+                  <div style={{ width: `${pctIncomodidadMediaHoy}%` }} className="h-full bg-[#60a5fa]" title={`Media: ${incomodidadHoy.Media.toFixed(1)}h`}></div>
+                  <div style={{ width: `${pctIncomodidadBajaHoy}%` }} className="h-full bg-[#3b82f6] rounded-r-full" title={`Baja: ${incomodidadHoy.Baja.toFixed(1)}h`}></div>
                 </div>
-                <div className="flex justify-between text-[10px] font-mono text-[#92aa95]">
-                  <span>ALTA: {incomodidadHoy.Alta.toFixed(1)}h</span>
-                  <span>MEDIA: {incomodidadHoy.Media.toFixed(1)}h</span>
-                  <span>BAJA: {incomodidadHoy.Baja.toFixed(1)}h</span>
+                <div className="flex justify-between text-[11px] text-[#94a3b8]">
+                  <span>Alta: {incomodidadHoy.Alta.toFixed(1)}h</span>
+                  <span>Media: {incomodidadHoy.Media.toFixed(1)}h</span>
+                  <span>Baja: {incomodidadHoy.Baja.toFixed(1)}h</span>
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-[#000000] border border-[#74a47b]/30 space-y-2">
-                <div className="flex justify-between text-xs font-mono">
-                  <span className="text-[#f8fafc] font-bold uppercase">Intensidad Hoy</span>
-                  <span className="text-[#d9f2c4] font-bold">{intensidadHoy.Alta.toFixed(1)}h Alta / {totalIntensidadHoy.toFixed(1)}h</span>
+              <div className="p-4 rounded-2xl bg-[#081229]/80 border border-[#5b9bd5]/20 space-y-2.5">
+                <div className="flex justify-between text-xs">
+                  <span className="text-white font-medium">Intensidad de Foco</span>
+                  <span className="text-[#60a5fa] font-mono font-medium">{intensidadHoy.Alta.toFixed(1)}h Alta / {totalIntensidadHoy.toFixed(1)}h</span>
                 </div>
-                <div className="h-3.5 w-full rounded-md bg-[#121c13] overflow-hidden flex border border-[#74a47b]/40 p-0.5">
-                  <div style={{ width: `${pctIntensidadAltaHoy}%` }} className="h-full bg-[#d9f2c4] rounded-l-sm" title={`Alta: ${intensidadHoy.Alta.toFixed(1)}h`}></div>
-                  <div style={{ width: `${pctIntensidadMediaHoy}%` }} className="h-full bg-[#74a47b]" title={`Media: ${intensidadHoy.Media.toFixed(1)}h`}></div>
-                  <div style={{ width: `${pctIntensidadBajaHoy}%` }} className="h-full bg-[#215e28] rounded-r-sm" title={`Baja: ${intensidadHoy.Baja.toFixed(1)}h`}></div>
+                <div className="h-3 w-full rounded-full bg-[#070e1e] overflow-hidden flex border border-[#5b9bd5]/25 p-0.5">
+                  <div style={{ width: `${pctIntensidadAltaHoy}%` }} className="h-full bg-[#60a5fa] rounded-l-full" title={`Alta: ${intensidadHoy.Alta.toFixed(1)}h`}></div>
+                  <div style={{ width: `${pctIntensidadMediaHoy}%` }} className="h-full bg-[#3b82f6]" title={`Media: ${intensidadHoy.Media.toFixed(1)}h`}></div>
+                  <div style={{ width: `${pctIntensidadBajaHoy}%` }} className="h-full bg-[#1e3a8a] rounded-r-full" title={`Baja: ${intensidadHoy.Baja.toFixed(1)}h`}></div>
                 </div>
-                <div className="flex justify-between text-[10px] font-mono text-[#92aa95]">
-                  <span>ALTA: {intensidadHoy.Alta.toFixed(1)}h</span>
-                  <span>MEDIA: {intensidadHoy.Media.toFixed(1)}h</span>
-                  <span>BAJA: {intensidadHoy.Baja.toFixed(1)}h</span>
+                <div className="flex justify-between text-[11px] text-[#94a3b8]">
+                  <span>Alta: {intensidadHoy.Alta.toFixed(1)}h</span>
+                  <span>Media: {intensidadHoy.Media.toFixed(1)}h</span>
+                  <span>Baja: {intensidadHoy.Baja.toFixed(1)}h</span>
                 </div>
               </div>
             </div>
 
-            {/* Matriz 2D */}
+            {/* Matriz 2D Elegante */}
             <div className="overflow-x-auto pt-1">
-              <div className="min-w-[380px] space-y-1.5 font-mono">
-                <div className="grid grid-cols-4 gap-2 text-center text-[10px] text-[#92aa95]">
-                  <div className="text-left font-bold text-[#f8fafc] self-center uppercase">Intensidad \ Incomodidad</div>
-                  <div className="p-1 rounded bg-[#1a281b] text-[#e28080] font-bold border border-[#e28080]/30">Alta (Frontera)</div>
-                  <div className="p-1 rounded bg-[#1a281b] text-[#fde68a] font-bold border border-[#fde68a]/30">Media (Esfuerzo)</div>
-                  <div className="p-1 rounded bg-[#1a281b] text-[#74a47b] font-bold border border-[#74a47b]/30">Baja (Confort)</div>
+              <div className="min-w-[380px] space-y-2 font-sans">
+                <div className="grid grid-cols-4 gap-2 text-center text-[11px] text-[#94a3b8]">
+                  <div className="text-left font-medium text-white self-center">Intensidad \ Incomodidad</div>
+                  <div className="p-1.5 rounded-lg bg-[#0d1733] text-[#eed59b] font-medium border border-[#eed59b]/25">Alta (Frontera)</div>
+                  <div className="p-1.5 rounded-lg bg-[#0d1733] text-[#60a5fa] font-medium border border-[#60a5fa]/25">Media (Esfuerzo)</div>
+                  <div className="p-1.5 rounded-lg bg-[#0d1733] text-[#94a3b8] font-medium border border-[#5b9bd5]/20">Baja (Confort)</div>
                 </div>
 
                 <div className="grid grid-cols-4 gap-2 text-center text-xs">
-                  <div className="flex items-center text-left text-[11px] font-bold text-[#d9f2c4] uppercase">Alta</div>
-                  <div className={`p-2 rounded-xl border ${matrizHoy.Alta.Alta > 0 ? 'bg-[#215e28] border-[#d9f2c4] text-[#d9f2c4]' : 'bg-[#000000] border-[#74a47b]/20 text-[#92aa95]/40'}`}>
-                    <span className="font-bold block">{matrizHoy.Alta.Alta.toFixed(1)}h</span>
-                    <span className="text-[9px] uppercase">Élite</span>
+                  <div className="flex items-center text-left text-xs font-serif font-bold text-[#eed59b]">Alta</div>
+                  <div className={`p-2.5 rounded-xl border ${matrizHoy.Alta.Alta > 0 ? 'bg-[#1e3a8a]/80 border-[#eed59b] text-[#eed59b] shadow-sm' : 'bg-[#081229] border-[#5b9bd5]/15 text-[#94a3b8]/40'}`}>
+                    <span className="font-bold font-mono block">{matrizHoy.Alta.Alta.toFixed(1)}h</span>
+                    <span className="text-[10px]">Maestría</span>
                   </div>
-                  <div className={`p-2 rounded-xl border ${matrizHoy.Alta.Media > 0 ? 'bg-[#215e28]/60 border-[#74a47b] text-[#d9f2c4]' : 'bg-[#000000] border-[#74a47b]/20 text-[#92aa95]/40'}`}>
-                    <span className="font-bold block">{matrizHoy.Alta.Media.toFixed(1)}h</span>
-                    <span className="text-[9px] uppercase">Flujo</span>
+                  <div className={`p-2.5 rounded-xl border ${matrizHoy.Alta.Media > 0 ? 'bg-[#1e3a8a]/60 border-[#60a5fa] text-[#93c5fd]' : 'bg-[#081229] border-[#5b9bd5]/15 text-[#94a3b8]/40'}`}>
+                    <span className="font-bold font-mono block">{matrizHoy.Alta.Media.toFixed(1)}h</span>
+                    <span className="text-[10px]">Inmersión</span>
                   </div>
-                  <div className={`p-2 rounded-xl border ${matrizHoy.Alta.Baja > 0 ? 'bg-[#1a281b] border-[#74a47b] text-[#74a47b]' : 'bg-[#000000] border-[#74a47b]/20 text-[#92aa95]/40'}`}>
-                    <span className="font-bold block">{matrizHoy.Alta.Baja.toFixed(1)}h</span>
-                    <span className="text-[9px] uppercase">Mecánico</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-4 gap-2 text-center text-xs">
-                  <div className="flex items-center text-left text-[11px] font-bold text-[#74a47b] uppercase">Media</div>
-                  <div className={`p-2 rounded-xl border ${matrizHoy.Media.Alta > 0 ? 'bg-[#1a281b] border-[#fde68a] text-[#fde68a]' : 'bg-[#000000] border-[#74a47b]/20 text-[#92aa95]/40'}`}>
-                    <span className="font-bold block">{matrizHoy.Media.Alta.toFixed(1)}h</span>
-                    <span className="text-[9px] uppercase">Desafío</span>
-                  </div>
-                  <div className={`p-2 rounded-xl border ${matrizHoy.Media.Media > 0 ? 'bg-[#1a281b] border-[#74a47b] text-[#92aa95]' : 'bg-[#000000] border-[#74a47b]/20 text-[#92aa95]/40'}`}>
-                    <span className="font-bold block">{matrizHoy.Media.Media.toFixed(1)}h</span>
-                    <span className="text-[9px] uppercase">Sostenible</span>
-                  </div>
-                  <div className={`p-2 rounded-xl border ${matrizHoy.Media.Baja > 0 ? 'bg-[#000000] border-[#74a47b]/40 text-[#92aa95]' : 'bg-[#000000] border-[#74a47b]/20 text-[#92aa95]/40'}`}>
-                    <span className="font-bold block">{matrizHoy.Media.Baja.toFixed(1)}h</span>
-                    <span className="text-[9px] uppercase">Rutinario</span>
+                  <div className={`p-2.5 rounded-xl border ${matrizHoy.Alta.Baja > 0 ? 'bg-[#0d1733] border-[#5b9bd5]/30 text-[#94a3b8]' : 'bg-[#081229] border-[#5b9bd5]/15 text-[#94a3b8]/40'}`}>
+                    <span className="font-bold font-mono block">{matrizHoy.Alta.Baja.toFixed(1)}h</span>
+                    <span className="text-[10px]">Mecánico</span>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-4 gap-2 text-center text-xs">
-                  <div className="flex items-center text-left text-[11px] font-bold text-[#92aa95] uppercase">Baja</div>
-                  <div className={`p-2 rounded-xl border ${matrizHoy.Baja.Alta > 0 ? 'bg-[#000000] border-[#e28080]/50 text-[#e28080]' : 'bg-[#000000] border-[#74a47b]/20 text-[#92aa95]/40'}`}>
-                    <span className="font-bold block">{matrizHoy.Baja.Alta.toFixed(1)}h</span>
-                    <span className="text-[9px] uppercase">Sobrecarga</span>
+                  <div className="flex items-center text-left text-xs font-serif font-bold text-[#60a5fa]">Media</div>
+                  <div className={`p-2.5 rounded-xl border ${matrizHoy.Media.Alta > 0 ? 'bg-[#0d1733] border-[#eed59b]/40 text-[#eed59b]' : 'bg-[#081229] border-[#5b9bd5]/15 text-[#94a3b8]/40'}`}>
+                    <span className="font-bold font-mono block">{matrizHoy.Media.Alta.toFixed(1)}h</span>
+                    <span className="text-[10px]">Desafío</span>
                   </div>
-                  <div className={`p-2 rounded-xl border ${matrizHoy.Baja.Media > 0 ? 'bg-[#000000] border-[#74a47b]/40 text-[#92aa95]' : 'bg-[#000000] border-[#74a47b]/20 text-[#92aa95]/40'}`}>
-                    <span className="font-bold block">{matrizHoy.Baja.Media.toFixed(1)}h</span>
-                    <span className="text-[9px] uppercase">Distracción</span>
+                  <div className={`p-2.5 rounded-xl border ${matrizHoy.Media.Media > 0 ? 'bg-[#0d1733] border-[#5b9bd5]/35 text-white' : 'bg-[#081229] border-[#5b9bd5]/15 text-[#94a3b8]/40'}`}>
+                    <span className="font-bold font-mono block">{matrizHoy.Media.Media.toFixed(1)}h</span>
+                    <span className="text-[10px]">Sostenible</span>
                   </div>
-                  <div className={`p-2 rounded-xl border ${matrizHoy.Baja.Baja > 0 ? 'bg-[#000000] border-[#e28080]/30 text-[#e28080]' : 'bg-[#000000] border-[#74a47b]/20 text-[#92aa95]/40'}`}>
-                    <span className="font-bold block">{matrizHoy.Baja.Baja.toFixed(1)}h</span>
-                    <span className="text-[9px] uppercase">Superficial</span>
+                  <div className={`p-2.5 rounded-xl border ${matrizHoy.Media.Baja > 0 ? 'bg-[#081229] border-[#5b9bd5]/20 text-[#94a3b8]' : 'bg-[#081229] border-[#5b9bd5]/15 text-[#94a3b8]/40'}`}>
+                    <span className="font-bold font-mono block">{matrizHoy.Media.Baja.toFixed(1)}h</span>
+                    <span className="text-[10px]">Rutinario</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                  <div className="flex items-center text-left text-xs font-serif font-bold text-[#94a3b8]">Baja</div>
+                  <div className={`p-2.5 rounded-xl border ${matrizHoy.Baja.Alta > 0 ? 'bg-[#081229] border-rose-500/40 text-rose-300' : 'bg-[#081229] border-[#5b9bd5]/15 text-[#94a3b8]/40'}`}>
+                    <span className="font-bold font-mono block">{matrizHoy.Baja.Alta.toFixed(1)}h</span>
+                    <span className="text-[10px]">Fatiga</span>
+                  </div>
+                  <div className={`p-2.5 rounded-xl border ${matrizHoy.Baja.Media > 0 ? 'bg-[#081229] border-[#5b9bd5]/20 text-[#94a3b8]' : 'bg-[#081229] border-[#5b9bd5]/15 text-[#94a3b8]/40'}`}>
+                    <span className="font-bold font-mono block">{matrizHoy.Baja.Media.toFixed(1)}h</span>
+                    <span className="text-[10px]">Distracción</span>
+                  </div>
+                  <div className={`p-2.5 rounded-xl border ${matrizHoy.Baja.Baja > 0 ? 'bg-[#081229] border-rose-500/20 text-rose-300' : 'bg-[#081229] border-[#5b9bd5]/15 text-[#94a3b8]/40'}`}>
+                    <span className="font-bold font-mono block">{matrizHoy.Baja.Baja.toFixed(1)}h</span>
+                    <span className="text-[10px]">Superficial</span>
                   </div>
                 </div>
               </div>
@@ -1112,209 +1112,209 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
           </section>
         </div>
 
-        {/* COLUMNA LATERAL (35% -> col-span-4): CONSOLA DE EXIGENCIA & SEMÁFORO NO NEGOCIABLE */}
+        {/* COLUMNA LATERAL (35% -> col-span-4): EVALUACIÓN DE COMPROMISO & SEMÁFORO FORMAL */}
         <div className="lg:col-span-4 space-y-6">
-          {/* TARJETA DE RACHA ÉLITE */}
-          <div className="card-tactical p-5 border-2 border-[#74a47b]/50 shadow-[0_10px_25px_rgba(0,0,0,0.8)] space-y-3">
+          {/* TARJETA DE CONSTANCIA Y RACHA */}
+          <div className="card-midnight p-5 border border-[#5b9bd5]/25 shadow-midnight space-y-3">
             <div className="flex items-center justify-between">
-              <span className="tag-tactical text-[10px] px-2 py-0.5 rounded bg-[#215e28] text-[#d9f2c4] border-[#74a47b]">
-                DISCIPLINA ÉLITE
+              <span className="tag-formal text-[10px] px-3 py-1 rounded-full bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30 font-medium">
+                Continuidad
               </span>
-              <span className="text-xl">{stats.rachaActual > 0 ? '🔥' : '🕯️'}</span>
+              <span className="text-xl">{stats.rachaActual > 0 ? '✨' : '🕯️'}</span>
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-4xl sm:text-5xl font-display font-extrabold text-[#d9f2c4]">
+              <span className="text-4xl sm:text-5xl font-serif font-bold text-[#eed59b]">
                 {stats.rachaActual}
               </span>
-              <span className="text-sm font-mono text-[#92aa95] font-bold uppercase">
-                {stats.rachaActual === 1 ? 'DÍA DE RACHA' : 'DÍAS DE RACHA'}
+              <span className="text-xs text-[#94a3b8] font-medium tracking-wide uppercase">
+                {stats.rachaActual === 1 ? 'Día Consecutivo' : 'Días Consecutivos'}
               </span>
             </div>
-            <p className="text-xs font-mono text-[#92aa95] leading-relaxed">
-              La racha solo se sella cuando la jornada concluye con esfuerzo riguroso (≥75% en los 4 pilares).
+            <p className="text-xs text-[#94a3b8] leading-relaxed">
+              La racha premia la consistencia real: solo suma cuando la jornada concluye con al menos 75% de cumplimiento en los pilares.
             </p>
           </div>
 
-          {/* SEMÁFORO DE EXIGENCIA DIARIA */}
-          <section className="card-tactical p-5 space-y-4 border-2 border-[#74a47b]/40">
-            <div className="flex items-center justify-between pb-3 border-b border-[#74a47b]/20">
+          {/* SEMÁFORO DE COMPROMISO DIARIO CON CITAS DE AUTORES */}
+          <section className="card-midnight p-5 space-y-4 border border-[#5b9bd5]/25">
+            <div className="flex items-center justify-between pb-3 border-b border-[#5b9bd5]/15">
               <div className="space-y-0.5">
-                <h3 className="text-sm font-display font-bold text-[#f8fafc] uppercase tracking-tight flex items-center gap-1.5">
+                <h3 className="text-sm font-serif font-bold text-white tracking-wide flex items-center gap-1.5">
                   <span>⚖️</span>
-                  Semáforo de Exigencia
+                  Compromiso Diario
                 </h3>
-                <p className="text-[11px] font-mono text-[#92aa95]">
-                  4 Pilares No Negociables
+                <p className="text-[11px] text-[#94a3b8]">
+                  4 Pilares de Excelencia
                 </p>
               </div>
 
               {totalAlertas === 0 ? (
-                <span className="tag-tactical px-2.5 py-1 rounded text-[10px] bg-[#d9f2c4] text-[#000000] border-[#74a47b]">
-                  ✓ 100% OK
+                <span className="tag-formal px-3 py-1 rounded-full text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-medium">
+                  ✓ Al Día
                 </span>
               ) : (
-                <span className="tag-tactical px-2.5 py-1 rounded text-[10px] bg-[#e28080] text-[#000000] border-[#74a47b]">
-                  ⚠ {totalAlertas} PEND.
+                <span className="tag-formal px-3 py-1 rounded-full text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 font-medium">
+                  {totalAlertas} {totalAlertas === 1 ? 'recordatorio' : 'recordatorios'}
                 </span>
               )}
             </div>
 
             {totalAlertas > 0 ? (
-              <div className="space-y-3 font-mono">
+              <div className="space-y-3 font-sans">
                 {/* Alerta 1: Trabajo Profundo */}
                 {alertaTrabajo && (
-                  <div className="p-3.5 rounded-xl bg-[#000000] border-2 border-[#e28080]/60 space-y-2">
-                    <div className="flex items-center justify-between text-[10px] font-bold text-[#e28080]">
-                      <span>⚠ DEEP WORK DEFICITARIO</span>
-                      <span>{horasHoy.toFixed(1)}h / 3.0h</span>
+                  <div className="p-4 rounded-2xl bg-[#081229]/80 border border-blue-500/30 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-semibold text-[#93c5fd]">
+                      <span>Tiempo de Foco Requerido</span>
+                      <span className="font-mono">{horasHoy.toFixed(1)}h / 3.0h</span>
                     </div>
                     <p className="text-xs text-[#f8fafc]">
-                      Te faltan {deficitTrabajoHoy.toFixed(1)}h para el mínimo Newport de élite.
+                      Aún restan {deficitTrabajoHoy.toFixed(1)}h para completar la meta de inmersión cognitiva.
                     </p>
-                    <blockquote className="p-2.5 rounded-lg bg-[#121c13] border-l-2 border-[#e28080] text-[11px] text-[#92aa95] italic font-serif">
+                    <blockquote className="p-3 rounded-xl bg-[#0d1733]/90 border-l-2 border-[#eed59b] text-xs text-[#94a3b8] italic font-serif">
                       &ldquo;No es que tengamos poco tiempo, sino que perdemos mucho.&rdquo;
-                      <span className="block text-[9px] font-mono text-[#e28080] font-bold not-italic mt-1">— Séneca</span>
+                      <span className="block text-[10px] font-sans text-[#eed59b] font-medium not-italic mt-1">— Séneca</span>
                     </blockquote>
                   </div>
                 )}
 
                 {/* Alerta 2: Fricción Cognitiva */}
                 {alertaEstudio && (
-                  <div className="p-3.5 rounded-xl bg-[#000000] border-2 border-[#fde68a]/60 space-y-2">
-                    <div className="flex items-center justify-between text-[10px] font-bold text-[#fde68a]">
-                      <span>⚠ CONFORT MENTAL</span>
-                      <span>{pctExigenteHoy}% / 50%</span>
+                  <div className="p-4 rounded-2xl bg-[#081229]/80 border border-amber-500/30 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-semibold text-amber-300">
+                      <span>Incomodidad Cognitiva</span>
+                      <span className="font-mono">{pctExigenteHoy}% / 50%</span>
                     </div>
                     <p className="text-xs text-[#f8fafc]">
-                      {horasHoy === 0 ? 'Sin bloques de estudio desafiante aún.' : 'Poco tiempo en la frontera de dificultad cognitiva.'}
+                      {horasHoy === 0 ? 'Sin sesiones con desafío mental aún.' : 'Poco tiempo invertido en la frontera de dificultad.'}
                     </p>
-                    <blockquote className="p-2.5 rounded-lg bg-[#121c13] border-l-2 border-[#fde68a] text-[11px] text-[#92aa95] italic font-serif">
-                      &ldquo;Trágate ese sapo a primera hora y sin titubear.&rdquo;
-                      <span className="block text-[9px] font-mono text-[#fde68a] font-bold not-italic mt-1">— Brian Tracy</span>
+                    <blockquote className="p-3 rounded-xl bg-[#0d1733]/90 border-l-2 border-amber-400 text-xs text-[#94a3b8] italic font-serif">
+                      &ldquo;Empieza siempre por la tarea más difícil y no titubees.&rdquo;
+                      <span className="block text-[10px] font-sans text-amber-300 font-medium not-italic mt-1">— Brian Tracy</span>
                     </blockquote>
                   </div>
                 )}
 
                 {/* Alerta 3: Entrenamiento */}
                 {alertaEntrenamiento && (
-                  <div className="p-3.5 rounded-xl bg-[#000000] border-2 border-[#e28080]/60 space-y-2">
-                    <div className="flex items-center justify-between text-[10px] font-bold text-[#e28080]">
-                      <span>⚠ TEMPLO FÍSICO</span>
-                      <span>{ejercicioHoy.toFixed(1)}h / 0.75h</span>
+                  <div className="p-4 rounded-2xl bg-[#081229]/80 border border-rose-500/30 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-semibold text-rose-300">
+                      <span>Entrenamiento Físico</span>
+                      <span className="font-mono">{ejercicioHoy.toFixed(1)}h / 0.75h</span>
                     </div>
                     <p className="text-xs text-[#f8fafc]">
-                      {ejercicioHoy === 0 ? 'Hoy no has entrenado el cuerpo.' : `Faltan ${deficitEjercicioHoy.toFixed(1)}h de entreno.`}
+                      {ejercicioHoy === 0 ? 'No has registrado actividad física hoy.' : `Faltan ${deficitEjercicioHoy.toFixed(1)}h de entrenamiento.`}
                     </p>
-                    <blockquote className="p-2.5 rounded-lg bg-[#121c13] border-l-2 border-[#e28080] text-[11px] text-[#92aa95] italic font-serif">
-                      &ldquo;Cuando tu mente dice basta, estás apenas al 40%.&rdquo;
-                      <span className="block text-[9px] font-mono text-[#e28080] font-bold not-italic mt-1">— David Goggins</span>
+                    <blockquote className="p-3 rounded-xl bg-[#0d1733]/90 border-l-2 border-rose-400 text-xs text-[#94a3b8] italic font-serif">
+                      &ldquo;Cuando tu mente dice basta, apenas has rozado tu potencial.&rdquo;
+                      <span className="block text-[10px] font-sans text-rose-300 font-medium not-italic mt-1">— David Goggins</span>
                     </blockquote>
                   </div>
                 )}
 
                 {/* Alerta 4: Cierre */}
                 {alertaCierre && (
-                  <div className="p-3.5 rounded-xl bg-[#000000] border-2 border-[#74a47b]/60 space-y-2">
-                    <div className="flex items-center justify-between text-[10px] font-bold text-[#d9f2c4]">
-                      <span>🌙 CIERRE PENDIENTE</span>
-                      <span>23:59 LÍMITE</span>
+                  <div className="p-4 rounded-2xl bg-[#081229]/80 border border-[#5b9bd5]/30 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-semibold text-[#93c5fd]">
+                      <span>Cierre de Jornada</span>
+                      <span className="font-mono">Pendiente</span>
                     </div>
                     <p className="text-xs text-[#f8fafc]">
-                      Sella la jornada formalmente antes de medianoche para no arrastrar bucles.
+                      Realiza el protocolo formal antes de medianoche para liberar la mente de pendientes.
                     </p>
-                    <blockquote className="p-2.5 rounded-lg bg-[#121c13] border-l-2 border-[#74a47b] text-[11px] text-[#92aa95] italic font-serif">
+                    <blockquote className="p-3 rounded-xl bg-[#0d1733]/90 border-l-2 border-[#5b9bd5] text-xs text-[#94a3b8] italic font-serif">
                       &ldquo;Al anochecer, confina tus pensamientos y haz las paces con lo inacabado.&rdquo;
-                      <span className="block text-[9px] font-mono text-[#d9f2c4] font-bold not-italic mt-1">— Marco Aurelio</span>
+                      <span className="block text-[10px] font-sans text-[#93c5fd] font-medium not-italic mt-1">— Marco Aurelio</span>
                     </blockquote>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="p-4 rounded-xl bg-[#000000] border-2 border-[#d9f2c4] text-center space-y-2">
+              <div className="p-5 rounded-2xl bg-[#081229]/80 border border-emerald-500/40 text-center space-y-2.5">
                 <span className="text-2xl">🏆</span>
-                <h4 className="text-sm font-display font-bold text-[#d9f2c4] uppercase">
-                  Estándar Élite Conquistado
+                <h4 className="text-sm font-serif font-bold text-[#eed59b]">
+                  Jornada Ejemplar Cumplida
                 </h4>
-                <p className="text-xs font-mono text-[#92aa95]">
-                  Todos los umbrales de trabajo profundo, fricción mental, entreno físico y cierre han sido conquistados hoy.
+                <p className="text-xs text-[#94a3b8]">
+                  Todos los objetivos de foco profundo, esfuerzo intelectual, cuerpo y cierre han sido completados hoy.
                 </p>
-                <blockquote className="p-2 rounded bg-[#121c13] text-[10px] text-[#d9f2c4] italic font-serif">
-                  &ldquo;La excelencia no es un acto aislado, sino un hábito forjado día a día.&rdquo;
-                  <span className="block text-[8px] font-mono text-[#92aa95] not-italic mt-0.5">— Aristóteles</span>
+                <blockquote className="p-2.5 rounded-xl bg-[#0d1733]/80 text-[11px] text-[#eed59b] italic font-serif">
+                  &ldquo;La excelencia no es un acto aislado, sino un hábito cotidiano.&rdquo;
+                  <span className="block text-[9px] font-sans text-[#94a3b8] not-italic mt-1">— Aristóteles</span>
                 </blockquote>
               </div>
             )}
           </section>
 
           {/* ACCESO A BÓVEDA HISTÓRICA */}
-          <div className="card-elevated p-5 border border-[#74a47b]/40 space-y-3">
-            <span className="text-xs font-display font-bold text-[#f8fafc] uppercase block">
-              Auditoría Histórica Retrospectiva
+          <div className="card-elevated p-5 border border-[#5b9bd5]/25 space-y-3">
+            <span className="text-sm font-serif font-bold text-white block">
+              Archivo Histórico Retrospectivo
             </span>
-            <p className="text-xs font-mono text-[#92aa95]">
-              Consulta el rendimiento de cualquier fecha del calendario con desglose horario exacto.
+            <p className="text-xs text-[#94a3b8]">
+              Consulta el rendimiento de cualquier fecha del calendario con detalle horario de sesiones.
             </p>
             <button
               type="button"
               onClick={() => setMostrarModalHistorico(true)}
-              className="btn-tactical w-full py-2.5 rounded-xl text-xs font-mono font-bold uppercase text-center block"
+              className="btn-formal w-full py-2.5 rounded-full text-xs font-medium text-center block"
             >
-              🏛️ Abrir Bóveda Histórica
+              🏛️ Abrir Archivo Histórico
             </button>
           </div>
         </div>
       </div>
 
       {/* ========================================================= */}
-      {/* 3. MODAL MAXIMIZADO DE LA BÓVEDA HISTÓRICA Y AUDITORÍA    */}
+      {/* 3. MODAL DE AUDITORÍA HISTÓRICA RETROSPECTIVA             */}
       {/* ========================================================= */}
       {mostrarModalHistorico && (
         <div
           role="dialog"
           aria-modal="true"
           aria-labelledby="modal-historico-title"
-          className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-5 bg-black/90 backdrop-blur-md overflow-hidden animate-fade-in"
+          className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-5 bg-black/80 backdrop-blur-md overflow-hidden animate-fade-in"
           onClick={(e) => {
             if (e.target === e.currentTarget) setMostrarModalHistorico(false);
           }}
         >
-          <div className="relative w-full max-w-6xl max-h-[94vh] bg-[#121c13] border-2 border-[#74a47b] rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.95)] flex flex-col overflow-hidden">
-            {/* Modal Sticky Header */}
-            <div className="flex items-center justify-between p-4 sm:p-6 border-b-2 border-[#74a47b]/30 bg-[#121c13] sticky top-0 z-30">
+          <div className="relative w-full max-w-6xl max-h-[94vh] bg-[#081229] border border-[#5b9bd5]/30 rounded-3xl shadow-2xl flex flex-col overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-[#5b9bd5]/20 bg-[#081229] sticky top-0 z-30">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="tag-tactical px-2 py-0.5 rounded text-[10px] bg-[#215e28] text-[#d9f2c4] border-[#74a47b]">
-                    BÓVEDA HISTÓRICA
+                  <span className="tag-formal px-2.5 py-0.5 rounded-full text-[10px] bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30 font-medium">
+                    Archivo Histórico
                   </span>
-                  <span className="text-xs font-mono text-[#92aa95] font-bold uppercase">
-                    AUDITORÍA RETROSPECTIVA
+                  <span className="text-xs text-[#eed59b] font-medium uppercase tracking-wider">
+                    Auditoría Retrospectiva
                   </span>
                 </div>
-                <h3 id="modal-historico-title" className="text-lg sm:text-2xl font-display font-extrabold text-[#f8fafc] uppercase tracking-tight">
-                  Consulta Día por Día &amp; Montañas Acumuladas
+                <h3 id="modal-historico-title" className="text-lg sm:text-2xl font-serif font-bold text-white tracking-wide">
+                  Consulta de Jornadas &amp; Montañas Acumuladas
                 </h3>
               </div>
 
               <button
                 onClick={() => setMostrarModalHistorico(false)}
-                className="btn-tactical px-4 py-2 rounded-xl text-xs font-mono font-bold uppercase"
+                className="btn-formal-outline px-4 py-1.5 rounded-full text-xs font-medium"
                 title="Cerrar ventana histórica (Esc)"
               >
-                ✕ Cerrar (Esc)
+                ✕ Cerrar
               </button>
             </div>
 
             {/* Modal Body */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-7 space-y-7">
               {/* SELECTOR Y AUDITORÍA DE DÍA ESPECÍFICO */}
-              <section className="card-elevated p-4 sm:p-6 border-2 border-[#74a47b]/40 space-y-5">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#74a47b]/20">
-                  <div className="space-y-1">
-                    <h4 className="text-sm sm:text-base font-display font-bold text-[#f8fafc] uppercase">
-                      Auditar Día en Específico
+              <section className="card-elevated p-4 sm:p-6 border border-[#5b9bd5]/25 space-y-5">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#5b9bd5]/15">
+                  <div className="space-y-0.5">
+                    <h4 className="text-sm sm:text-base font-serif font-bold text-white">
+                      Auditar Día Específico
                     </h4>
-                    <p className="text-xs font-mono text-[#92aa95]">
-                      Cambia la fecha con el selector o haz clic en cualquier día con actividad.
+                    <p className="text-xs text-[#94a3b8]">
+                      Selecciona una fecha en el calendario o haz clic en cualquier jornada con actividad registrada.
                     </p>
                   </div>
 
@@ -1322,7 +1322,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
                     <button
                       type="button"
                       onClick={() => handlePasoDia(-1)}
-                      className="btn-tactical-ghost px-3 py-1.5 rounded-xl text-xs font-mono uppercase"
+                      className="btn-formal-outline px-3 py-1.5 rounded-full text-xs"
                       title="Ir al día anterior"
                     >
                       ◀ Ant
@@ -1332,13 +1332,13 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
                       type="date"
                       value={fechaSeleccionadaHist}
                       onChange={(e) => handleSeleccionarDia(e.target.value)}
-                      className="px-3 py-1.5 rounded-xl text-xs font-mono font-bold bg-[#000000] text-[#d9f2c4] border-2 border-[#74a47b] focus:outline-none"
+                      className="px-3.5 py-1.5 rounded-full text-xs font-mono font-medium bg-[#070e1e] text-[#eed59b] border border-[#5b9bd5]/40 focus:outline-none focus:border-[#eed59b]"
                     />
 
                     <button
                       type="button"
                       onClick={() => handlePasoDia(1)}
-                      className="btn-tactical-ghost px-3 py-1.5 rounded-xl text-xs font-mono uppercase"
+                      className="btn-formal-outline px-3 py-1.5 rounded-full text-xs"
                       title="Ir al día siguiente"
                     >
                       Sig ▶
@@ -1349,8 +1349,8 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
                 {/* Días con actividad */}
                 {diasConActividadLista.length > 0 && (
                   <div className="space-y-2">
-                    <span className="text-[10px] font-mono text-[#92aa95] uppercase font-bold block">
-                      Días con actividad registrada en el sistema:
+                    <span className="text-[11px] text-[#94a3b8] uppercase font-medium tracking-wide block">
+                      Días con actividad registrada:
                     </span>
                     <div className="flex items-center gap-2 overflow-x-auto pb-2 pt-0.5">
                       {diasConActividadLista.map((dItem) => {
@@ -1361,19 +1361,19 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
                             key={dItem.fecha}
                             type="button"
                             onClick={() => handleSeleccionarDia(dItem.fecha)}
-                            className={`btn-tactical-ghost shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono ${
+                            className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition-all ${
                               isSelected
-                                ? 'bg-[#d9f2c4] text-[#000000] font-bold border-[#d9f2c4]'
-                                : 'bg-[#000000] text-[#92aa95]'
+                                ? 'bg-[#2563eb] text-white font-semibold shadow-midnight'
+                                : 'bg-[#0d1733] text-[#94a3b8] hover:text-white border border-[#5b9bd5]/20'
                             }`}
                           >
                             <span>📅 {formatShortDate(dItem.fecha)}</span>
                             {isToday && (
-                              <span className="text-[9px] px-1 py-0.2 rounded bg-[#215e28] text-[#d9f2c4] font-bold">
-                                HOY
+                              <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-[#eed59b] text-[#070e1e] font-bold">
+                                Hoy
                               </span>
                             )}
-                            <span className="font-bold text-[#d9f2c4]">
+                            <span className="font-mono font-bold text-[#eed59b]">
                               {dItem.horasNetas.toFixed(1)}h
                             </span>
                           </button>
@@ -1386,57 +1386,57 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
                 {/* Detalle del día seleccionado */}
                 {loadingDiaHist ? (
                   <div className="py-12 flex flex-col items-center justify-center space-y-3">
-                    <div className="w-8 h-8 rounded-xl bg-[#215e28] border-2 border-[#74a47b] animate-spin"></div>
-                    <span className="text-xs font-mono text-[#92aa95] uppercase">
+                    <div className="w-8 h-8 rounded-full border-2 border-[#eed59b] border-t-transparent animate-spin"></div>
+                    <span className="text-xs text-[#94a3b8]">
                       Cargando auditoría histórica para {fechaSeleccionadaHist}...
                     </span>
                   </div>
                 ) : (
                   <div className="space-y-5 animate-fade-in">
-                    <div className="p-4 sm:p-5 rounded-2xl bg-[#000000] border-2 border-[#74a47b]/40 space-y-3">
+                    <div className="p-4 sm:p-5 rounded-2xl bg-[#081229]/80 border border-[#5b9bd5]/20 space-y-3">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <span className="tag-tactical px-2.5 py-0.5 rounded text-xs bg-[#215e28] text-[#d9f2c4] border-[#74a47b]">
+                            <span className="tag-formal px-2.5 py-0.5 rounded-full text-xs bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30 font-medium">
                               {fechaSeleccionadaHist >= FECHA_INICIO_CICLO
-                                ? `DÍA ${getDiaCicloParaFecha(fechaSeleccionadaHist)} / 365`
-                                : 'PREVIO AL CICLO'}
+                                ? `Día ${getDiaCicloParaFecha(fechaSeleccionadaHist)} de 365`
+                                : 'Previo al Ciclo'}
                             </span>
                           </div>
-                          <h5 className="text-lg sm:text-2xl font-display font-bold text-[#f8fafc]">
+                          <h5 className="text-lg sm:text-2xl font-serif font-bold text-white">
                             {formatFechaLargaEspanol(fechaSeleccionadaHist)}
                           </h5>
                         </div>
 
-                        <span className="tag-tactical px-3 py-1.5 rounded-xl bg-[#121c13] border-[#74a47b] text-[#d9f2c4] font-bold text-xs">
+                        <span className="tag-formal px-3.5 py-1.5 rounded-full bg-[#0d1733] border border-[#e5c179]/30 text-[#eed59b] font-serif font-bold text-xs">
                           Total: {(detalleDiaHist?.totalHorasNetas ?? 0).toFixed(2)}h netas
                         </span>
                       </div>
 
                       {/* Micro KPIs */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 text-xs font-mono">
-                        <div className="p-2.5 rounded-xl bg-[#121c13] border border-[#74a47b]/30 space-y-0.5">
-                          <span className="text-[10px] text-[#92aa95] block uppercase font-bold">Deep Work</span>
-                          <span className="text-base font-bold font-display text-[#d9f2c4]">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 text-xs">
+                        <div className="p-3 rounded-xl bg-[#0d1733]/70 border border-[#5b9bd5]/20 space-y-1">
+                          <span className="text-[10px] text-[#94a3b8] block uppercase font-medium">Tiempo de Foco</span>
+                          <span className="text-lg font-serif font-bold text-[#eed59b]">
                             {(detalleDiaHist?.totalHorasNetas ?? 0).toFixed(1)}h
                           </span>
                         </div>
-                        <div className="p-2.5 rounded-xl bg-[#121c13] border border-[#74a47b]/30 space-y-0.5">
-                          <span className="text-[10px] text-[#92aa95] block uppercase font-bold">Entrenamiento</span>
-                          <span className="text-base font-bold font-display text-[#f8fafc]">
+                        <div className="p-3 rounded-xl bg-[#0d1733]/70 border border-[#5b9bd5]/20 space-y-1">
+                          <span className="text-[10px] text-[#94a3b8] block uppercase font-medium">Entrenamiento</span>
+                          <span className="text-lg font-serif font-bold text-white">
                             {detalleDiaHist?.ejercicioHoras ? `${detalleDiaHist.ejercicioHoras.toFixed(1)}h` : '0h'}
                           </span>
                         </div>
-                        <div className="p-2.5 rounded-xl bg-[#121c13] border border-[#74a47b]/30 space-y-0.5">
-                          <span className="text-[10px] text-[#92aa95] block uppercase font-bold">Alimento</span>
-                          <span className="text-base font-bold font-display text-[#fde68a]">
+                        <div className="p-3 rounded-xl bg-[#0d1733]/70 border border-[#5b9bd5]/20 space-y-1">
+                          <span className="text-[10px] text-[#94a3b8] block uppercase font-medium">Alimentación</span>
+                          <span className="text-lg font-serif font-bold text-[#60a5fa]">
                             {detalleDiaHist?.alimento ? `${detalleDiaHist.alimento}/5 ⭐` : '—'}
                           </span>
                         </div>
-                        <div className="p-2.5 rounded-xl bg-[#121c13] border border-[#74a47b]/30 space-y-0.5">
-                          <span className="text-[10px] text-[#92aa95] block uppercase font-bold">Ritual Cierre</span>
-                          <span className={`text-base font-bold font-display ${detalleDiaHist?.cierreRealizado ? 'text-[#d9f2c4]' : 'text-[#92aa95]'}`}>
-                            {detalleDiaHist?.cierreRealizado ? '✓ SELLADO' : 'SIN CIERRE'}
+                        <div className="p-3 rounded-xl bg-[#0d1733]/70 border border-[#5b9bd5]/20 space-y-1">
+                          <span className="text-[10px] text-[#94a3b8] block uppercase font-medium">Cierre Diario</span>
+                          <span className={`text-base font-serif font-bold ${detalleDiaHist?.cierreRealizado ? 'text-emerald-300' : 'text-[#94a3b8]'}`}>
+                            {detalleDiaHist?.cierreRealizado ? 'Concluido' : 'Sin Cierre'}
                           </span>
                         </div>
                       </div>
@@ -1444,13 +1444,13 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
 
                     {/* Bloques de Foco Auditados con hora exacta */}
                     <div className="space-y-3">
-                      <h6 className="text-xs sm:text-sm font-display font-bold uppercase tracking-wider text-[#f8fafc]">
-                        📋 Bloques de Concentración Ejecutados ({sesionesDiaHist.length})
+                      <h6 className="text-xs sm:text-sm font-serif font-bold uppercase tracking-wide text-white">
+                        Sesiones de Concentración Ejecutadas ({sesionesDiaHist.length})
                       </h6>
 
                       {sesionesDiaHist.length === 0 ? (
-                        <div className="p-6 rounded-2xl bg-[#000000] border-2 border-dashed border-[#74a47b]/30 text-center text-xs font-mono text-[#92aa95]">
-                          No se registraron bloques de trabajo profundo en esta fecha.
+                        <div className="p-6 rounded-2xl bg-[#081229]/60 border border-dashed border-[#5b9bd5]/20 text-center text-xs text-[#94a3b8]">
+                          No se registraron sesiones de trabajo profundo en esta fecha.
                         </div>
                       ) : (
                         <div className="space-y-3">
@@ -1459,38 +1459,38 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
                             return (
                               <div
                                 key={sesion.id || idx}
-                                className="p-4 rounded-2xl bg-[#000000] border-2 border-[#74a47b]/40 space-y-2.5"
+                                className="p-4 rounded-2xl bg-[#081229]/90 border border-[#5b9bd5]/25 space-y-2.5"
                               >
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-[#74a47b]/20">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-[#5b9bd5]/15">
                                   <div className="flex items-center gap-2">
-                                    <span className="tag-tactical px-2 py-0.5 rounded text-xs bg-[#215e28] text-[#d9f2c4] border-[#74a47b]">
+                                    <span className="tag-formal px-2.5 py-0.5 rounded-full text-xs bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30">
                                       🕒 {timeInfo.inicio} — {timeInfo.fin}
                                     </span>
-                                    <span className="text-xs font-mono text-[#f8fafc] font-bold">
+                                    <span className="text-xs text-white font-medium">
                                       ({timeInfo.durMin} min / {sesion.horas_netas}h netas)
                                     </span>
                                   </div>
-                                  <span className="text-[11px] font-mono text-[#92aa95]">
-                                    💾 Registrado a las <strong>{timeInfo.exacta}</strong>
+                                  <span className="text-[11px] text-[#94a3b8]">
+                                    Registrado a las <strong>{timeInfo.exacta}</strong>
                                   </span>
                                 </div>
 
                                 <div className="flex items-center justify-between gap-2">
-                                  <span className="text-base font-display font-bold text-[#f8fafc] uppercase">
+                                  <span className="text-base font-serif font-bold text-white">
                                     {sesion.tipo}
                                   </span>
-                                  <div className="flex items-center gap-2 text-[10px] font-mono">
-                                    <span className="tag-tactical px-2 py-0.5 rounded bg-[#121c13] text-[#d9f2c4] border-[#74a47b]">
-                                      Int: {sesion.intensidad}
+                                  <div className="flex items-center gap-2 text-[10px]">
+                                    <span className="tag-formal px-2.5 py-0.5 rounded-full bg-[#0d1733] text-[#60a5fa] border border-[#5b9bd5]/25">
+                                      Intensidad: {sesion.intensidad}
                                     </span>
-                                    <span className="tag-tactical px-2 py-0.5 rounded bg-[#121c13] text-[#e28080] border-[#74a47b]">
-                                      Incom: {sesion.incomodidad}
+                                    <span className="tag-formal px-2.5 py-0.5 rounded-full bg-[#0d1733] text-[#eed59b] border border-[#e5c179]/30">
+                                      Incomodidad: {sesion.incomodidad}
                                     </span>
                                   </div>
                                 </div>
 
                                 {sesion.calidad && (
-                                  <blockquote className="p-3 rounded-xl bg-[#121c13] border-l-2 border-[#d9f2c4] text-xs text-[#92aa95] italic font-serif">
+                                  <blockquote className="p-3 rounded-xl bg-[#0d1733]/80 border-l-2 border-[#eed59b] text-xs text-[#94a3b8] italic font-serif">
                                     &ldquo;{sesion.calidad}&rdquo;
                                   </blockquote>
                                 )}
@@ -1505,24 +1505,24 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
               </section>
 
               {/* GRÁFICO HISTÓRICO: MONTAÑAS DE FOCO SPLINE (7D / 14D / 30D) */}
-              <section className="card-elevated p-5 sm:p-6 border-2 border-[#74a47b]/40 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#74a47b]/20">
+              <section className="card-elevated p-5 sm:p-6 border border-[#5b9bd5]/25 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#5b9bd5]/15">
                   <div className="space-y-0.5">
-                    <h4 className="text-sm font-display font-bold text-[#f8fafc] uppercase">
-                      ⛰️ Relieve Temporal Histórico
+                    <h4 className="text-sm font-serif font-bold text-white">
+                      Relieve Temporal Acumulado
                     </h4>
-                    <p className="text-xs font-mono text-[#92aa95]">
-                      Total acumulado en el período: <strong className="text-[#d9f2c4]">{totalHorasEnRango.toFixed(1)}h</strong>
+                    <p className="text-xs text-[#94a3b8]">
+                      Total de inmersión en el período: <strong className="text-[#eed59b] font-mono">{totalHorasEnRango.toFixed(1)}h</strong>
                     </p>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1 bg-[#000000] p-1 rounded-xl border border-[#74a47b]/40">
+                    <div className="flex items-center gap-1 bg-[#070e1e] p-1 rounded-full border border-[#5b9bd5]/25">
                       <button
                         type="button"
                         onClick={() => setModoGraficoHist('montana')}
-                        className={`btn-tactical px-2.5 py-1 rounded-lg text-xs font-mono uppercase ${
-                          modoGraficoHist === 'montana' ? 'bg-[#d9f2c4] text-[#000000]' : 'bg-transparent text-[#92aa95] border-none shadow-none'
+                        className={`px-3 py-1 rounded-full text-xs transition-all ${
+                          modoGraficoHist === 'montana' ? 'bg-[#2563eb] text-white font-medium' : 'text-[#94a3b8]'
                         }`}
                       >
                         ⛰️ Montañas
@@ -1530,21 +1530,21 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
                       <button
                         type="button"
                         onClick={() => setModoGraficoHist('columnas')}
-                        className={`btn-tactical px-2.5 py-1 rounded-lg text-xs font-mono uppercase ${
-                          modoGraficoHist === 'columnas' ? 'bg-[#d9f2c4] text-[#000000]' : 'bg-transparent text-[#92aa95] border-none shadow-none'
+                        className={`px-3 py-1 rounded-full text-xs transition-all ${
+                          modoGraficoHist === 'columnas' ? 'bg-[#2563eb] text-white font-medium' : 'text-[#94a3b8]'
                         }`}
                       >
                         📊 Columnas
                       </button>
                     </div>
 
-                    <div className="flex items-center gap-1 bg-[#000000] p-1 rounded-xl border border-[#74a47b]/40">
+                    <div className="flex items-center gap-1 bg-[#070e1e] p-1 rounded-full border border-[#5b9bd5]/25">
                       {([7, 14, 30] as const).map((r) => (
                         <button
                           key={r}
                           onClick={() => setRangoDias(r)}
-                          className={`btn-tactical-ghost px-2.5 py-1 rounded-lg text-xs font-mono ${
-                            rangoDias === r ? 'bg-[#215e28] text-[#d9f2c4]' : 'text-[#92aa95]'
+                          className={`px-2.5 py-1 rounded-full text-xs transition-all ${
+                            rangoDias === r ? 'bg-[#1e3a8a] text-[#eed59b] font-bold' : 'text-[#94a3b8]'
                           }`}
                         >
                           {r}d
@@ -1556,30 +1556,30 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
 
                 {/* Montañas Históricas SVG */}
                 {modoGraficoHist === 'montana' ? (
-                  <div className="p-4 rounded-2xl bg-[#000000] border-2 border-[#74a47b]/30 overflow-x-auto">
+                  <div className="p-4 rounded-2xl bg-[#081229]/80 border border-[#5b9bd5]/20 overflow-x-auto">
                     <div className="min-w-[620px] relative">
                       <svg viewBox={`0 0 ${svgTrendWidth} ${svgTrendHeight}`} className="w-full h-44 overflow-visible">
                         <defs>
                           <linearGradient id="histMountainAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#d9f2c4" stopOpacity="0.4" />
-                            <stop offset="45%" stopColor="#215e28" stopOpacity="0.2" />
-                            <stop offset="100%" stopColor="#000000" stopOpacity="0.0" />
+                            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.35" />
+                            <stop offset="50%" stopColor="#1e3a8a" stopOpacity="0.15" />
+                            <stop offset="100%" stopColor="#070e1e" stopOpacity="0.0" />
                           </linearGradient>
                           <linearGradient id="histMountainLineGrad" x1="0" y1="0" x2="1" y2="0">
-                            <stop offset="0%" stopColor="#74a47b" />
-                            <stop offset="50%" stopColor="#d9f2c4" />
-                            <stop offset="100%" stopColor="#74a47b" />
+                            <stop offset="0%" stopColor="#5b9bd5" />
+                            <stop offset="50%" stopColor="#eed59b" />
+                            <stop offset="100%" stopColor="#5b9bd5" />
                           </linearGradient>
                         </defs>
 
-                        <line x1="0" y1={svgTrendBaselineY} x2={svgTrendWidth} y2={svgTrendBaselineY} stroke="#1a281b" strokeWidth="2" />
-                        <line x1="0" y1={newportGoalY} x2={svgTrendWidth} y2={newportGoalY} stroke="#74a47b" strokeDasharray="5 5" strokeWidth="1.5" opacity="0.6" />
-                        <text x={svgTrendWidth - 10} y={newportGoalY - 6} textAnchor="end" fill="#74a47b" fontSize="10" fontFamily="monospace" fontWeight="bold">
+                        <line x1="0" y1={svgTrendBaselineY} x2={svgTrendWidth} y2={svgTrendBaselineY} stroke="#11224d" strokeWidth="1.5" />
+                        <line x1="0" y1={newportGoalY} x2={svgTrendWidth} y2={newportGoalY} stroke="#5b9bd5" strokeDasharray="4 4" strokeWidth="1.2" opacity="0.6" />
+                        <text x={svgTrendWidth - 10} y={newportGoalY - 6} textAnchor="end" fill="#93c5fd" fontSize="10" fontFamily="sans-serif">
                           Meta Newport: 4.0h
                         </text>
 
                         <path d={mountainTrendArea} fill="url(#histMountainAreaGrad)" className="transition-all duration-500" />
-                        <path d={mountainTrendLine} fill="none" stroke="url(#histMountainLineGrad)" strokeWidth="3" strokeLinecap="round" className="transition-all duration-500" />
+                        <path d={mountainTrendLine} fill="none" stroke="url(#histMountainLineGrad)" strokeWidth="2.5" strokeLinecap="round" className="transition-all duration-500" />
 
                         {mountainTrendPoints.map((pt) => {
                           const isSelected = fechaSeleccionadaHist === pt.day.fecha;
@@ -1596,9 +1596,9 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
                               <circle
                                 cx={pt.x}
                                 cy={pt.y}
-                                r={isSelected ? 7 : hasHours ? 4.5 : 2.5}
-                                fill={isSelected ? '#d9f2c4' : hasHours ? '#74a47b' : '#1a281b'}
-                                stroke="#000000"
+                                r={isSelected ? 6.5 : hasHours ? 4.5 : 2.5}
+                                fill={isSelected ? '#eed59b' : hasHours ? '#60a5fa' : '#11224d'}
+                                stroke="#070e1e"
                                 strokeWidth="2"
                                 className="transition-all duration-200"
                               />
@@ -1611,7 +1611,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
                 ) : (
                   <div className="relative pt-4 pb-2 overflow-x-auto">
                     <div className="min-w-[480px]">
-                      <div className="relative h-44 w-full border-b-2 border-[#74a47b]/30 flex items-end justify-between gap-1.5 px-2">
+                      <div className="relative h-44 w-full border-b border-[#5b9bd5]/20 flex items-end justify-between gap-1.5 px-2">
                         {filteredTrend.map((day, idx) => {
                           const heightPercent = maxHoursInTrend > 0
                             ? Math.min(100, Math.max(day.horasNetas > 0 ? 8 : 2, (day.horasNetas / maxHoursInTrend) * 100))
@@ -1627,12 +1627,12 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
                             >
                               <div
                                 style={{ height: `${heightPercent}%` }}
-                                className={`w-full max-w-[28px] rounded-t-md transition-all duration-200 border-2 border-black ${
+                                className={`w-full max-w-[28px] rounded-t-lg transition-all duration-200 ${
                                   isSelectedDate
-                                    ? 'bg-[#d9f2c4] shadow-[0_0_12px_rgba(217,242,196,0.4)]'
+                                    ? 'bg-[#eed59b] shadow-midnight-glow'
                                     : hasHours
-                                    ? 'bg-[#215e28] hover:bg-[#74a47b]'
-                                    : 'bg-[#121c13]'
+                                    ? 'bg-[#2563eb] hover:bg-[#3b82f6]'
+                                    : 'bg-[#0d1733]'
                                 }`}
                               ></div>
                             </div>
@@ -1645,17 +1645,17 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
               </section>
             </div>
 
-            {/* Modal Sticky Footer */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 sm:p-5 border-t-2 border-[#74a47b]/30 bg-[#121c13] sticky bottom-0 z-30">
-              <p className="text-xs text-[#92aa95] font-mono italic hidden sm:block">
+            {/* Modal Footer */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 sm:p-5 border-t border-[#5b9bd5]/20 bg-[#081229] sticky bottom-0 z-30">
+              <p className="text-xs text-[#94a3b8] italic font-serif hidden sm:block">
                 &ldquo;El pasado ya murió; el futuro aún no nace; la única victoria posible ocurre hoy.&rdquo;
               </p>
               <button
                 type="button"
                 onClick={() => setMostrarModalHistorico(false)}
-                className="btn-tactical w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs font-mono font-bold uppercase ml-auto"
+                className="btn-formal w-full sm:w-auto px-6 py-2.5 rounded-full text-xs font-semibold ml-auto"
               >
-                Cerrar Ventana (Esc)
+                Cerrar Ventana
               </button>
             </div>
           </div>

@@ -9,7 +9,7 @@ interface QuickLogProps {
   onSesionEliminada?: (sesionId: string) => void;
 }
 
-const PRESET_TIPOS = ['Desarrollo', 'Estudio', 'Arquitectura', 'Escritura'];
+const PRESET_TIPOS = ['Desarrollo', 'Estudio', 'Arquitectura', 'Escritura', 'Lectura'];
 
 export const QuickLog: React.FC<QuickLogProps> = ({
   fecha,
@@ -25,7 +25,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
 
   const [horasNetas, setHorasNetas] = useState<number>(1.5);
   const [intensidad, setIntensidad] = useState<Intensidad>('Alta');
-  const [incomodidad, setIncomodidad] = useState<Incomodidad>('Alta');
+  const [incomodidad, setIncomodidad] = useState<Incomodidad>('Media');
   const [calidad, setCalidad] = useState<string>('');
 
   const [submitting, setSubmitting] = useState<boolean>(false);
@@ -99,7 +99,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
       setTimeout(() => setFeedbackMsg(null), 3000);
     } catch (err: any) {
       console.error(err);
-      alert(err.message || 'Error al registrar bloque');
+      alert(err.message || 'Error al registrar sesión');
     } finally {
       setSubmitting(false);
     }
@@ -161,7 +161,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
       setEditingSessionId(null);
     } catch (err: any) {
       console.error(err);
-      alert(err.message || 'Error al actualizar bloque');
+      alert(err.message || 'Error al actualizar sesión');
     } finally {
       setSavingEdit(false);
     }
@@ -185,7 +185,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
       setConfirmDeleteId(null);
     } catch (err: any) {
       console.error(err);
-      alert(err.message || 'Error al eliminar bloque');
+      alert(err.message || 'Error al eliminar sesión');
     } finally {
       setDeletingId(null);
     }
@@ -203,20 +203,20 @@ export const QuickLog: React.FC<QuickLogProps> = ({
 
   return (
     <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-      {/* Columna Izquierda (col-span-5): Consola de Registro Rápido */}
-      <div className="lg:col-span-5 card-tactical p-5 sm:p-6 border-2 border-[#74a47b]/40 space-y-5">
-        <div className="flex items-center justify-between pb-3 border-b border-[#74a47b]/20">
+      {/* Columna Izquierda (col-span-5): Registro Rápido */}
+      <div className="lg:col-span-5 card-midnight p-5 sm:p-6 border border-[#5b9bd5]/25 space-y-5">
+        <div className="flex items-center justify-between pb-3 border-b border-[#5b9bd5]/15">
           <div className="flex items-center gap-2">
-            <span className="tag-tactical px-2 py-0.5 rounded text-[10px] bg-[#215e28] text-[#d9f2c4] border-[#74a47b]">
-              REGISTRO
+            <span className="tag-formal px-2.5 py-0.5 rounded-full text-[10px] bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30 font-medium">
+              Nueva Sesión
             </span>
-            <h2 className="text-base sm:text-lg font-display font-extrabold text-[#f8fafc] uppercase tracking-tight">
-              Ingreso Rápido de Flujo
-            </h2>
+            <h3 className="text-base sm:text-lg font-serif font-bold text-white tracking-wide">
+              Registrar Sesión de Foco
+            </h3>
           </div>
 
           {feedbackMsg && (
-            <span className="tag-tactical text-xs bg-[#d9f2c4] text-[#000000] px-2.5 py-0.5 rounded border-[#74a47b] animate-fade-in font-bold">
+            <span className="tag-formal text-xs bg-[#eed59b] text-[#070e1e] px-3 py-0.5 rounded-full font-semibold animate-fade-in shadow-sm">
               ✓ {feedbackMsg}
             </span>
           )}
@@ -225,8 +225,8 @@ export const QuickLog: React.FC<QuickLogProps> = ({
         <form onSubmit={handleSubmit} onKeyDown={handleKeyDown} className="space-y-4">
           {/* Tipo de Trabajo Selector */}
           <div>
-            <label className="block text-[11px] font-bold text-[#92aa95] uppercase tracking-wider mb-2 font-mono">
-              Tipo de Enfoque
+            <label className="block text-xs font-medium text-[#94a3b8] mb-2">
+              Tipo de Actividad
             </label>
             <div className="flex flex-wrap items-center gap-1.5">
               {PRESET_TIPOS.map((tipo) => {
@@ -239,10 +239,10 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                       setIsCustomTipo(false);
                       setTipoSeleccionado(tipo);
                     }}
-                    className={`btn-tactical-ghost px-3 py-1.5 rounded-xl text-xs font-mono transition-all ${
+                    className={`px-3 py-1.5 rounded-full text-xs transition-all ${
                       isActive
-                        ? 'bg-[#d9f2c4] text-[#000000] border-[#d9f2c4] font-bold shadow-[0_0_12px_rgba(217,242,196,0.3)]'
-                        : 'text-[#92aa95]'
+                        ? 'bg-[#2563eb] text-white font-medium shadow-midnight'
+                        : 'bg-[#0d1733] text-[#94a3b8] hover:text-white border border-[#5b9bd5]/20'
                     }`}
                   >
                     {tipo}
@@ -253,32 +253,32 @@ export const QuickLog: React.FC<QuickLogProps> = ({
               <button
                 type="button"
                 onClick={() => setIsCustomTipo(true)}
-                className={`btn-tactical-ghost px-3 py-1.5 rounded-xl text-xs font-mono transition-all ${
+                className={`px-3 py-1.5 rounded-full text-xs transition-all ${
                   isCustomTipo
-                    ? 'bg-[#d9f2c4] text-[#000000] border-[#d9f2c4] font-bold'
-                    : 'text-[#92aa95]'
+                    ? 'bg-[#2563eb] text-white font-medium'
+                    : 'bg-[#0d1733] text-[#94a3b8] hover:text-white border border-[#5b9bd5]/20'
                 }`}
               >
-                + Otro
+                + Personalizado
               </button>
 
               {isCustomTipo && (
                 <input
                   type="text"
-                  placeholder="Nombre..."
+                  placeholder="Especificar nombre..."
                   value={customTipo}
                   onChange={(e) => setCustomTipo(e.target.value)}
                   autoFocus
-                  className="px-3 py-1.5 rounded-xl text-xs font-mono bg-[#000000] border-2 border-[#74a47b] text-[#f8fafc] placeholder-[#92aa95]/50 focus:outline-none"
+                  className="px-3.5 py-1.5 rounded-full text-xs bg-[#070e1e] border border-[#5b9bd5]/40 text-white placeholder-[#94a3b8]/50 focus:outline-none focus:border-[#eed59b]"
                 />
               )}
             </div>
           </div>
 
-          {/* Horas Netas con tacómetro digital e incremento rápido */}
+          {/* Horas Netas con incremento rápido */}
           <div>
-            <label className="block text-[11px] font-bold text-[#92aa95] uppercase tracking-wider mb-2 font-mono">
-              Horas Netas de Concentración
+            <label className="block text-xs font-medium text-[#94a3b8] mb-2">
+              Duración Neta de Concentración
             </label>
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
@@ -289,9 +289,9 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                   max="12"
                   value={horasNetas}
                   onChange={(e) => setHorasNetas(parseFloat(e.target.value) || 0)}
-                  className="w-full px-3.5 py-2.5 rounded-xl text-base font-mono text-[#d9f2c4] font-bold bg-[#000000] border-2 border-[#74a47b]/50 focus:border-[#d9f2c4] focus:outline-none tabular-nums"
+                  className="w-full px-4 py-2.5 rounded-xl text-base font-serif font-bold text-[#eed59b] bg-[#081229] border border-[#5b9bd5]/30 focus:border-[#eed59b] focus:outline-none tabular-nums"
                 />
-                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-mono text-[#92aa95] pointer-events-none font-bold">
+                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-[#94a3b8] pointer-events-none">
                   horas
                 </span>
               </div>
@@ -300,7 +300,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                 <button
                   type="button"
                   onClick={() => handleAddHoras(0.5)}
-                  className="btn-tactical-ghost px-2.5 py-2.5 rounded-xl text-xs font-mono font-bold"
+                  className="btn-formal-outline px-3 py-2.5 rounded-xl text-xs font-mono font-medium"
                   title="Sumar 30 minutos"
                 >
                   +0.5h
@@ -308,7 +308,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                 <button
                   type="button"
                   onClick={() => handleAddHoras(1.0)}
-                  className="btn-tactical-ghost px-2.5 py-2.5 rounded-xl text-xs font-mono font-bold"
+                  className="btn-formal-outline px-3 py-2.5 rounded-xl text-xs font-mono font-medium"
                   title="Sumar 1 hora"
                 >
                   +1.0h
@@ -320,10 +320,10 @@ export const QuickLog: React.FC<QuickLogProps> = ({
           {/* Intensidad & Incomodidad */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[11px] font-bold text-[#92aa95] uppercase tracking-wider mb-1.5 font-mono">
+              <label className="block text-xs font-medium text-[#94a3b8] mb-1.5">
                 Intensidad
               </label>
-              <div className="flex rounded-xl bg-[#000000] p-1 border border-[#74a47b]/30">
+              <div className="flex rounded-xl bg-[#081229] p-1 border border-[#5b9bd5]/20">
                 {(['Baja', 'Media', 'Alta'] as Intensidad[]).map((level) => {
                   const isActive = intensidad === level;
                   return (
@@ -331,10 +331,10 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                       key={level}
                       type="button"
                       onClick={() => setIntensidad(level)}
-                      className={`flex-1 py-1 text-xs font-mono font-bold rounded-lg transition-all ${
+                      className={`flex-1 py-1 text-xs rounded-lg transition-all ${
                         isActive
-                          ? 'bg-[#215e28] text-[#d9f2c4] border border-[#74a47b]'
-                          : 'text-[#92aa95] hover:text-[#f8fafc]'
+                          ? 'bg-[#2563eb] text-white font-medium shadow-sm'
+                          : 'text-[#94a3b8] hover:text-white'
                       }`}
                     >
                       {level}
@@ -345,10 +345,10 @@ export const QuickLog: React.FC<QuickLogProps> = ({
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-[#92aa95] uppercase tracking-wider mb-1.5 font-mono">
+              <label className="block text-xs font-medium text-[#94a3b8] mb-1.5">
                 Incomodidad
               </label>
-              <div className="flex rounded-xl bg-[#000000] p-1 border border-[#74a47b]/30">
+              <div className="flex rounded-xl bg-[#081229] p-1 border border-[#5b9bd5]/20">
                 {(['Baja', 'Media', 'Alta'] as Incomodidad[]).map((level) => {
                   const isActive = incomodidad === level;
                   return (
@@ -356,12 +356,12 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                       key={level}
                       type="button"
                       onClick={() => setIncomodidad(level)}
-                      className={`flex-1 py-1 text-xs font-mono font-bold rounded-lg transition-all ${
+                      className={`flex-1 py-1 text-xs rounded-lg transition-all ${
                         isActive
                           ? level === 'Alta'
-                            ? 'bg-[#1a281b] text-[#e28080] border border-[#e28080]/60'
-                            : 'bg-[#1a281b] text-[#fde68a] border border-[#fde68a]/60'
-                          : 'text-[#92aa95] hover:text-[#f8fafc]'
+                            ? 'bg-[#1e3a8a] text-[#eed59b] font-medium border border-[#eed59b]/40'
+                            : 'bg-[#1e3a8a] text-[#60a5fa] font-medium'
+                          : 'text-[#94a3b8] hover:text-white'
                       }`}
                     >
                       {level}
@@ -374,56 +374,56 @@ export const QuickLog: React.FC<QuickLogProps> = ({
 
           {/* Calidad / Entregable */}
           <div>
-            <label className="block text-[11px] font-bold text-[#92aa95] uppercase tracking-wider mb-1.5 font-mono">
-              Calidad / Entregable Conseguido
+            <label className="block text-xs font-medium text-[#94a3b8] mb-1.5">
+              Entregable / Resultado Obtenido
             </label>
             <input
               type="text"
-              placeholder="Ej: Refactorización del motor de búsqueda..."
+              placeholder="Ej: Análisis del capítulo 4, refactorización del módulo..."
               value={calidad}
               onChange={(e) => setCalidad(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl text-xs font-mono bg-[#000000] border-2 border-[#74a47b]/40 text-[#f8fafc] placeholder-[#92aa95]/40 focus:border-[#d9f2c4] focus:outline-none"
+              className="w-full px-4 py-2.5 rounded-xl text-xs bg-[#081229] border border-[#5b9bd5]/30 text-white placeholder-[#94a3b8]/40 focus:border-[#eed59b] focus:outline-none"
             />
           </div>
 
           {/* Submit Button */}
           <div className="pt-2 flex items-center justify-between">
-            <span className="text-[10px] font-mono text-[#92aa95]">
-              Atajo: <kbd className="tag-tactical px-1.5 py-0.5 rounded bg-[#000000] text-[#f8fafc] text-[9px] border-[#74a47b]/40">Ctrl+Enter</kbd>
+            <span className="text-[11px] text-[#94a3b8]">
+              Atajo: <kbd className="px-2 py-0.5 rounded bg-[#0d1733] text-white text-[10px] border border-[#5b9bd5]/20">Ctrl+Enter</kbd>
             </span>
 
             <button
               type="submit"
               disabled={submitting}
-              className="btn-tactical px-5 py-2.5 rounded-xl text-xs font-mono font-bold uppercase disabled:opacity-50"
+              className="btn-formal px-6 py-2.5 rounded-full text-xs font-semibold disabled:opacity-50"
             >
-              <span>{submitting ? 'Registrando...' : 'Registrar Bloque'}</span>
+              <span>{submitting ? 'Guardando...' : 'Registrar Sesión'}</span>
             </button>
           </div>
         </form>
       </div>
 
-      {/* Columna Derecha (col-span-7): Bitácora / Línea de Tiempo de Hoy */}
-      <div className="lg:col-span-7 card-tactical p-5 sm:p-6 border-2 border-[#74a47b]/40 space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-[#74a47b]/20">
+      {/* Columna Derecha (col-span-7): Bitácora de Sesiones de Hoy */}
+      <div className="lg:col-span-7 card-midnight p-5 sm:p-6 border border-[#5b9bd5]/25 space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-[#5b9bd5]/15">
           <div className="flex items-center gap-2">
-            <span className="tag-tactical px-2 py-0.5 rounded text-[10px] bg-[#1a281b] text-[#d9f2c4] border-[#74a47b]">
-              BITÁCORA
+            <span className="tag-formal px-2.5 py-0.5 rounded-full text-[10px] bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30 font-medium">
+              Bitácora
             </span>
-            <h3 className="text-base sm:text-lg font-display font-extrabold text-[#f8fafc] uppercase tracking-tight">
-              Línea de Tiempo de Hoy
+            <h3 className="text-base sm:text-lg font-serif font-bold text-white tracking-wide">
+              Sesiones Registradas Hoy
             </h3>
           </div>
-          <span className="text-xs font-mono text-[#92aa95] font-bold uppercase">
-            {sesiones.length} {sesiones.length === 1 ? 'bloque' : 'bloques'}
+          <span className="text-xs text-[#94a3b8] font-medium">
+            {sesiones.length} {sesiones.length === 1 ? 'sesión' : 'sesiones'}
           </span>
         </div>
 
         {sesiones.length === 0 ? (
-          <div className="text-center py-12 px-4 rounded-xl border-2 border-dashed border-[#74a47b]/30 bg-[#000000]">
-            <p className="text-sm font-display font-bold text-[#f8fafc] uppercase">Aún no hay bloques registrados hoy</p>
-            <p className="text-xs font-mono text-[#92aa95] mt-1">
-              Ejecuta tu primera sesión de trabajo profundo y regístrala para iluminar tu cronograma.
+          <div className="text-center py-12 px-4 rounded-2xl border border-dashed border-[#5b9bd5]/20 bg-[#081229]/60">
+            <p className="text-sm font-serif font-bold text-white">Aún no hay sesiones registradas hoy</p>
+            <p className="text-xs text-[#94a3b8] mt-1">
+              Inicia tu primera sesión de trabajo profundo y anótala aquí para ver reflejado tu avance.
             </p>
           </div>
         ) : (
@@ -436,37 +436,37 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                 return (
                   <div
                     key={sesion.id || idx}
-                    className="p-4 rounded-xl bg-[#000000] border-2 border-[#d9f2c4] shadow-[0_0_15px_rgba(217,242,196,0.2)] space-y-3 animate-fade-in font-mono"
+                    className="p-4 rounded-2xl bg-[#081229] border border-[#eed59b]/50 shadow-midnight space-y-3 animate-fade-in text-xs"
                   >
-                    <div className="flex items-center justify-between pb-2 border-b border-[#74a47b]/20 text-xs">
-                      <span className="font-bold text-[#d9f2c4] uppercase">Editar Bloque</span>
-                      <span className="text-[#92aa95]">{formatTime(sesion.registrado_a)}</span>
+                    <div className="flex items-center justify-between pb-2 border-b border-[#5b9bd5]/15">
+                      <span className="font-serif font-bold text-[#eed59b]">Editar Sesión</span>
+                      <span className="text-[#94a3b8]">{formatTime(sesion.registrado_a)}</span>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[10px] text-[#92aa95] mb-1 font-bold uppercase">Tipo</label>
+                        <label className="block text-[11px] text-[#94a3b8] mb-1 font-medium">Tipo de Tarea</label>
                         <input
                           type="text"
                           value={editTipo}
                           onChange={(e) => setEditTipo(e.target.value)}
-                          className="w-full px-3 py-1.5 rounded-lg bg-[#121c13] border border-[#74a47b] text-[#f8fafc]"
+                          className="w-full px-3 py-1.5 rounded-xl bg-[#0d1733] border border-[#5b9bd5]/30 text-white"
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] text-[#92aa95] mb-1 font-bold uppercase">Horas</label>
+                        <label className="block text-[11px] text-[#94a3b8] mb-1 font-medium">Horas Netas</label>
                         <div className="flex items-center gap-1.5">
                           <input
                             type="number"
                             step="0.25"
                             value={editHorasNetas}
                             onChange={(e) => setEditHorasNetas(parseFloat(e.target.value) || 0)}
-                            className="w-full px-3 py-1.5 rounded-lg bg-[#121c13] border border-[#74a47b] text-[#d9f2c4] font-bold"
+                            className="w-full px-3 py-1.5 rounded-xl bg-[#0d1733] border border-[#5b9bd5]/30 text-[#eed59b] font-serif font-bold"
                           />
                           <button
                             type="button"
                             onClick={() => handleAddEditHoras(0.5)}
-                            className="btn-tactical-ghost px-2 py-1 rounded text-xs font-bold"
+                            className="btn-formal-outline px-2.5 py-1 rounded-xl text-xs"
                           >
                             +0.5
                           </button>
@@ -475,12 +475,12 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                     </div>
 
                     <div>
-                      <label className="block text-[10px] text-[#92aa95] mb-1 font-bold uppercase">Calidad</label>
+                      <label className="block text-[11px] text-[#94a3b8] mb-1 font-medium">Entregable</label>
                       <input
                         type="text"
                         value={editCalidad}
                         onChange={(e) => setEditCalidad(e.target.value)}
-                        className="w-full px-3 py-1.5 rounded-lg bg-[#121c13] border border-[#74a47b] text-[#f8fafc]"
+                        className="w-full px-3 py-1.5 rounded-xl bg-[#0d1733] border border-[#5b9bd5]/30 text-white"
                       />
                     </div>
 
@@ -488,7 +488,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                       <button
                         type="button"
                         onClick={cancelEdit}
-                        className="btn-tactical-ghost px-3 py-1 rounded text-xs"
+                        className="btn-formal-outline px-4 py-1.5 rounded-full text-xs"
                       >
                         Cancelar
                       </button>
@@ -496,9 +496,9 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                         type="button"
                         disabled={savingEdit}
                         onClick={() => handleSaveEdit(sesion.id)}
-                        className="btn-tactical px-3.5 py-1 rounded text-xs font-bold"
+                        className="btn-formal px-4 py-1.5 rounded-full text-xs font-semibold"
                       >
-                        {savingEdit ? 'Guardando...' : 'Guardar'}
+                        {savingEdit ? 'Guardando...' : 'Guardar Cambios'}
                       </button>
                     </div>
                   </div>
@@ -508,93 +508,93 @@ export const QuickLog: React.FC<QuickLogProps> = ({
               return (
                 <div
                   key={sesion.id || idx}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-[#000000] border-2 border-[#74a47b]/30 hover:border-[#74a47b]/60 transition-all group"
+                  className="p-4 rounded-2xl bg-[#081229]/80 border border-[#5b9bd5]/20 hover:border-[#5b9bd5]/40 transition-all space-y-2.5"
                 >
-                  <div className="flex items-start sm:items-center gap-3">
-                    <span className="tag-tactical text-[10px] text-[#d9f2c4] bg-[#121c13] px-2 py-1 rounded border-[#74a47b]/40">
-                      {formatTime(sesion.registrado_a)}
-                    </span>
-
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-display font-bold text-[#f8fafc] uppercase">
-                          {sesion.tipo}
-                        </span>
-
-                        <span className="tag-tactical text-[9px] px-2 py-0.5 rounded bg-[#121c13] text-[#92aa95] border-[#74a47b]/30">
-                          Int: {sesion.intensidad}
-                        </span>
-
-                        <span className="tag-tactical text-[9px] px-2 py-0.5 rounded bg-[#121c13] text-[#e28080] border-[#74a47b]/30">
-                          Incom: {sesion.incomodidad}
-                        </span>
-                      </div>
-
-                      {sesion.calidad && (
-                        <p className="text-xs text-[#92aa95] mt-1 font-mono italic line-clamp-1">
-                          ↳ &ldquo;{sesion.calidad}&rdquo;
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 self-end sm:self-auto">
-                    <div className="flex items-baseline gap-1 font-mono">
-                      <span className="text-lg font-display font-extrabold text-[#d9f2c4] tabular-nums">
-                        {Number(sesion.horas_netas).toFixed(2)}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-[#5b9bd5]/15">
+                    <div className="flex items-center gap-2">
+                      <span className="font-serif font-bold text-white text-base">
+                        {sesion.tipo}
                       </span>
-                      <span className="text-xs text-[#92aa95] font-bold uppercase">h</span>
+                      <span className="tag-formal text-[10px] px-2.5 py-0.5 rounded-full bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30">
+                        {sesion.horas_netas} horas netas
+                      </span>
                     </div>
 
-                    <div className="flex items-center gap-1 pl-2 border-l border-[#74a47b]/20">
-                      {isConfirmingDelete ? (
-                        <div className="flex items-center gap-1.5 animate-fade-in font-mono">
-                          <span className="text-[10px] text-[#e28080] font-bold">¿Borrar?</span>
-                          <button
-                            type="button"
-                            disabled={deletingId === sesion.id}
-                            onClick={() => handleDeleteSession(sesion.id)}
-                            className="btn-tactical px-2 py-0.5 rounded text-[10px] bg-[#e28080] text-black font-bold"
-                          >
-                            {deletingId === sesion.id ? '...' : 'Sí'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setConfirmDeleteId(null)}
-                            className="btn-tactical-ghost px-2 py-0.5 rounded text-[10px]"
-                          >
-                            No
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => startEdit(sesion)}
-                            className="btn-tactical-ghost p-1.5 rounded-lg text-[#92aa95] hover:text-[#d9f2c4]"
-                            title="Editar bloque"
-                          >
-                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                            </svg>
-                          </button>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-[#94a3b8]">
+                        {formatTime(sesion.registrado_a)}
+                      </span>
 
-                          <button
-                            type="button"
-                            onClick={() => setConfirmDeleteId(sesion.id)}
-                            className="btn-tactical-ghost p-1.5 rounded-lg text-[#92aa95] hover:text-[#e28080]"
-                            title="Eliminar bloque"
-                          >
-                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <polyline points="3 6 5 6 21 6" />
-                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                            </svg>
-                          </button>
-                        </>
-                      )}
+                      {/* Edit Button */}
+                      <button
+                        type="button"
+                        onClick={() => startEdit(sesion)}
+                        className="p-1.5 rounded-lg text-[#94a3b8] hover:text-white hover:bg-[#0d1733] transition-colors"
+                        title="Editar sesión"
+                      >
+                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                      </button>
+
+                      {/* Delete Button */}
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteId(sesion.id)}
+                        className="p-1.5 rounded-lg text-[#94a3b8] hover:text-rose-400 hover:bg-[#0d1733] transition-colors"
+                        title="Eliminar sesión"
+                      >
+                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                      </button>
                     </div>
                   </div>
+
+                  {/* Badges of Intensity & Inconvenience */}
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2 text-[10px]">
+                      <span className="tag-formal px-2.5 py-0.5 rounded-full bg-[#0d1733] text-[#60a5fa] border border-[#5b9bd5]/25">
+                        Intensidad: <b>{sesion.intensidad}</b>
+                      </span>
+                      <span className="tag-formal px-2.5 py-0.5 rounded-full bg-[#0d1733] text-[#eed59b] border border-[#e5c179]/30">
+                        Incomodidad: <b>{sesion.incomodidad}</b>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Quality Note */}
+                  {sesion.calidad && (
+                    <blockquote className="p-3 rounded-xl bg-[#0d1733]/80 border-l-2 border-[#eed59b] text-xs text-[#94a3b8] italic font-serif">
+                      &ldquo;{sesion.calidad}&rdquo;
+                    </blockquote>
+                  )}
+
+                  {/* Inline Delete Confirmation */}
+                  {isConfirmingDelete && (
+                    <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-500/40 flex items-center justify-between gap-3 text-xs animate-fade-in">
+                      <span className="text-rose-200">¿Deseas eliminar este registro?</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteId(null)}
+                          className="px-3 py-1 rounded-full text-xs text-[#94a3b8] hover:text-white"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="button"
+                          disabled={deletingId === sesion.id}
+                          onClick={() => handleDeleteSession(sesion.id)}
+                          className="px-3 py-1 rounded-full text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white"
+                        >
+                          {deletingId === sesion.id ? 'Eliminando...' : 'Confirmar'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
