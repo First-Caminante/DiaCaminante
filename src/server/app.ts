@@ -140,6 +140,91 @@ app.get('/dia/hoy', async (c) => {
 });
 
 /**
+ * GET /api/dia/historico
+ * Obtiene el detalle completo de un día específico en el historial sin crear registros ficticios.
+ */
+app.get('/dia/historico', async (c) => {
+  try {
+    const supabase = getSupabaseAdmin(c.env);
+    const fecha = getFormattedDate(c.req.query('fecha'));
+    if (!fecha) {
+      return c.json({ error: 'Fecha inválida' }, 400);
+    }
+
+    // 1. Obtener registro de dias_salud
+    const { data: dia, error: diaErr } = await supabase
+      .from('dias_salud')
+      .select('*')
+      .eq('fecha', fecha)
+      .maybeSingle();
+
+    if (diaErr) {
+      console.warn('Error fetching dia historico:', diaErr);
+    }
+
+    // 2. Obtener sesiones vinculadas por dia_id o registrado_a
+    let sesiones: any[] = [];
+    if (dia) {
+      const { data: sesDia } = await supabase
+        .from('sesiones_flujo')
+        .select('*')
+        .eq('dia_id', dia.id)
+        .order('registrado_a', { ascending: true });
+      sesiones = sesDia || [];
+    }
+
+    const startIso = `${fecha}T00:00:00.000Z`;
+    const endIso = `${fecha}T23:59:59.999Z`;
+    const { data: sesByDate } = await supabase
+      .from('sesiones_flujo')
+      .select('*')
+      .gte('registrado_a', startIso)
+      .lte('registrado_a', endIso);
+
+    if (sesByDate && sesByDate.length > 0) {
+      const existingIds = new Set(sesiones.map((s) => s.id));
+      sesByDate.forEach((s) => {
+        if (!existingIds.has(s.id)) {
+          sesiones.push(s);
+        }
+      });
+    }
+
+    sesiones.sort((a, b) => new Date(a.registrado_a).getTime() - new Date(b.registrado_a).getTime());
+
+    // 3. Tareas planificadas para esa fecha
+    const { data: tareas } = await supabase
+      .from('tareas_planificadas')
+      .select('*')
+      .eq('fecha_objetivo', fecha)
+      .order('hora_inicio', { ascending: true });
+
+    const totalHorasNetas = sesiones.reduce(
+      (sum, s) => sum + (parseFloat(String(s.horas_netas)) || 0),
+      0
+    );
+
+    return c.json({
+      fecha,
+      dia: dia || null,
+      totalHorasNetas: Number(totalHorasNetas.toFixed(2)),
+      sesionesCount: sesiones.length,
+      cierreRealizado: Boolean(dia?.cierre_realizado),
+      cierreTimestamp: dia?.cierre_timestamp || null,
+      alimento: dia?.alimento || null,
+      ejercicioHoras: dia?.ejercicio_horas ? parseFloat(String(dia.ejercicio_horas)) : null,
+      ejercicioIntensidad: dia?.ejercicio_intensidad || null,
+      frioMental: dia?.frio_mental || null,
+      sesiones,
+      tareas: tareas || [],
+    });
+  } catch (err: any) {
+    console.error('Error in GET /api/dia/historico:', err);
+    return c.json({ error: err.message || 'Error interno' }, 500);
+  }
+});
+
+/**
  * POST /api/sesiones
  * Inserta una nueva sesión de flujo vinculada al día actual.
  */
@@ -818,9 +903,12 @@ app.get('/estadisticas', async (c) => {
         fecha: fStr,
         horasNetas: Number(horasNetas.toFixed(2)),
         sesionesCount: sesList.length,
+        sesiones: sesList,
         cierreRealizado: Boolean(diaObj?.cierre_realizado),
+        cierreTimestamp: diaObj?.cierre_timestamp || null,
         alimento: diaObj?.alimento || null,
         ejercicioHoras: diaObj?.ejercicio_horas ? parseFloat(String(diaObj.ejercicio_horas)) : null,
+        ejercicioIntensidad: diaObj?.ejercicio_intensidad || null,
         frioMental: diaObj?.frio_mental || null,
         distribucionIntensidad: {
           Alta: Number(dayIntensidad.Alta.toFixed(2)),
@@ -834,6 +922,30 @@ app.get('/estadisticas', async (c) => {
         },
       });
     }
+
+    // Días históricos con actividad registrada (para selección rápida en el modal)
+    const allActiveDates = Array.from(new Set([
+      ...Array.from(fechaToSesiones.keys()),
+      ...dias.filter((d) => d.cierre_realizado || (d.ejercicio_horas && parseFloat(String(d.ejercicio_horas)) > 0) || (d.alimento && d.alimento > 0)).map((d) => d.fecha),
+    ])).filter(Boolean).sort().reverse();
+
+    const diasHistoricosConActividad = allActiveDates.map((fStr) => {
+      const diaObj = fechaToDia.get(fStr);
+      const sesList = fechaToSesiones.get(fStr) || [];
+      const hNetas = sesList.reduce((sum, item) => sum + (parseFloat(String(item.horas_netas)) || 0), 0);
+      return {
+        fecha: fStr,
+        horasNetas: Number(hNetas.toFixed(2)),
+        sesionesCount: sesList.length,
+        sesiones: sesList,
+        cierreRealizado: Boolean(diaObj?.cierre_realizado),
+        cierreTimestamp: diaObj?.cierre_timestamp || null,
+        alimento: diaObj?.alimento || null,
+        ejercicioHoras: diaObj?.ejercicio_horas ? parseFloat(String(diaObj.ejercicio_horas)) : null,
+        ejercicioIntensidad: diaObj?.ejercicio_intensidad || null,
+        frioMental: diaObj?.frio_mental || null,
+      };
+    });
 
     // Salud metrics
     const diasConAlimento = dias.filter((d) => d.alimento != null && d.alimento > 0);
@@ -893,6 +1005,7 @@ app.get('/estadisticas', async (c) => {
       matrizCalidadHoy,
       hoy,
       tendenciaDias,
+      diasHistoricosConActividad,
       salud: {
         promedioAlimento,
         totalEjercicioHoras: Number(totalEjercicioHoras.toFixed(1)),

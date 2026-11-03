@@ -68,11 +68,42 @@ export interface TendenciaDia {
   horasNetas: number;
   sesionesCount: number;
   cierreRealizado: boolean;
+  cierreTimestamp?: string | null;
   alimento?: number | null;
   ejercicioHoras?: number | null;
+  ejercicioIntensidad?: string | null;
   frioMental?: string | null;
   distribucionIntensidad?: { Alta: number; Media: number; Baja: number };
   distribucionIncomodidad?: { Alta: number; Media: number; Baja: number };
+  sesiones?: SesionFlujo[];
+}
+
+export interface DiaHistoricoResumen {
+  fecha: string;
+  horasNetas: number;
+  sesionesCount: number;
+  sesiones: SesionFlujo[];
+  cierreRealizado: boolean;
+  cierreTimestamp?: string | null;
+  alimento?: number | null;
+  ejercicioHoras?: number | null;
+  ejercicioIntensidad?: string | null;
+  frioMental?: string | null;
+}
+
+export interface DetalleDiaHistorico {
+  fecha: string;
+  dia?: DiaSalud | null;
+  totalHorasNetas: number;
+  sesionesCount: number;
+  cierreRealizado: boolean;
+  cierreTimestamp?: string | null;
+  alimento?: number | null;
+  ejercicioHoras?: number | null;
+  ejercicioIntensidad?: string | null;
+  frioMental?: string | null;
+  sesiones: SesionFlujo[];
+  tareas: TareaPlanificada[];
 }
 
 export interface DistribucionTipo {
@@ -116,6 +147,7 @@ export interface EstadisticasResponse {
   matrizCalidadHoy: MatrizCalidad;
   hoy: MetricasHoy;
   tendenciaDias: TendenciaDia[];
+  diasHistoricosConActividad?: DiaHistoricoResumen[];
   salud: {
     promedioAlimento: number;
     totalEjercicioHoras: number;
