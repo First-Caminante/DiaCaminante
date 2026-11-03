@@ -159,6 +159,75 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
     setTimeout(() => setNotification(null), 3000);
   };
 
+  // Handlers de Sueño
+  const handleSuenoRegistrado = (nuevoSueno: any) => {
+    setData((prev) => {
+      if (!prev) return prev;
+      return { ...prev, suenos: [...(prev.suenos || []), nuevoSueno] };
+    });
+  };
+  const handleSuenoActualizado = (suenoActualizado: any) => {
+    setData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        suenos: (prev.suenos || []).map((s) => (s.id === suenoActualizado.id ? suenoActualizado : s)),
+      };
+    });
+  };
+  const handleSuenoEliminado = (id: string) => {
+    setData((prev) => {
+      if (!prev) return prev;
+      return { ...prev, suenos: (prev.suenos || []).filter((s) => s.id !== id) };
+    });
+  };
+
+  // Handlers de Comida
+  const handleComidaRegistrada = (nuevaComida: any) => {
+    setData((prev) => {
+      if (!prev) return prev;
+      return { ...prev, comidas: [...(prev.comidas || []), nuevaComida] };
+    });
+  };
+  const handleComidaActualizada = (comidaActualizada: any) => {
+    setData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        comidas: (prev.comidas || []).map((c) => (c.id === comidaActualizada.id ? comidaActualizada : c)),
+      };
+    });
+  };
+  const handleComidaEliminada = (id: string) => {
+    setData((prev) => {
+      if (!prev) return prev;
+      return { ...prev, comidas: (prev.comidas || []).filter((c) => c.id !== id) };
+    });
+  };
+
+  // Handlers de Ejercicio
+  const handleEjercicioRegistrado = (nuevoEjercicio: any) => {
+    setData((prev) => {
+      if (!prev) return prev;
+      return { ...prev, ejercicios: [...(prev.ejercicios || []), nuevoEjercicio] };
+    });
+  };
+  const handleEjercicioActualizado = (ejercicioActualizado: any) => {
+    setData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        ejercicios: (prev.ejercicios || []).map((e) => (e.id === ejercicioActualizado.id ? ejercicioActualizado : e)),
+      };
+    });
+  };
+  const handleEjercicioEliminado = (id: string) => {
+    setData((prev) => {
+      if (!prev) return prev;
+      return { ...prev, ejercicios: (prev.ejercicios || []).filter((e) => e.id !== id) };
+    });
+  };
+
   const handleTaskUpdated = (tareaActualizada: TareaPlanificada) => {
     setData((prev) => {
       if (!prev) return prev;
@@ -500,6 +569,9 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
             <VisualStats
               fechaHoy={todayStr}
               sesionesHoy={data?.sesiones || []}
+              suenosHoy={data?.suenos || []}
+              comidasHoy={data?.comidas || []}
+              ejerciciosHoy={data?.ejercicios || []}
               onGoToDailyLog={() => setCurrentTab('today')}
             />
           )}
@@ -517,9 +589,21 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
               <QuickLog
                 fecha={fechaHoy}
                 sesiones={data?.sesiones || []}
+                suenos={data?.suenos || []}
+                comidas={data?.comidas || []}
+                ejercicios={data?.ejercicios || []}
                 onSesionRegistrada={handleSesionRegistrada}
                 onSesionActualizada={handleSesionActualizada}
                 onSesionEliminada={handleSesionEliminada}
+                onSuenoRegistrado={handleSuenoRegistrado}
+                onSuenoActualizado={handleSuenoActualizado}
+                onSuenoEliminado={handleSuenoEliminado}
+                onComidaRegistrada={handleComidaRegistrada}
+                onComidaActualizada={handleComidaActualizada}
+                onComidaEliminada={handleComidaEliminada}
+                onEjercicioRegistrado={handleEjercicioRegistrado}
+                onEjercicioActualizado={handleEjercicioActualizado}
+                onEjercicioEliminado={handleEjercicioEliminado}
               />
             </div>
           )}

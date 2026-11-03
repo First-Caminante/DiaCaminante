@@ -126,12 +126,53 @@ app.get('/dia/hoy', async (c) => {
       0
     );
 
+    // Consultas resilientes de Sueño, Alimentación y Ejercicio Físico
+    let suenos: any[] = [];
+    let comidas: any[] = [];
+    let ejercicios: any[] = [];
+
+    try {
+      const { data: sData } = await supabase
+        .from('registros_sueno')
+        .select('*')
+        .eq('dia_id', dia.id)
+        .order('hora_inicio', { ascending: true });
+      if (sData) suenos = sData;
+    } catch {
+      // Ignorar si la tabla no ha sido creada aún
+    }
+
+    try {
+      const { data: cData } = await supabase
+        .from('registros_comida')
+        .select('*')
+        .eq('dia_id', dia.id)
+        .order('hora', { ascending: true });
+      if (cData) comidas = cData;
+    } catch {
+      // Ignorar si la tabla no ha sido creada aún
+    }
+
+    try {
+      const { data: eData } = await supabase
+        .from('registros_ejercicio')
+        .select('*')
+        .eq('dia_id', dia.id)
+        .order('hora_inicio', { ascending: true });
+      if (eData) ejercicios = eData;
+    } catch {
+      // Ignorar si la tabla no ha sido creada aún
+    }
+
     return c.json({
       dia,
       totalHorasNetas: Number(totalHorasNetas.toFixed(2)),
       cierreRealizado: Boolean(dia.cierre_realizado),
       sesiones: sesiones || [],
       tareas: tareas || [],
+      suenos,
+      comidas,
+      ejercicios,
     });
   } catch (err: any) {
     console.error('Error in GET /api/dia/hoy:', err);
@@ -204,6 +245,40 @@ app.get('/dia/historico', async (c) => {
       0
     );
 
+    // Consultas resilientes de Sueño, Alimentación y Ejercicio Histórico
+    let suenos: any[] = [];
+    let comidas: any[] = [];
+    let ejercicios: any[] = [];
+
+    if (dia) {
+      try {
+        const { data: sData } = await supabase
+          .from('registros_sueno')
+          .select('*')
+          .eq('dia_id', dia.id)
+          .order('hora_inicio', { ascending: true });
+        if (sData) suenos = sData;
+      } catch {}
+
+      try {
+        const { data: cData } = await supabase
+          .from('registros_comida')
+          .select('*')
+          .eq('dia_id', dia.id)
+          .order('hora', { ascending: true });
+        if (cData) comidas = cData;
+      } catch {}
+
+      try {
+        const { data: eData } = await supabase
+          .from('registros_ejercicio')
+          .select('*')
+          .eq('dia_id', dia.id)
+          .order('hora_inicio', { ascending: true });
+        if (eData) ejercicios = eData;
+      } catch {}
+    }
+
     return c.json({
       fecha,
       dia: dia || null,
@@ -217,6 +292,9 @@ app.get('/dia/historico', async (c) => {
       frioMental: dia?.frio_mental || null,
       sesiones,
       tareas: tareas || [],
+      suenos,
+      comidas,
+      ejercicios,
     });
   } catch (err: any) {
     console.error('Error in GET /api/dia/historico:', err);
@@ -476,6 +554,294 @@ app.delete('/sesiones/:id', async (c) => {
   } catch (err: any) {
     console.error('Error in DELETE /api/sesiones/:id:', err);
     return c.json({ error: err.message || 'Error al eliminar sesión' }, 500);
+  }
+});
+
+// ==========================================
+// REGISTRO DE SUEÑO Y DESCANSO
+// ==========================================
+app.post('/sueno', async (c) => {
+  try {
+    const supabase = getSupabaseAdmin(c.env);
+    const body = await c.req.json();
+    const { hora_inicio, hora_fin, horas, calidad_sueno, sensacion, notas, fecha: customFecha } = body;
+
+    const fecha = getFormattedDate(customFecha);
+    let { data: dia } = await supabase.from('dias_salud').select('id').eq('fecha', fecha).maybeSingle();
+    if (!dia) {
+      const { data: newDia } = await supabase.from('dias_salud').insert({ fecha, cierre_realizado: false }).select('id').single();
+      dia = newDia;
+    }
+
+    if (!dia) {
+      return c.json({ error: 'No se pudo obtener el día de salud' }, 500);
+    }
+
+    const parsedHoras = parseFloat(horas) || calculateTimeDiffHours(hora_inicio || '23:00', hora_fin || '07:00');
+
+    const { data: sueno, error } = await supabase
+      .from('registros_sueno')
+      .insert({
+        dia_id: dia.id,
+        hora_inicio: hora_inicio || '23:00',
+        hora_fin: hora_fin || '07:00',
+        horas: parsedHoras,
+        calidad_sueno: calidad_sueno || 'Reparador',
+        sensacion: sensacion || 'Descansado',
+        notas: (notas || '').trim(),
+        registrado_a: new Date().toISOString(),
+      })
+      .select('*')
+      .single();
+
+    if (error) {
+      if (error.code === '42P01') {
+        return c.json({ error: 'Ejecuta el script SQL en Supabase para crear la tabla registros_sueno.' }, 400);
+      }
+      return c.json({ error: error.message }, 500);
+    }
+
+    return c.json({ success: true, sueno }, 201);
+  } catch (err: any) {
+    console.error('Error in POST /api/sueno:', err);
+    return c.json({ error: err.message || 'Error al registrar sueño' }, 500);
+  }
+});
+
+app.put('/sueno/:id', async (c) => {
+  try {
+    const supabase = getSupabaseAdmin(c.env);
+    const id = c.req.param('id');
+    const body = await c.req.json();
+    const { hora_inicio, hora_fin, horas, calidad_sueno, sensacion, notas } = body;
+
+    const updatePayload: Record<string, any> = {};
+    if (hora_inicio !== undefined) updatePayload.hora_inicio = hora_inicio;
+    if (hora_fin !== undefined) updatePayload.hora_fin = hora_fin;
+    if (horas !== undefined) updatePayload.horas = parseFloat(horas) || 8;
+    if (calidad_sueno !== undefined) updatePayload.calidad_sueno = calidad_sueno;
+    if (sensacion !== undefined) updatePayload.sensacion = sensacion;
+    if (notas !== undefined) updatePayload.notas = String(notas).trim();
+
+    const { data: sueno, error } = await supabase
+      .from('registros_sueno')
+      .update(updatePayload)
+      .eq('id', id)
+      .select('*')
+      .single();
+
+    if (error) return c.json({ error: error.message }, 500);
+    return c.json({ success: true, sueno });
+  } catch (err: any) {
+    console.error('Error in PUT /api/sueno/:id:', err);
+    return c.json({ error: err.message || 'Error al actualizar sueño' }, 500);
+  }
+});
+
+app.delete('/sueno/:id', async (c) => {
+  try {
+    const supabase = getSupabaseAdmin(c.env);
+    const id = c.req.param('id');
+    const { error } = await supabase.from('registros_sueno').delete().eq('id', id);
+    if (error) return c.json({ error: error.message }, 500);
+    return c.json({ success: true, message: 'Registro de sueño eliminado' });
+  } catch (err: any) {
+    console.error('Error in DELETE /api/sueno/:id:', err);
+    return c.json({ error: err.message || 'Error al eliminar sueño' }, 500);
+  }
+});
+
+// ==========================================
+// REGISTRO DE ALIMENTACIÓN / COMIDA
+// ==========================================
+app.post('/comida', async (c) => {
+  try {
+    const supabase = getSupabaseAdmin(c.env);
+    const body = await c.req.json();
+    const { hora, tipo_comida, descripcion, calidad, fecha: customFecha } = body;
+
+    if (!descripcion || !String(descripcion).trim()) {
+      return c.json({ error: 'La descripción de los alimentos es requerida' }, 400);
+    }
+
+    const fecha = getFormattedDate(customFecha);
+    let { data: dia } = await supabase.from('dias_salud').select('id').eq('fecha', fecha).maybeSingle();
+    if (!dia) {
+      const { data: newDia } = await supabase.from('dias_salud').insert({ fecha, cierre_realizado: false }).select('id').single();
+      dia = newDia;
+    }
+
+    if (!dia) {
+      return c.json({ error: 'No se pudo obtener el día de salud' }, 500);
+    }
+
+    const { data: comida, error } = await supabase
+      .from('registros_comida')
+      .insert({
+        dia_id: dia.id,
+        hora: hora || '13:00',
+        tipo_comida: tipo_comida || 'Almuerzo',
+        descripcion: descripcion.trim(),
+        calidad: calidad || 'Limpio / Nutritivo',
+        registrado_a: new Date().toISOString(),
+      })
+      .select('*')
+      .single();
+
+    if (error) {
+      if (error.code === '42P01') {
+        return c.json({ error: 'Ejecuta el script SQL en Supabase para crear la tabla registros_comida.' }, 400);
+      }
+      return c.json({ error: error.message }, 500);
+    }
+
+    return c.json({ success: true, comida }, 201);
+  } catch (err: any) {
+    console.error('Error in POST /api/comida:', err);
+    return c.json({ error: err.message || 'Error al registrar comida' }, 500);
+  }
+});
+
+app.put('/comida/:id', async (c) => {
+  try {
+    const supabase = getSupabaseAdmin(c.env);
+    const id = c.req.param('id');
+    const body = await c.req.json();
+    const { hora, tipo_comida, descripcion, calidad } = body;
+
+    const updatePayload: Record<string, any> = {};
+    if (hora !== undefined) updatePayload.hora = hora;
+    if (tipo_comida !== undefined) updatePayload.tipo_comida = tipo_comida;
+    if (descripcion !== undefined) updatePayload.descripcion = String(descripcion).trim();
+    if (calidad !== undefined) updatePayload.calidad = calidad;
+
+    const { data: comida, error } = await supabase
+      .from('registros_comida')
+      .update(updatePayload)
+      .eq('id', id)
+      .select('*')
+      .single();
+
+    if (error) return c.json({ error: error.message }, 500);
+    return c.json({ success: true, comida });
+  } catch (err: any) {
+    console.error('Error in PUT /api/comida/:id:', err);
+    return c.json({ error: err.message || 'Error al actualizar comida' }, 500);
+  }
+});
+
+app.delete('/comida/:id', async (c) => {
+  try {
+    const supabase = getSupabaseAdmin(c.env);
+    const id = c.req.param('id');
+    const { error } = await supabase.from('registros_comida').delete().eq('id', id);
+    if (error) return c.json({ error: error.message }, 500);
+    return c.json({ success: true, message: 'Registro de comida eliminado' });
+  } catch (err: any) {
+    console.error('Error in DELETE /api/comida/:id:', err);
+    return c.json({ error: err.message || 'Error al eliminar comida' }, 500);
+  }
+});
+
+// ==========================================
+// REGISTRO DE EJERCICIO FÍSICO / ENTRENAMIENTO
+// ==========================================
+app.post('/ejercicio', async (c) => {
+  try {
+    const supabase = getSupabaseAdmin(c.env);
+    const body = await c.req.json();
+    const {
+      hora_inicio,
+      hora_fin,
+      duracion_horas,
+      tipo_ejercicio,
+      descripcion,
+      intensidad,
+      fecha: customFecha,
+    } = body;
+
+    const fecha = getFormattedDate(customFecha);
+    let { data: dia } = await supabase.from('dias_salud').select('id').eq('fecha', fecha).maybeSingle();
+    if (!dia) {
+      const { data: newDia } = await supabase.from('dias_salud').insert({ fecha, cierre_realizado: false }).select('id').single();
+      dia = newDia;
+    }
+
+    if (!dia) {
+      return c.json({ error: 'No se pudo obtener el día de salud' }, 500);
+    }
+
+    const parsedDur = parseFloat(duracion_horas) || calculateTimeDiffHours(hora_inicio || '17:00', hora_fin || '18:00');
+
+    const { data: ejercicio, error } = await supabase
+      .from('registros_ejercicio')
+      .insert({
+        dia_id: dia.id,
+        hora_inicio: hora_inicio || '17:00',
+        hora_fin: hora_fin || '18:00',
+        duracion_horas: parsedDur,
+        tipo_ejercicio: tipo_ejercicio || 'Calistenia / Corporal',
+        descripcion: (descripcion || '').trim(),
+        intensidad: intensidad || 'Alta',
+        registrado_a: new Date().toISOString(),
+      })
+      .select('*')
+      .single();
+
+    if (error) {
+      if (error.code === '42P01') {
+        return c.json({ error: 'Ejecuta el script SQL en Supabase para crear la tabla registros_ejercicio.' }, 400);
+      }
+      return c.json({ error: error.message }, 500);
+    }
+
+    return c.json({ success: true, ejercicio }, 201);
+  } catch (err: any) {
+    console.error('Error in POST /api/ejercicio:', err);
+    return c.json({ error: err.message || 'Error al registrar ejercicio' }, 500);
+  }
+});
+
+app.put('/ejercicio/:id', async (c) => {
+  try {
+    const supabase = getSupabaseAdmin(c.env);
+    const id = c.req.param('id');
+    const body = await c.req.json();
+    const { hora_inicio, hora_fin, duracion_horas, tipo_ejercicio, descripcion, intensidad } = body;
+
+    const updatePayload: Record<string, any> = {};
+    if (hora_inicio !== undefined) updatePayload.hora_inicio = hora_inicio;
+    if (hora_fin !== undefined) updatePayload.hora_fin = hora_fin;
+    if (duracion_horas !== undefined) updatePayload.duracion_horas = parseFloat(duracion_horas) || 1;
+    if (tipo_ejercicio !== undefined) updatePayload.tipo_ejercicio = tipo_ejercicio;
+    if (descripcion !== undefined) updatePayload.descripcion = String(descripcion).trim();
+    if (intensidad !== undefined) updatePayload.intensidad = intensidad;
+
+    const { data: ejercicio, error } = await supabase
+      .from('registros_ejercicio')
+      .update(updatePayload)
+      .eq('id', id)
+      .select('*')
+      .single();
+
+    if (error) return c.json({ error: error.message }, 500);
+    return c.json({ success: true, ejercicio });
+  } catch (err: any) {
+    console.error('Error in PUT /api/ejercicio/:id:', err);
+    return c.json({ error: err.message || 'Error al actualizar ejercicio' }, 500);
+  }
+});
+
+app.delete('/ejercicio/:id', async (c) => {
+  try {
+    const supabase = getSupabaseAdmin(c.env);
+    const id = c.req.param('id');
+    const { error } = await supabase.from('registros_ejercicio').delete().eq('id', id);
+    if (error) return c.json({ error: error.message }, 500);
+    return c.json({ success: true, message: 'Registro de ejercicio eliminado' });
+  } catch (err: any) {
+    console.error('Error in DELETE /api/ejercicio/:id:', err);
+    return c.json({ error: err.message || 'Error al eliminar ejercicio' }, 500);
   }
 });
 

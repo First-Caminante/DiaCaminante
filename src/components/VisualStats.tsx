@@ -6,12 +6,18 @@ import type {
   Intensidad,
   Incomodidad,
   DetalleDiaHistorico,
+  RegistroSueno,
+  RegistroComida,
+  RegistroEjercicio,
 } from '../types/database';
 import { getDiaDelCiclo, FECHA_INICIO_CICLO } from '../data/reflections';
 
 interface VisualStatsProps {
   fechaHoy?: string;
   sesionesHoy?: SesionFlujo[];
+  suenosHoy?: RegistroSueno[];
+  comidasHoy?: RegistroComida[];
+  ejerciciosHoy?: RegistroEjercicio[];
   onGoToDailyLog?: () => void;
 }
 
@@ -22,6 +28,9 @@ export interface HoraSlot24 {
   minutosFoco: number;
   horasNetas: number;
   sesiones: { sesion: SesionFlujo; minutos: number }[];
+  suenos: { sueno: RegistroSueno; minutos: number }[];
+  comidas: RegistroComida[];
+  ejercicios: { ejercicio: RegistroEjercicio; minutos: number }[];
   intensidadPredominante: Intensidad | null;
   incomodidadPredominante: Incomodidad | null;
   esHoraActual: boolean;
@@ -70,6 +79,9 @@ function generateSmoothAreaPath(
 function compute24hSlots(
   targetDate: string,
   sessions: SesionFlujo[],
+  suenos: RegistroSueno[] = [],
+  comidas: RegistroComida[] = [],
+  ejercicios: RegistroEjercicio[] = [],
   currentLiveHour?: number | null
 ): HoraSlot24[] {
   const [year, month, day] = targetDate.split('-').map(Number);
@@ -85,6 +97,9 @@ function compute24hSlots(
 
     let minutosEnHora = 0;
     const sesionesEnSlot: { sesion: SesionFlujo; minutos: number }[] = [];
+    const suenosEnSlot: { sueno: RegistroSueno; minutos: number }[] = [];
+    const comidasEnSlot: RegistroComida[] = [];
+    const ejerciciosEnSlot: { ejercicio: RegistroEjercicio; minutos: number }[] = [];
 
     let intAltaMins = 0;
     let intMediaMins = 0;
@@ -94,6 +109,7 @@ function compute24hSlots(
     let incMediaMins = 0;
     let incBajaMins = 0;
 
+    // 1. Sesiones de Trabajo Profundo
     sessions.forEach((s) => {
       let overlapMins = 0;
 
@@ -139,6 +155,56 @@ function compute24hSlots(
       }
     });
 
+    // 2. Registros de Sueño
+    suenos.forEach((sueno) => {
+      if (sueno.hora_inicio && sueno.hora_fin) {
+        const [hStart, mStart] = sueno.hora_inicio.split(':').map(Number);
+        const [hEnd, mEnd] = sueno.hora_fin.split(':').map(Number);
+        const sStartMin = (hStart || 0) * 60 + (mStart || 0);
+        let sEndMin = (hEnd || 0) * 60 + (mEnd || 0);
+        if (sEndMin < sStartMin) sEndMin += 24 * 60;
+
+        const slotStartMin = h * 60;
+        const slotEndMin = (h + 1) * 60;
+        const oStart = Math.max(sStartMin, slotStartMin);
+        const oEnd = Math.min(sEndMin, slotEndMin);
+        const overlap = Math.max(0, oEnd - oStart);
+        if (overlap > 0) {
+          suenosEnSlot.push({ sueno, minutos: overlap });
+        }
+      }
+    });
+
+    // 3. Registros de Alimentación / Comida
+    comidas.forEach((comida) => {
+      if (comida.hora) {
+        const hComida = parseInt(comida.hora.split(':')[0], 10);
+        if (hComida === h) {
+          comidasEnSlot.push(comida);
+        }
+      }
+    });
+
+    // 4. Registros de Ejercicio Físico
+    ejercicios.forEach((ejercicio) => {
+      if (ejercicio.hora_inicio && ejercicio.hora_fin) {
+        const [hStart, mStart] = ejercicio.hora_inicio.split(':').map(Number);
+        const [hEnd, mEnd] = ejercicio.hora_fin.split(':').map(Number);
+        const sStartMin = (hStart || 0) * 60 + (mStart || 0);
+        let sEndMin = (hEnd || 0) * 60 + (mEnd || 0);
+        if (sEndMin < sStartMin) sEndMin += 24 * 60;
+
+        const slotStartMin = h * 60;
+        const slotEndMin = (h + 1) * 60;
+        const oStart = Math.max(sStartMin, slotStartMin);
+        const oEnd = Math.min(sEndMin, slotEndMin);
+        const overlap = Math.max(0, oEnd - oStart);
+        if (overlap > 0) {
+          ejerciciosEnSlot.push({ ejercicio, minutos: overlap });
+        }
+      }
+    });
+
     minutosEnHora = Math.min(60, minutosEnHora);
 
     let intensidadPredominante: Intensidad | null = null;
@@ -174,6 +240,9 @@ function compute24hSlots(
       minutosFoco: minutosEnHora,
       horasNetas: Number((minutosEnHora / 60).toFixed(2)),
       sesiones: sesionesEnSlot,
+      suenos: suenosEnSlot,
+      comidas: comidasEnSlot,
+      ejercicios: ejerciciosEnSlot,
       intensidadPredominante,
       incomodidadPredominante,
       esHoraActual: isCurrent,
@@ -185,7 +254,14 @@ function compute24hSlots(
   return slots;
 }
 
-export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy, onGoToDailyLog }) => {
+export const VisualStats: React.FC<VisualStatsProps> = ({
+  fechaHoy,
+  sesionesHoy,
+  suenosHoy = [],
+  comidasHoy = [],
+  ejerciciosHoy = [],
+  onGoToDailyLog,
+}) => {
   const [stats, setStats] = useState<EstadisticasResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -333,8 +409,8 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
 
   // Cronograma de 24 Horas de HOY
   const horasSlotsHoy: HoraSlot24[] = useMemo(() => {
-    return compute24hSlots(targetFechaStr, activeSesionesHoy, horaActual);
-  }, [activeSesionesHoy, targetFechaStr, horaActual]);
+    return compute24hSlots(targetFechaStr, activeSesionesHoy, suenosHoy, comidasHoy, ejerciciosHoy, horaActual);
+  }, [activeSesionesHoy, suenosHoy, comidasHoy, ejerciciosHoy, targetFechaStr, horaActual]);
 
   const horasConFocoCount = horasSlotsHoy.filter((s) => s.minutosFoco > 0).length;
   const picoSlotHoy = useMemo(() => {
@@ -379,8 +455,15 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
   const isSelectedToday = fechaSeleccionadaHist === targetFechaStr;
   const horasSlotsHist: HoraSlot24[] = useMemo(() => {
     if (!fechaSeleccionadaHist) return [];
-    return compute24hSlots(fechaSeleccionadaHist, sesionesDiaHist, isSelectedToday ? horaActual : null);
-  }, [fechaSeleccionadaHist, sesionesDiaHist, isSelectedToday, horaActual]);
+    return compute24hSlots(
+      fechaSeleccionadaHist,
+      sesionesDiaHist,
+      detalleDiaHist?.suenos || [],
+      detalleDiaHist?.comidas || [],
+      detalleDiaHist?.ejercicios || [],
+      isSelectedToday ? horaActual : null
+    );
+  }, [fechaSeleccionadaHist, sesionesDiaHist, detalleDiaHist?.suenos, detalleDiaHist?.comidas, detalleDiaHist?.ejercicios, isSelectedToday, horaActual]);
 
   const slotActivoHist = useMemo(() => {
     if (!horasSlotsHist.length) return null;
@@ -531,9 +614,26 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
   const UMBRAL_EXIGENCIA_MIN_PCT = 50;
   const UMBRAL_EJERCICIO_MIN_H = 0.75;
 
-  // Métricas reales de HOY
+  // Métricas reales de HOY integradas con las nuevas modalidades
   const horasHoy = stats.hoy?.horasNetas ?? 0;
-  const ejercicioHoy = stats.hoy?.ejercicioHoras ?? 0;
+
+  const ejercicioHoy = useMemo(() => {
+    if (ejerciciosHoy && ejerciciosHoy.length > 0) {
+      return ejerciciosHoy.reduce((acc, e) => acc + (parseFloat(String(e.duracion_horas)) || 0), 0);
+    }
+    return stats.hoy?.ejercicioHoras ?? 0;
+  }, [ejerciciosHoy, stats.hoy?.ejercicioHoras]);
+
+  const horasSuenoHoy = useMemo(() => {
+    if (suenosHoy && suenosHoy.length > 0) {
+      return suenosHoy.reduce((acc, s) => acc + (parseFloat(String(s.horas)) || 0), 0);
+    }
+    return 0;
+  }, [suenosHoy]);
+
+  const totalComidasHoy = comidasHoy ? comidasHoy.length : 0;
+  const comidasLimpiasHoy = comidasHoy ? comidasHoy.filter((c) => c.calidad.includes('Limpio')).length : 0;
+
   const cierreHoy = stats.hoy?.cierreRealizado ?? false;
 
   const incomodidadHoy = stats.hoy?.distribucionIncomodidad || { Alta: 0, Media: 0, Baja: 0 };
@@ -747,53 +847,32 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
           </div>
         </div>
 
-        {/* HUD DE 4 MÉTRICAS CLAVE (ESTILO FORMAL MEDIANOCHE) */}
+        {/* HUD DE LOS 4 PILARES INTEGRALES DEL DÍA */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-          {/* KPI 1: Horas Netas de Hoy */}
+          {/* Pilar 1: Foco Mental */}
           <div className="card-elevated p-4 border border-[#5b9bd5]/25 space-y-1 relative overflow-hidden">
             <div className="flex items-center justify-between text-[11px] font-sans font-medium text-[#94a3b8]">
-              <span>TIEMPO DE FOCO</span>
-              <span className="text-[#eed59b]">✦</span>
+              <span>TRABAJO PROFUNDO</span>
+              <span className="text-[#60a5fa]">🧠</span>
             </div>
             <div className="flex items-baseline gap-1.5 pt-0.5">
               <span className="text-3xl sm:text-4xl font-serif font-bold text-white tabular-nums">
                 {horasHoy.toFixed(1)}
               </span>
-              <span className="text-xs text-[#94a3b8]">/ 3.0h sugeridas</span>
-            </div>
-            <p className="text-[11px] text-[#94a3b8]">
-              {horasHoy >= UMBRAL_TRABAJO_MIN_H
-                ? '✓ Objetivo diario alcanzado'
-                : deficitTrabajoHoy > 0
-                ? `Resta ${deficitTrabajoHoy.toFixed(1)}h hoy`
-                : 'Sin sesiones aún hoy'}
-            </p>
-          </div>
-
-          {/* KPI 2: Fricción / Incomodidad de Hoy */}
-          <div className="card-elevated p-4 border border-[#5b9bd5]/25 space-y-1 relative overflow-hidden">
-            <div className="flex items-center justify-between text-[11px] font-sans font-medium text-[#94a3b8]">
-              <span>INCOMODIDAD MENTAL</span>
-              <span className="text-[#60a5fa]">⚡</span>
-            </div>
-            <div className="flex items-baseline gap-1.5 pt-0.5">
-              <span className="text-3xl sm:text-4xl font-serif font-bold text-white tabular-nums">
-                {horasHoy > 0 ? `${pctExigenteHoy}%` : '0%'}
-              </span>
-              <span className="text-xs text-[#94a3b8]">/ 50% ideal</span>
+              <span className="text-xs text-[#94a3b8]">/ 3.0h meta</span>
             </div>
             <p className="text-[11px] text-[#94a3b8]">
               {horasHoy > 0
-                ? `${horasFriccionHoy.toFixed(1)}h en incomodidad alta o media`
-                : 'Sin sesiones desafiantes hoy'}
+                ? `${pctExigenteHoy}% en alta o media incomodidad`
+                : 'Sin sesiones de foco hoy'}
             </p>
           </div>
 
-          {/* KPI 3: Entrenamiento de Hoy */}
-          <div className="card-elevated p-4 border border-[#5b9bd5]/25 space-y-1 relative overflow-hidden">
+          {/* Pilar 2: Ejercicio Físico */}
+          <div className="card-elevated p-4 border border-[#f59e0b]/25 space-y-1 relative overflow-hidden">
             <div className="flex items-center justify-between text-[11px] font-sans font-medium text-[#94a3b8]">
               <span>EJERCICIO FÍSICO</span>
-              <span className="text-[#4ecdc4]">🏃</span>
+              <span className="text-[#f59e0b]">🏃</span>
             </div>
             <div className="flex items-baseline gap-1.5 pt-0.5">
               <span className="text-3xl sm:text-4xl font-serif font-bold text-white tabular-nums">
@@ -803,29 +882,48 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
             </div>
             <p className="text-[11px] text-[#94a3b8]">
               {ejercicioHoy >= UMBRAL_EJERCICIO_MIN_H
-                ? '✓ Ejercicio completado'
+                ? '✓ Exigencia física cumplida'
                 : deficitEjercicioHoy > 0
                 ? `Resta ${deficitEjercicioHoy.toFixed(1)}h de actividad`
                 : 'Sin entrenamiento hoy'}
             </p>
           </div>
 
-          {/* KPI 4: Cierre de Jornada */}
-          <div className="card-elevated p-4 border border-[#5b9bd5]/25 space-y-1 relative overflow-hidden">
+          {/* Pilar 3: Sueño y Recuperación */}
+          <div className="card-elevated p-4 border border-[#818cf8]/25 space-y-1 relative overflow-hidden">
             <div className="flex items-center justify-between text-[11px] font-sans font-medium text-[#94a3b8]">
-              <span>CIERRE DIARIO</span>
-              <span className="text-[#eed59b]">🌙</span>
+              <span>SUEÑO &amp; DESCANSO</span>
+              <span className="text-[#818cf8]">🌙</span>
             </div>
             <div className="flex items-baseline gap-1.5 pt-0.5">
-              <span className={`text-2xl sm:text-3xl font-serif font-bold ${cierreHoy ? 'text-[#eed59b]' : 'text-[#94a3b8]'}`}>
-                {cierreHoy ? 'Concluido' : 'En Curso'}
+              <span className="text-3xl sm:text-4xl font-serif font-bold text-white tabular-nums">
+                {horasSuenoHoy > 0 ? horasSuenoHoy.toFixed(1) : '--'}
               </span>
-              <span className="text-xs text-[#94a3b8]">
-                {cierreHoy ? '✓' : '11:59 PM'}
-              </span>
+              <span className="text-xs text-[#94a3b8]">/ 8.0h ideal</span>
             </div>
             <p className="text-[11px] text-[#94a3b8]">
-              {cierreHoy ? 'Jornada cerrada con serenidad' : 'Pendiente antes del descanso'}
+              {suenosHoy && suenosHoy.length > 0
+                ? `Calidad: ${suenosHoy[0].calidad_sueno}`
+                : 'Pendiente registro de sueño'}
+            </p>
+          </div>
+
+          {/* Pilar 4: Alimentación */}
+          <div className="card-elevated p-4 border border-[#10b981]/25 space-y-1 relative overflow-hidden">
+            <div className="flex items-center justify-between text-[11px] font-sans font-medium text-[#94a3b8]">
+              <span>ALIMENTACIÓN</span>
+              <span className="text-[#10b981]">🥗</span>
+            </div>
+            <div className="flex items-baseline gap-1.5 pt-0.5">
+              <span className="text-3xl sm:text-4xl font-serif font-bold text-white tabular-nums">
+                {totalComidasHoy}
+              </span>
+              <span className="text-xs text-[#94a3b8]">{totalComidasHoy === 1 ? 'comida' : 'comidas'}</span>
+            </div>
+            <p className="text-[11px] text-[#94a3b8]">
+              {totalComidasHoy > 0
+                ? `${comidasLimpiasHoy} de ${totalComidasHoy} comidas limpias`
+                : 'Sin ingestas registradas hoy'}
             </p>
           </div>
         </div>
@@ -868,18 +966,90 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
                 <div className="flex items-end justify-between gap-1 sm:gap-1.5 h-32 border-b border-[#5b9bd5]/20 px-1">
                   {horasSlotsHoy.map((slot) => {
                     const isSelected = (selectedHora !== null ? selectedHora : horaActual) === slot.hora;
-                    const hasFocus = slot.minutosFoco > 0;
-                    const fillPercent = Math.max(hasFocus ? 16 : 0, Math.round((slot.minutosFoco / 60) * 100));
+                    const hasWork = slot.minutosFoco > 0;
+                    const hasExercise = slot.ejercicios && slot.ejercicios.length > 0;
+                    const hasFood = slot.comidas && slot.comidas.length > 0;
+                    const hasSleep = slot.suenos && slot.suenos.length > 0;
+                    const hasAnyActivity = hasWork || hasExercise || hasFood || hasSleep;
 
+                    // Icono / Marcador Superior
+                    let topElement = null;
+                    if (hasWork) {
+                      if (slot.incomodidadPredominante === 'Alta' && slot.intensidadPredominante === 'Alta') {
+                        topElement = (
+                          <span className="text-[10px] animate-pulse" title="⚡ Máxima Fricción e Intensidad">
+                            ⚡
+                          </span>
+                        );
+                      } else if (slot.incomodidadPredominante === 'Alta') {
+                        topElement = (
+                          <span
+                            className="w-2 h-2 rounded-full bg-[#eed59b] shadow-[0_0_6px_#eed59b]"
+                            title="Incomodidad Alta"
+                          />
+                        );
+                      } else if (slot.incomodidadPredominante === 'Media') {
+                        topElement = (
+                          <span className="w-2 h-2 rounded-full bg-[#60a5fa]" title="Incomodidad Media" />
+                        );
+                      } else {
+                        topElement = <span className="w-1.5 h-1.5 rounded-full bg-[#3b82f6]" />;
+                      }
+                    } else if (hasExercise) {
+                      topElement = (
+                        <span className="text-[10px]" title="🏃 Ejercicio Físico">
+                          🏃
+                        </span>
+                      );
+                    } else if (hasFood) {
+                      topElement = (
+                        <span className="text-[10px]" title="🥗 Comida">
+                          🥗
+                        </span>
+                      );
+                    } else if (hasSleep) {
+                      topElement = (
+                        <span className="text-[10px]" title="🌙 Sueño">
+                          🌙
+                        </span>
+                      );
+                    } else {
+                      topElement = <span className="w-1 h-1 rounded-full bg-white/10" />;
+                    }
+
+                    // Altura y Color de la Barra según Actividad
+                    let fillPercent = 0;
                     let barColor = 'bg-[#11224d]';
-                    if (slot.intensidadPredominante === 'Alta') barColor = 'bg-gradient-to-t from-[#2563eb] to-[#60a5fa] shadow-[0_0_10px_rgba(96,165,250,0.35)]';
-                    else if (slot.intensidadPredominante === 'Media') barColor = 'bg-gradient-to-t from-[#1e3a8a] to-[#3b82f6]';
-                    else if (slot.intensidadPredominante === 'Baja') barColor = 'bg-[#19336e]';
 
-                    let dotColor = null;
-                    if (slot.incomodidadPredominante === 'Alta') dotColor = 'bg-[#eed59b]';
-                    else if (slot.incomodidadPredominante === 'Media') dotColor = 'bg-[#60a5fa]';
-                    else if (slot.incomodidadPredominante === 'Baja') dotColor = 'bg-[#4ecdc4]';
+                    if (hasWork) {
+                      fillPercent = Math.max(20, Math.round((slot.minutosFoco / 60) * 100));
+                      if (slot.incomodidadPredominante === 'Alta' && slot.intensidadPredominante === 'Alta') {
+                        barColor =
+                          'bg-gradient-to-t from-[#1d4ed8] via-[#2563eb] to-[#eed59b] border border-[#f59e0b] shadow-[0_0_12px_rgba(245,158,11,0.5)]';
+                      } else if (slot.incomodidadPredominante === 'Alta') {
+                        barColor =
+                          'bg-gradient-to-t from-[#1e3a8a] to-[#60a5fa] border border-[#eed59b]/50 shadow-[0_0_8px_rgba(238,213,155,0.3)]';
+                      } else if (slot.intensidadPredominante === 'Alta') {
+                        barColor =
+                          'bg-gradient-to-t from-[#2563eb] to-[#60a5fa] shadow-[0_0_10px_rgba(96,165,250,0.35)]';
+                      } else if (slot.intensidadPredominante === 'Media') {
+                        barColor = 'bg-gradient-to-t from-[#1e3a8a] to-[#3b82f6]';
+                      } else {
+                        barColor = 'bg-[#19336e]';
+                      }
+                    } else if (hasExercise) {
+                      fillPercent = 80;
+                      barColor =
+                        'bg-gradient-to-t from-[#c2410c] to-[#f59e0b] border border-[#f97316]/50 shadow-[0_0_8px_rgba(249,115,22,0.4)]';
+                    } else if (hasSleep) {
+                      fillPercent = 55;
+                      barColor =
+                        'bg-gradient-to-t from-[#3730a3] to-[#818cf8] border border-[#6366f1]/40';
+                    } else if (hasFood) {
+                      fillPercent = 35;
+                      barColor =
+                        'bg-gradient-to-t from-[#065f46] to-[#10b981] border border-[#34d399]/40';
+                    }
 
                     return (
                       <div
@@ -896,12 +1066,8 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
                           </span>
                         )}
 
-                        <div className="h-2.5 flex items-center justify-center mb-1">
-                          {dotColor ? (
-                            <span className={`w-2 h-2 rounded-full ${dotColor} shadow-sm`}></span>
-                          ) : (
-                            <span className="w-1 h-1 rounded-full bg-white/10"></span>
-                          )}
+                        <div className="h-3 flex items-center justify-center mb-1">
+                          {topElement}
                         </div>
 
                         <div
@@ -910,20 +1076,20 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
                               ? 'bg-[#0d1a3d] border-[#eed59b] shadow-midnight-glow'
                               : isSelected
                               ? 'bg-[#132247] border-white shadow-md'
-                              : hasFocus
+                              : hasAnyActivity
                               ? 'bg-[#0d1a3d] border-[#5b9bd5]/40 hover:border-[#60a5fa]'
                               : slot.esFutura
                               ? 'bg-[#070e1e]/60 border-dashed border-[#5b9bd5]/15'
                               : 'bg-[#070e1e]/80 border-[#5b9bd5]/15 hover:border-[#5b9bd5]/35'
                           } ${isSelected ? 'scale-105' : ''}`}
                         >
-                          {hasFocus ? (
+                          {hasAnyActivity ? (
                             <div
                               style={{ height: `${fillPercent}%` }}
                               className={`w-full rounded-md transition-all duration-300 ${barColor}`}
-                            ></div>
+                            />
                           ) : (
-                            <div className="w-full h-0.5 bg-transparent"></div>
+                            <div className="w-full h-0.5 bg-transparent" />
                           )}
                         </div>
 
@@ -933,7 +1099,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
                               ? 'text-[#eed59b] font-bold'
                               : isSelected
                               ? 'text-white font-bold'
-                              : hasFocus
+                              : hasAnyActivity
                               ? 'text-[#f8fafc] font-medium'
                               : 'text-[#94a3b8]/60'
                           }`}
@@ -961,55 +1127,172 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
                   )}
                   {slotActivoHoy.minutosFoco > 0 && !slotActivoHoy.esHoraActual && (
                     <span className="tag-formal px-2.5 py-0.5 rounded-full text-[10px] bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30 font-medium">
-                      Sesión Registrada
+                      🧠 Trabajo Profundo
+                    </span>
+                  )}
+                  {slotActivoHoy.ejercicios && slotActivoHoy.ejercicios.length > 0 && (
+                    <span className="tag-formal px-2.5 py-0.5 rounded-full text-[10px] bg-[#d97706]/30 text-[#fed7aa] border border-[#f59e0b]/40 font-medium">
+                      🏃 Ejercicio Físico
+                    </span>
+                  )}
+                  {slotActivoHoy.comidas && slotActivoHoy.comidas.length > 0 && (
+                    <span className="tag-formal px-2.5 py-0.5 rounded-full text-[10px] bg-[#059669]/30 text-[#a7f3d0] border border-[#10b981]/40 font-medium">
+                      🥗 Comida
+                    </span>
+                  )}
+                  {slotActivoHoy.suenos && slotActivoHoy.suenos.length > 0 && (
+                    <span className="tag-formal px-2.5 py-0.5 rounded-full text-[10px] bg-[#4f46e5]/30 text-[#c7d2fe] border border-[#6366f1]/40 font-medium">
+                      🌙 Sueño
                     </span>
                   )}
                 </div>
 
                 <span className="text-xs text-[#eed59b] font-mono font-semibold">
-                  {slotActivoHoy.minutosFoco} min netos ({slotActivoHoy.horasNetas.toFixed(2)}h)
+                  {slotActivoHoy.minutosFoco > 0 ? `${slotActivoHoy.minutosFoco} min foco` : `${slotActivoHoy.horaLabel}`}
                 </span>
               </div>
 
-              {/* Sesiones del tramo */}
-              {slotActivoHoy.sesiones.length > 0 ? (
-                <div className="space-y-2">
-                  {slotActivoHoy.sesiones.map((item, idx) => (
-                    <div
-                      key={item.sesion.id || idx}
-                      className="p-3.5 rounded-xl bg-[#0d1733]/90 border border-[#5b9bd5]/25 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
-                    >
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-serif font-bold text-white text-sm">{item.sesion.tipo}</span>
-                          <span className="tag-formal text-[10px] px-2 py-0.5 rounded-full bg-[#1e3a8a]/50 text-[#93c5fd] border border-[#60a5fa]/30">
-                            {item.minutos} min en este tramo
+              {/* Contenido Desglosado de la Franja */}
+              {slotActivoHoy.sesiones.length > 0 ||
+              (slotActivoHoy.ejercicios && slotActivoHoy.ejercicios.length > 0) ||
+              (slotActivoHoy.comidas && slotActivoHoy.comidas.length > 0) ||
+              (slotActivoHoy.suenos && slotActivoHoy.suenos.length > 0) ? (
+                <div className="space-y-2.5">
+                  {/* 1. Sesiones de Foco */}
+                  {slotActivoHoy.sesiones.map((item, idx) => {
+                    const isUltraDeep = item.sesion.incomodidad === 'Alta' && item.sesion.intensidad === 'Alta';
+                    return (
+                      <div
+                        key={item.sesion.id || idx}
+                        className={`p-3.5 rounded-xl bg-[#0d1733]/90 border text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
+                          isUltraDeep
+                            ? 'border-[#f59e0b] shadow-[0_0_12px_rgba(245,158,11,0.2)]'
+                            : 'border-[#5b9bd5]/25'
+                        }`}
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-serif font-bold text-white text-sm">🧠 {item.sesion.tipo}</span>
+                            <span className="tag-formal text-[10px] px-2 py-0.5 rounded-full bg-[#1e3a8a]/50 text-[#93c5fd] border border-[#60a5fa]/30">
+                              {item.minutos} min en este tramo
+                            </span>
+                            {isUltraDeep && (
+                              <span className="tag-formal text-[10px] px-2 py-0.5 rounded-full bg-[#78350f] text-[#fde68a] border border-[#f59e0b]/60 font-semibold">
+                                ⚡ Máxima Fricción Cognitiva
+                              </span>
+                            )}
+                          </div>
+                          {item.sesion.calidad && (
+                            <p className="text-xs text-[#94a3b8] italic font-serif">
+                              &ldquo;{item.sesion.calidad}&rdquo;
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 text-[10px] shrink-0">
+                          <span className="tag-formal px-2.5 py-1 rounded-full bg-[#070e1e] text-[#94a3b8] border border-[#5b9bd5]/25">
+                            Intensidad: <b className="text-[#60a5fa]">{item.sesion.intensidad}</b>
+                          </span>
+                          <span
+                            className={`tag-formal px-2.5 py-1 rounded-full bg-[#070e1e] border ${
+                              item.sesion.incomodidad === 'Alta'
+                                ? 'text-[#fde68a] border-[#f59e0b]/50'
+                                : 'text-[#94a3b8] border-[#5b9bd5]/25'
+                            }`}
+                          >
+                            Incomodidad: <b className="text-[#eed59b]">{item.sesion.incomodidad}</b>
                           </span>
                         </div>
-                        {item.sesion.calidad && (
-                          <p className="text-xs text-[#94a3b8] italic font-serif">
-                            &ldquo;{item.sesion.calidad}&rdquo;
+                      </div>
+                    );
+                  })}
+
+                  {/* 2. Ejercicio Físico */}
+                  {slotActivoHoy.ejercicios &&
+                    slotActivoHoy.ejercicios.map((item, idx) => (
+                      <div
+                        key={item.ejercicio.id || idx}
+                        className="p-3.5 rounded-xl bg-[#0d1733]/90 border border-[#f59e0b]/35 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-serif font-bold text-[#fed7aa] text-sm">
+                              🏃 {item.ejercicio.tipo_ejercicio}
+                            </span>
+                            <span className="tag-formal text-[10px] px-2 py-0.5 rounded-full bg-[#7c2d12]/40 text-[#fed7aa] border border-[#f97316]/30">
+                              {item.minutos} min activos
+                            </span>
+                          </div>
+                          {item.ejercicio.descripcion && (
+                            <p className="text-xs text-[#fed7aa]/80 italic">
+                              Rutina: &ldquo;{item.ejercicio.descripcion}&rdquo;
+                            </p>
+                          )}
+                        </div>
+                        <span className="tag-formal text-[10px] px-2.5 py-1 rounded-full bg-[#070e1e] text-[#fed7aa] border border-[#f59e0b]/30">
+                          Intensidad: <b>{item.ejercicio.intensidad}</b>
+                        </span>
+                      </div>
+                    ))}
+
+                  {/* 3. Alimentación */}
+                  {slotActivoHoy.comidas &&
+                    slotActivoHoy.comidas.map((comida, idx) => (
+                      <div
+                        key={comida.id || idx}
+                        className="p-3.5 rounded-xl bg-[#0d1733]/90 border border-[#10b981]/35 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-serif font-bold text-[#a7f3d0] text-sm">
+                              🥗 {comida.tipo_comida}
+                            </span>
+                            <span className="text-[11px] font-mono text-[#94a3b8]">{comida.hora}</span>
+                          </div>
+                          <p className="text-xs text-[#a7f3d0]/90">
+                            Ingesta: &ldquo;{comida.descripcion}&rdquo;
                           </p>
+                        </div>
+                        <span className="tag-formal text-[10px] px-2.5 py-1 rounded-full bg-[#070e1e] text-[#a7f3d0] border border-[#10b981]/30">
+                          Calidad: <b>{comida.calidad}</b>
+                        </span>
+                      </div>
+                    ))}
+
+                  {/* 4. Sueño */}
+                  {slotActivoHoy.suenos &&
+                    slotActivoHoy.suenos.map((item, idx) => (
+                      <div
+                        key={item.sueno.id || idx}
+                        className="p-3.5 rounded-xl bg-[#0d1733]/90 border border-[#6366f1]/35 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-serif font-bold text-[#c7d2fe] text-sm">
+                              🌙 Período de Sueño ({item.sueno.hora_inicio} — {item.sueno.hora_fin})
+                            </span>
+                            <span className="tag-formal text-[10px] px-2 py-0.5 rounded-full bg-[#312e81]/40 text-[#c7d2fe] border border-[#6366f1]/30">
+                              Calidad: {item.sueno.calidad_sueno}
+                            </span>
+                          </div>
+                          {item.sueno.notas && (
+                            <p className="text-xs text-[#c7d2fe]/80 italic">&ldquo;{item.sueno.notas}&rdquo;</p>
+                          )}
+                        </div>
+                        {item.sueno.sensacion && (
+                          <span className="tag-formal text-[10px] px-2.5 py-1 rounded-full bg-[#070e1e] text-[#c7d2fe] border border-[#6366f1]/30">
+                            Despertar: <b>{item.sueno.sensacion}</b>
+                          </span>
                         )}
                       </div>
-
-                      <div className="flex items-center gap-2 text-[10px] shrink-0">
-                        <span className="tag-formal px-2.5 py-1 rounded-full bg-[#070e1e] text-[#94a3b8] border border-[#5b9bd5]/25">
-                          Intensidad: <b className="text-[#60a5fa]">{item.sesion.intensidad}</b>
-                        </span>
-                        <span className="tag-formal px-2.5 py-1 rounded-full bg-[#070e1e] text-[#94a3b8] border border-[#5b9bd5]/25">
-                          Incomodidad: <b className="text-[#eed59b]">{item.sesion.incomodidad}</b>
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               ) : (
                 <div className="text-center py-2 text-xs text-[#94a3b8]">
                   {slotActivoHoy.esHoraActual
-                    ? 'Franja activa en este momento. Aprovecha para registrar una sesión de foco.'
+                    ? 'Franja activa en este momento. Registra trabajo, comida o ejercicio.'
                     : slotActivoHoy.esPasada
-                    ? 'Sin sesiones de trabajo en este intervalo.'
+                    ? 'Sin actividades registradas en este intervalo.'
                     : 'Franja futura de la jornada.'}
                 </div>
               )}
@@ -1446,13 +1729,13 @@ export const VisualStats: React.FC<VisualStatsProps> = ({ fechaHoy, sesionesHoy,
                         <div className="p-3 rounded-xl bg-[#0d1733]/70 border border-[#5b9bd5]/20 space-y-1">
                           <span className="text-[10px] text-[#94a3b8] block uppercase font-medium">Entrenamiento</span>
                           <span className="text-lg font-serif font-bold text-white">
-                            {detalleDiaHist?.ejercicioHoras ? `${detalleDiaHist.ejercicioHoras.toFixed(1)}h` : '0h'}
+                            {detalleDiaHist?.ejercicioHoras != null ? `${Number(detalleDiaHist.ejercicioHoras).toFixed(1)}h` : '0h'}
                           </span>
                         </div>
                         <div className="p-3 rounded-xl bg-[#0d1733]/70 border border-[#5b9bd5]/20 space-y-1">
                           <span className="text-[10px] text-[#94a3b8] block uppercase font-medium">Alimentación</span>
                           <span className="text-lg font-serif font-bold text-[#60a5fa]">
-                            {detalleDiaHist?.alimento ? `${detalleDiaHist.alimento}/5 ⭐` : '—'}
+                            {detalleDiaHist?.alimento != null ? `${detalleDiaHist.alimento}/5 ⭐` : '—'}
                           </span>
                         </div>
                         <div className="p-3 rounded-xl bg-[#0d1733]/70 border border-[#5b9bd5]/20 space-y-1">

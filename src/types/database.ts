@@ -4,6 +4,55 @@ export type FrioMental = 'Frio total' | 'Inspirado' | 'Avido';
 export type TipoTrabajo = 'PROFUNDO' | 'SUPERFICIAL';
 export type EstadoTarea = 'pendiente' | 'hecho' | 'incompleto' | 'no_hecho';
 
+// Tipos específicos para Sueño, Nutrición y Ejercicio
+export type CalidadSueno = 'Profundo' | 'Reparador' | 'Ligero' | 'Interrumpido';
+export type SensacionSueno = 'Energizado' | 'Descansado' | 'Neutro' | 'Cansado';
+
+export type TipoComida = 'Desayuno' | 'Almuerzo' | 'Cena' | 'Merienda / Snack' | 'Pre-entreno' | 'Post-entreno';
+export type CalidadComida = 'Limpio / Nutritivo' | 'Moderado' | 'Libre / Procesado';
+
+export type TipoEjercicio =
+  | 'Calistenia / Corporal'
+  | 'Gimnasio / Pesas'
+  | 'Running / Cardio'
+  | 'Movilidad / Yoga'
+  | 'Deporte / Marcial'
+  | string;
+
+export interface RegistroSueno {
+  id: string;
+  dia_id: string;
+  hora_inicio: string; // HH:MM
+  hora_fin: string;    // HH:MM
+  horas: number;
+  calidad_sueno: CalidadSueno;
+  sensacion?: SensacionSueno | null;
+  notas?: string | null;
+  registrado_a: string;
+}
+
+export interface RegistroComida {
+  id: string;
+  dia_id: string;
+  hora: string; // HH:MM
+  tipo_comida: TipoComida;
+  descripcion: string;
+  calidad: CalidadComida;
+  registrado_a: string;
+}
+
+export interface RegistroEjercicio {
+  id: string;
+  dia_id: string;
+  hora_inicio: string; // HH:MM
+  hora_fin: string;    // HH:MM
+  duracion_horas: number;
+  tipo_ejercicio: TipoEjercicio;
+  descripcion: string; // Qué ejercicios hice (ej: 4x12 dominadas, sentadillas...)
+  intensidad: Intensidad;
+  registrado_a: string;
+}
+
 export interface DiaSalud {
   id: string;
   fecha: string; // YYYY-MM-DD
@@ -63,6 +112,9 @@ export interface DiaHoyResponse {
   cierreRealizado: boolean;
   sesiones: SesionFlujo[];
   tareas: TareaPlanificada[];
+  suenos?: RegistroSueno[];
+  comidas?: RegistroComida[];
+  ejercicios?: RegistroEjercicio[];
 }
 
 export interface TendenciaDia {
@@ -106,6 +158,9 @@ export interface DetalleDiaHistorico {
   frioMental?: string | null;
   sesiones: SesionFlujo[];
   tareas: TareaPlanificada[];
+  suenos?: RegistroSueno[];
+  comidas?: RegistroComida[];
+  ejercicios?: RegistroEjercicio[];
 }
 
 export interface DistribucionTipo {
