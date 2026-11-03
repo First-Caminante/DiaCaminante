@@ -617,19 +617,15 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
   // Métricas reales de HOY integradas con las nuevas modalidades
   const horasHoy = stats.hoy?.horasNetas ?? 0;
 
-  const ejercicioHoy = useMemo(() => {
-    if (ejerciciosHoy && ejerciciosHoy.length > 0) {
-      return ejerciciosHoy.reduce((acc, e) => acc + (parseFloat(String(e.duracion_horas)) || 0), 0);
-    }
-    return stats.hoy?.ejercicioHoras ?? 0;
-  }, [ejerciciosHoy, stats.hoy?.ejercicioHoras]);
+  const ejercicioHoy =
+    ejerciciosHoy && ejerciciosHoy.length > 0
+      ? ejerciciosHoy.reduce((acc, e) => acc + (parseFloat(String(e.duracion_horas)) || 0), 0)
+      : (stats.hoy?.ejercicioHoras ?? 0);
 
-  const horasSuenoHoy = useMemo(() => {
-    if (suenosHoy && suenosHoy.length > 0) {
-      return suenosHoy.reduce((acc, s) => acc + (parseFloat(String(s.horas)) || 0), 0);
-    }
-    return 0;
-  }, [suenosHoy]);
+  const horasSuenoHoy =
+    suenosHoy && suenosHoy.length > 0
+      ? suenosHoy.reduce((acc, s) => acc + (parseFloat(String(s.horas)) || 0), 0)
+      : 0;
 
   const totalComidasHoy = comidasHoy ? comidasHoy.length : 0;
   const comidasLimpiasHoy = comidasHoy ? comidasHoy.filter((c) => c.calidad.includes('Limpio')).length : 0;
