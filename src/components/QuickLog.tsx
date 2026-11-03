@@ -94,7 +94,6 @@ export const QuickLog: React.FC<QuickLogProps> = ({
       const data = await res.json();
       onSesionRegistrada(data.sesion);
 
-      // Reset form fields
       setCalidad('');
       setFeedbackMsg(`+${horasNetas}h registradas en ${activeTipo.trim()}`);
       setTimeout(() => setFeedbackMsg(null), 3000);
@@ -112,7 +111,6 @@ export const QuickLog: React.FC<QuickLogProps> = ({
     }
   };
 
-  // Start editing a session
   const startEdit = (sesion: SesionFlujo) => {
     setEditingSessionId(sesion.id);
     setEditTipo(sesion.tipo);
@@ -127,7 +125,6 @@ export const QuickLog: React.FC<QuickLogProps> = ({
     setEditingSessionId(null);
   };
 
-  // Save edited session
   const handleSaveEdit = async (sesionId: string) => {
     if (!editTipo.trim()) {
       alert('El tipo no puede estar vacío');
@@ -170,7 +167,6 @@ export const QuickLog: React.FC<QuickLogProps> = ({
     }
   };
 
-  // Delete session
   const handleDeleteSession = async (sesionId: string) => {
     try {
       setDeletingId(sesionId);
@@ -195,7 +191,6 @@ export const QuickLog: React.FC<QuickLogProps> = ({
     }
   };
 
-  // Helper for formatting registration time
   const formatTime = (isoString?: string) => {
     if (!isoString) return '--:--';
     try {
@@ -207,36 +202,33 @@ export const QuickLog: React.FC<QuickLogProps> = ({
   };
 
   return (
-    <section className="w-full max-w-5xl mx-auto px-3 sm:px-6 my-4 space-y-6">
-      {/* Quick Log Form Card */}
-      <div className="card-acrylic p-5 sm:p-7 shadow-brutal border-2 border-white/20 transition-all space-y-5">
-        <div className="flex items-center justify-between pb-3 border-b-2 border-white/10">
+    <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      {/* Columna Izquierda (col-span-5): Consola de Registro Rápido */}
+      <div className="lg:col-span-5 card-tactical p-5 sm:p-6 border-2 border-[#74a47b]/40 space-y-5">
+        <div className="flex items-center justify-between pb-3 border-b border-[#74a47b]/20">
           <div className="flex items-center gap-2">
-            <span className="tag-retro px-2 py-0.5 rounded text-[10px] bg-retro-ice text-midnight-950">
+            <span className="tag-tactical px-2 py-0.5 rounded text-[10px] bg-[#215e28] text-[#d9f2c4] border-[#74a47b]">
               REGISTRO
             </span>
-            <h2 className="text-base sm:text-xl font-display font-extrabold text-white uppercase tracking-tight">
-              Registro Rápido de Flujo
+            <h2 className="text-base sm:text-lg font-display font-extrabold text-[#f8fafc] uppercase tracking-tight">
+              Ingreso Rápido de Flujo
             </h2>
-            <span className="tag-retro text-[10px] bg-midnight-950 text-slate-300 px-2 py-0.5 rounded border-white/20 hidden sm:inline-block">
-              &lt; 15 SEGUNDOS
-            </span>
           </div>
 
           {feedbackMsg && (
-            <span className="tag-retro text-xs bg-retro-mint text-midnight-950 px-3 py-1 rounded-lg animate-fade-in shadow-brutal-sm">
+            <span className="tag-tactical text-xs bg-[#d9f2c4] text-[#000000] px-2.5 py-0.5 rounded border-[#74a47b] animate-fade-in font-bold">
               ✓ {feedbackMsg}
             </span>
           )}
         </div>
 
-        <form onSubmit={handleSubmit} onKeyDown={handleKeyDown} className="space-y-5">
+        <form onSubmit={handleSubmit} onKeyDown={handleKeyDown} className="space-y-4">
           {/* Tipo de Trabajo Selector */}
           <div>
-            <label className="block text-xs font-medium text-slate-300 uppercase tracking-wider mb-2 font-mono">
+            <label className="block text-[11px] font-bold text-[#92aa95] uppercase tracking-wider mb-2 font-mono">
               Tipo de Enfoque
             </label>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-1.5">
               {PRESET_TIPOS.map((tipo) => {
                 const isActive = !isCustomTipo && tipoSeleccionado === tipo;
                 return (
@@ -247,10 +239,10 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                       setIsCustomTipo(false);
                       setTipoSeleccionado(tipo);
                     }}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 active:scale-95 ${
+                    className={`btn-tactical-ghost px-3 py-1.5 rounded-xl text-xs font-mono transition-all ${
                       isActive
-                        ? 'bg-pastel-lavender/20 text-pastel-lavender border border-pastel-lavender/40 shadow-glow-lavender font-semibold'
-                        : 'bg-midnight-800 text-slate-300 border border-white/5 hover:border-white/10 hover:text-white'
+                        ? 'bg-[#d9f2c4] text-[#000000] border-[#d9f2c4] font-bold shadow-[0_0_12px_rgba(217,242,196,0.3)]'
+                        : 'text-[#92aa95]'
                     }`}
                   >
                     {tipo}
@@ -261,214 +253,177 @@ export const QuickLog: React.FC<QuickLogProps> = ({
               <button
                 type="button"
                 onClick={() => setIsCustomTipo(true)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 active:scale-95 ${
+                className={`btn-tactical-ghost px-3 py-1.5 rounded-xl text-xs font-mono transition-all ${
                   isCustomTipo
-                    ? 'bg-pastel-lavender/20 text-pastel-lavender border border-pastel-lavender/40 shadow-glow-lavender font-semibold'
-                    : 'bg-midnight-800 text-slate-400 border border-white/5 hover:border-white/10 hover:text-white'
+                    ? 'bg-[#d9f2c4] text-[#000000] border-[#d9f2c4] font-bold'
+                    : 'text-[#92aa95]'
                 }`}
               >
-                + Personalizado
+                + Otro
               </button>
 
               {isCustomTipo && (
                 <input
                   type="text"
-                  placeholder="Nombre del bloque..."
+                  placeholder="Nombre..."
                   value={customTipo}
                   onChange={(e) => setCustomTipo(e.target.value)}
                   autoFocus
-                  className="px-3 py-1.5 rounded-xl text-xs bg-midnight-950 border border-pastel-lavender/40 text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-pastel-lavender"
+                  className="px-3 py-1.5 rounded-xl text-xs font-mono bg-[#000000] border-2 border-[#74a47b] text-[#f8fafc] placeholder-[#92aa95]/50 focus:outline-none"
                 />
               )}
             </div>
           </div>
 
-          {/* Horas Netas con botones de incremento rápido */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-slate-300 uppercase tracking-wider mb-2 font-mono">
-                Horas Netas de Concentración
-              </label>
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <input
-                    type="number"
-                    step="0.25"
-                    min="0.25"
-                    max="12"
-                    value={horasNetas}
-                    onChange={(e) => setHorasNetas(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3.5 py-2 rounded-xl text-sm font-mono text-pastel-mint font-semibold bg-midnight-950 border border-white/10 focus:border-pastel-mint/50 focus:outline-none tabular-nums"
-                  />
-                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400 pointer-events-none">
-                    horas
-                  </span>
-                </div>
-
-                {/* Incremental quick pills */}
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => handleAddHoras(0.5)}
-                    className="px-2.5 py-2 rounded-xl text-xs font-mono text-slate-300 bg-midnight-800 hover:bg-midnight-700 border border-white/5 hover:border-white/10 active:scale-95"
-                    title="Sumar 30 minutos"
-                  >
-                    +0.5h
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleAddHoras(1.0)}
-                    className="px-2.5 py-2 rounded-xl text-xs font-mono text-slate-300 bg-midnight-800 hover:bg-midnight-700 border border-white/5 hover:border-white/10 active:scale-95"
-                    title="Sumar 1 hora"
-                  >
-                    +1.0h
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleAddHoras(1.5)}
-                    className="px-2.5 py-2 rounded-xl text-xs font-mono text-slate-300 bg-midnight-800 hover:bg-midnight-700 border border-white/5 hover:border-white/10 active:scale-95"
-                    title="Sumar 1.5 horas"
-                  >
-                    +1.5h
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Intensidad & Incomodidad */}
-            <div className="grid grid-cols-2 gap-3">
-              {/* Intensidad */}
-              <div>
-                <label className="block text-xs font-medium text-slate-300 uppercase tracking-wider mb-2 font-mono">
-                  Intensidad
-                </label>
-                <div className="flex rounded-xl bg-midnight-950 p-1 border border-white/5">
-                  {(['Baja', 'Media', 'Alta'] as Intensidad[]).map((level) => {
-                    const isActive = intensidad === level;
-                    return (
-                      <button
-                        key={level}
-                        type="button"
-                        onClick={() => setIntensidad(level)}
-                        className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-all ${
-                          isActive
-                            ? 'bg-midnight-800 text-pastel-ice border border-pastel-ice/30 shadow-sm'
-                            : 'text-slate-400 hover:text-slate-200'
-                        }`}
-                      >
-                        {level}
-                      </button>
-                    );
-                  })}
-                </div>
+          {/* Horas Netas con tacómetro digital e incremento rápido */}
+          <div>
+            <label className="block text-[11px] font-bold text-[#92aa95] uppercase tracking-wider mb-2 font-mono">
+              Horas Netas de Concentración
+            </label>
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <input
+                  type="number"
+                  step="0.25"
+                  min="0.25"
+                  max="12"
+                  value={horasNetas}
+                  onChange={(e) => setHorasNetas(parseFloat(e.target.value) || 0)}
+                  className="w-full px-3.5 py-2.5 rounded-xl text-base font-mono text-[#d9f2c4] font-bold bg-[#000000] border-2 border-[#74a47b]/50 focus:border-[#d9f2c4] focus:outline-none tabular-nums"
+                />
+                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-mono text-[#92aa95] pointer-events-none font-bold">
+                  horas
+                </span>
               </div>
 
-              {/* Incomodidad */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-xs font-medium text-slate-300 uppercase tracking-wider font-mono">
-                    Incomodidad
-                  </label>
-                  <span
-                    className="text-[10px] text-slate-500 hover:text-slate-300 cursor-help"
-                    title="Nivel de exigencia cognitiva. Newport: El foco real empuja los límites y genera incomodidad productiva."
-                  >
-                    ⓘ
-                  </span>
-                </div>
-                <div className="flex rounded-xl bg-midnight-950 p-1 border border-white/5">
-                  {(['Baja', 'Media', 'Alta'] as Incomodidad[]).map((level) => {
-                    const isActive = incomodidad === level;
-                    const activeColor =
-                      level === 'Alta'
-                        ? 'text-pastel-coral border-pastel-coral/30'
-                        : level === 'Media'
-                        ? 'text-pastel-amber border-pastel-amber/30'
-                        : 'text-pastel-ice border-pastel-ice/30';
-
-                    return (
-                      <button
-                        key={level}
-                        type="button"
-                        onClick={() => setIncomodidad(level)}
-                        className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-all ${
-                          isActive
-                            ? `bg-midnight-800 ${activeColor} border shadow-sm`
-                            : 'text-slate-400 hover:text-slate-200'
-                        }`}
-                      >
-                        {level}
-                      </button>
-                    );
-                  })}
-                </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleAddHoras(0.5)}
+                  className="btn-tactical-ghost px-2.5 py-2.5 rounded-xl text-xs font-mono font-bold"
+                  title="Sumar 30 minutos"
+                >
+                  +0.5h
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAddHoras(1.0)}
+                  className="btn-tactical-ghost px-2.5 py-2.5 rounded-xl text-xs font-mono font-bold"
+                  title="Sumar 1 hora"
+                >
+                  +1.0h
+                </button>
               </div>
             </div>
           </div>
 
-          {/* Calidad / Avance (Texto conciso) */}
+          {/* Intensidad & Incomodidad */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-bold text-[#92aa95] uppercase tracking-wider mb-1.5 font-mono">
+                Intensidad
+              </label>
+              <div className="flex rounded-xl bg-[#000000] p-1 border border-[#74a47b]/30">
+                {(['Baja', 'Media', 'Alta'] as Intensidad[]).map((level) => {
+                  const isActive = intensidad === level;
+                  return (
+                    <button
+                      key={level}
+                      type="button"
+                      onClick={() => setIntensidad(level)}
+                      className={`flex-1 py-1 text-xs font-mono font-bold rounded-lg transition-all ${
+                        isActive
+                          ? 'bg-[#215e28] text-[#d9f2c4] border border-[#74a47b]'
+                          : 'text-[#92aa95] hover:text-[#f8fafc]'
+                      }`}
+                    >
+                      {level}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-[#92aa95] uppercase tracking-wider mb-1.5 font-mono">
+                Incomodidad
+              </label>
+              <div className="flex rounded-xl bg-[#000000] p-1 border border-[#74a47b]/30">
+                {(['Baja', 'Media', 'Alta'] as Incomodidad[]).map((level) => {
+                  const isActive = incomodidad === level;
+                  return (
+                    <button
+                      key={level}
+                      type="button"
+                      onClick={() => setIncomodidad(level)}
+                      className={`flex-1 py-1 text-xs font-mono font-bold rounded-lg transition-all ${
+                        isActive
+                          ? level === 'Alta'
+                            ? 'bg-[#1a281b] text-[#e28080] border border-[#e28080]/60'
+                            : 'bg-[#1a281b] text-[#fde68a] border border-[#fde68a]/60'
+                          : 'text-[#92aa95] hover:text-[#f8fafc]'
+                      }`}
+                    >
+                      {level}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Calidad / Entregable */}
           <div>
-            <label className="block text-xs font-medium text-slate-300 uppercase tracking-wider mb-2 font-mono">
+            <label className="block text-[11px] font-bold text-[#92aa95] uppercase tracking-wider mb-1.5 font-mono">
               Calidad / Entregable Conseguido
             </label>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Ej: Implementación del parser regex y validación de endpoints..."
-                value={calidad}
-                onChange={(e) => setCalidad(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-midnight-950 border border-white/10 text-white placeholder-slate-500 focus:border-pastel-lavender/50 focus:outline-none"
-              />
-            </div>
+            <input
+              type="text"
+              placeholder="Ej: Refactorización del motor de búsqueda..."
+              value={calidad}
+              onChange={(e) => setCalidad(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl text-xs font-mono bg-[#000000] border-2 border-[#74a47b]/40 text-[#f8fafc] placeholder-[#92aa95]/40 focus:border-[#d9f2c4] focus:outline-none"
+            />
           </div>
 
-          {/* Submit Button & Shortcut hint */}
-          <div className="flex items-center justify-between pt-2">
-            <span className="text-[11px] font-mono text-slate-400 hidden sm:inline-block">
-              Atajo: <kbd className="tag-retro px-1.5 py-0.5 rounded bg-midnight-950 text-slate-200 text-[10px]">Ctrl</kbd> + <kbd className="tag-retro px-1.5 py-0.5 rounded bg-midnight-950 text-slate-200 text-[10px]">Enter</kbd>
+          {/* Submit Button */}
+          <div className="pt-2 flex items-center justify-between">
+            <span className="text-[10px] font-mono text-[#92aa95]">
+              Atajo: <kbd className="tag-tactical px-1.5 py-0.5 rounded bg-[#000000] text-[#f8fafc] text-[9px] border-[#74a47b]/40">Ctrl+Enter</kbd>
             </span>
 
             <button
               type="submit"
               disabled={submitting}
-              className="btn-neo w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-xs font-mono font-bold text-midnight-950 bg-retro-lavender uppercase disabled:opacity-50"
+              className="btn-tactical px-5 py-2.5 rounded-xl text-xs font-mono font-bold uppercase disabled:opacity-50"
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              <span>{submitting ? 'Registrando...' : 'Registrar Bloque de Foco'}</span>
+              <span>{submitting ? 'Registrando...' : 'Registrar Bloque'}</span>
             </button>
           </div>
         </form>
       </div>
 
-      {/* Timeline of Today's Sessions */}
-      <div className="card-acrylic p-5 sm:p-7 shadow-brutal border-2 border-white/20 space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b-2 border-white/10">
+      {/* Columna Derecha (col-span-7): Bitácora / Línea de Tiempo de Hoy */}
+      <div className="lg:col-span-7 card-tactical p-5 sm:p-6 border-2 border-[#74a47b]/40 space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-[#74a47b]/20">
           <div className="flex items-center gap-2">
-            <span className="tag-retro px-2 py-0.5 rounded text-[10px] bg-retro-mint text-midnight-950">
-              HISTORIAL
+            <span className="tag-tactical px-2 py-0.5 rounded text-[10px] bg-[#1a281b] text-[#d9f2c4] border-[#74a47b]">
+              BITÁCORA
             </span>
-            <h3 className="text-base sm:text-xl font-display font-extrabold text-white uppercase tracking-tight">
+            <h3 className="text-base sm:text-lg font-display font-extrabold text-[#f8fafc] uppercase tracking-tight">
               Línea de Tiempo de Hoy
             </h3>
           </div>
-          <span className="text-xs font-mono text-slate-300 font-bold uppercase">
-            {sesiones.length} {sesiones.length === 1 ? 'bloque registrado' : 'bloques registrados'}
+          <span className="text-xs font-mono text-[#92aa95] font-bold uppercase">
+            {sesiones.length} {sesiones.length === 1 ? 'bloque' : 'bloques'}
           </span>
         </div>
 
         {sesiones.length === 0 ? (
-          <div className="text-center py-10 px-4 rounded-xl border border-dashed border-white/5 bg-midnight-950/40">
-            <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-slate-800/80 flex items-center justify-center text-slate-400">
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M12 6v6l4 2" />
-              </svg>
-            </div>
-            <p className="text-sm text-slate-300 font-medium">Aún no has registrado bloques hoy</p>
-            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-              Realiza tu primera sesión de trabajo profundo y regístrala en 15 segundos para alimentar tu marcador.
+          <div className="text-center py-12 px-4 rounded-xl border-2 border-dashed border-[#74a47b]/30 bg-[#000000]">
+            <p className="text-sm font-display font-bold text-[#f8fafc] uppercase">Aún no hay bloques registrados hoy</p>
+            <p className="text-xs font-mono text-[#92aa95] mt-1">
+              Ejecuta tu primera sesión de trabajo profundo y regístrala para iluminar tu cronograma.
             </p>
           </div>
         ) : (
@@ -479,139 +434,61 @@ export const QuickLog: React.FC<QuickLogProps> = ({
 
               if (isEditing) {
                 return (
-                  /* INLINE EDIT MODE CARD */
                   <div
                     key={sesion.id || idx}
-                    className="p-4 sm:p-5 rounded-xl bg-midnight-900 border border-pastel-lavender/40 shadow-glow-lavender space-y-4 animate-fade-in"
+                    className="p-4 rounded-xl bg-[#000000] border-2 border-[#d9f2c4] shadow-[0_0_15px_rgba(217,242,196,0.2)] space-y-3 animate-fade-in font-mono"
                   >
-                    <div className="flex items-center justify-between pb-2 border-b border-white/5">
-                      <span className="text-xs font-mono uppercase text-pastel-lavender font-semibold tracking-wider">
-                        Editar Bloque de Foco
-                      </span>
-                      <span className="text-xs font-mono text-slate-500">
-                        {formatTime(sesion.registrado_a)}
-                      </span>
+                    <div className="flex items-center justify-between pb-2 border-b border-[#74a47b]/20 text-xs">
+                      <span className="font-bold text-[#d9f2c4] uppercase">Editar Bloque</span>
+                      <span className="text-[#92aa95]">{formatTime(sesion.registrado_a)}</span>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                      {/* Edit Tipo */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                       <div>
-                        <label className="block text-[11px] font-mono text-slate-400 mb-1">
-                          Tipo de Enfoque
-                        </label>
+                        <label className="block text-[10px] text-[#92aa95] mb-1 font-bold uppercase">Tipo</label>
                         <input
                           type="text"
                           value={editTipo}
                           onChange={(e) => setEditTipo(e.target.value)}
-                          className="w-full px-3 py-1.5 rounded-lg text-xs font-medium bg-midnight-950 border border-white/10 text-white focus:border-pastel-lavender/50 focus:outline-none"
+                          className="w-full px-3 py-1.5 rounded-lg bg-[#121c13] border border-[#74a47b] text-[#f8fafc]"
                         />
                       </div>
-
-                      {/* Edit Horas */}
                       <div>
-                        <label className="block text-[11px] font-mono text-slate-400 mb-1">
-                          Horas Netas
-                        </label>
+                        <label className="block text-[10px] text-[#92aa95] mb-1 font-bold uppercase">Horas</label>
                         <div className="flex items-center gap-1.5">
                           <input
                             type="number"
                             step="0.25"
-                            min="0.25"
-                            max="12"
                             value={editHorasNetas}
                             onChange={(e) => setEditHorasNetas(parseFloat(e.target.value) || 0)}
-                            className="w-24 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold text-pastel-mint bg-midnight-950 border border-white/10 focus:outline-none"
+                            className="w-full px-3 py-1.5 rounded-lg bg-[#121c13] border border-[#74a47b] text-[#d9f2c4] font-bold"
                           />
                           <button
                             type="button"
                             onClick={() => handleAddEditHoras(0.5)}
-                            className="px-2 py-1.5 rounded-lg text-[10px] font-mono bg-midnight-800 text-slate-300 hover:text-white border border-white/5"
+                            className="btn-tactical-ghost px-2 py-1 rounded text-xs font-bold"
                           >
-                            +0.5h
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleAddEditHoras(1.0)}
-                            className="px-2 py-1.5 rounded-lg text-[10px] font-mono bg-midnight-800 text-slate-300 hover:text-white border border-white/5"
-                          >
-                            +1.0h
+                            +0.5
                           </button>
                         </div>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                      {/* Edit Intensidad */}
-                      <div>
-                        <label className="block text-[11px] font-mono text-slate-400 mb-1">
-                          Intensidad
-                        </label>
-                        <div className="flex rounded-lg bg-midnight-950 p-1 border border-white/5">
-                          {(['Baja', 'Media', 'Alta'] as Intensidad[]).map((level) => (
-                            <button
-                              key={level}
-                              type="button"
-                              onClick={() => setEditIntensidad(level)}
-                              className={`flex-1 py-1 text-[11px] font-medium rounded transition-all ${
-                                editIntensidad === level
-                                  ? 'bg-midnight-800 text-pastel-ice border border-pastel-ice/30'
-                                  : 'text-slate-400 hover:text-slate-200'
-                              }`}
-                            >
-                              {level}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Edit Incomodidad */}
-                      <div>
-                        <label className="block text-[11px] font-mono text-slate-400 mb-1">
-                          Incomodidad (Exigencia Cognitiva)
-                        </label>
-                        <div className="flex rounded-lg bg-midnight-950 p-1 border border-white/5">
-                          {(['Baja', 'Media', 'Alta'] as Incomodidad[]).map((level) => (
-                            <button
-                              key={level}
-                              type="button"
-                              onClick={() => setEditIncomodidad(level)}
-                              className={`flex-1 py-1 text-[11px] font-medium rounded transition-all ${
-                                editIncomodidad === level
-                                  ? level === 'Alta'
-                                    ? 'bg-midnight-800 text-pastel-coral border border-pastel-coral/30'
-                                    : level === 'Media'
-                                    ? 'bg-midnight-800 text-pastel-amber border border-pastel-amber/30'
-                                    : 'bg-midnight-800 text-pastel-ice border border-pastel-ice/30'
-                                  : 'text-slate-400 hover:text-slate-200'
-                              }`}
-                            >
-                              {level}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Edit Calidad */}
                     <div>
-                      <label className="block text-[11px] font-mono text-slate-400 mb-1">
-                        Entregable / Avance Conseguido
-                      </label>
+                      <label className="block text-[10px] text-[#92aa95] mb-1 font-bold uppercase">Calidad</label>
                       <input
                         type="text"
                         value={editCalidad}
                         onChange={(e) => setEditCalidad(e.target.value)}
-                        placeholder="Descripción concisa del entregable..."
-                        className="w-full px-3 py-1.5 rounded-lg text-xs bg-midnight-950 border border-white/10 text-white placeholder-slate-500 focus:border-pastel-lavender/50 focus:outline-none"
+                        className="w-full px-3 py-1.5 rounded-lg bg-[#121c13] border border-[#74a47b] text-[#f8fafc]"
                       />
                     </div>
 
-                    {/* Actions */}
-                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/5">
+                    <div className="flex items-center justify-end gap-2 pt-1">
                       <button
                         type="button"
                         onClick={cancelEdit}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition-colors"
+                        className="btn-tactical-ghost px-3 py-1 rounded text-xs"
                       >
                         Cancelar
                       </button>
@@ -619,9 +496,9 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                         type="button"
                         disabled={savingEdit}
                         onClick={() => handleSaveEdit(sesion.id)}
-                        className="px-4 py-1.5 rounded-lg text-xs font-semibold text-midnight-950 bg-pastel-lavender hover:bg-pastel-lavenderDark shadow-glow-lavender transition-all disabled:opacity-50"
+                        className="btn-tactical px-3.5 py-1 rounded text-xs font-bold"
                       >
-                        {savingEdit ? 'Guardando...' : 'Guardar Cambios'}
+                        {savingEdit ? 'Guardando...' : 'Guardar'}
                       </button>
                     </div>
                   </div>
@@ -629,77 +506,62 @@ export const QuickLog: React.FC<QuickLogProps> = ({
               }
 
               return (
-                /* NORMAL DISPLAY CARD */
                 <div
                   key={sesion.id || idx}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 rounded-xl bg-midnight-950 border-2 border-white/10 hover:border-white/25 shadow-brutal-sm transition-all group"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-[#000000] border-2 border-[#74a47b]/30 hover:border-[#74a47b]/60 transition-all group"
                 >
                   <div className="flex items-start sm:items-center gap-3">
-                    {/* Time stamp */}
-                    <span className="tag-retro text-[10px] text-slate-300 bg-midnight-900 px-2 py-1 rounded-md border-white/15">
+                    <span className="tag-tactical text-[10px] text-[#d9f2c4] bg-[#121c13] px-2 py-1 rounded border-[#74a47b]/40">
                       {formatTime(sesion.registrado_a)}
                     </span>
 
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-display font-bold text-white uppercase">
+                        <span className="text-sm font-display font-bold text-[#f8fafc] uppercase">
                           {sesion.tipo}
                         </span>
 
-                        {/* Intensity badge */}
-                        <span className="tag-retro text-[9px] px-2 py-0.5 rounded bg-midnight-900 text-slate-300 border-white/20">
+                        <span className="tag-tactical text-[9px] px-2 py-0.5 rounded bg-[#121c13] text-[#92aa95] border-[#74a47b]/30">
                           Int: {sesion.intensidad}
                         </span>
 
-                        {/* Incomodidad badge */}
-                        <span
-                          className={`tag-retro text-[9px] px-2 py-0.5 rounded ${
-                            sesion.incomodidad === 'Alta'
-                              ? 'bg-retro-coral text-midnight-950'
-                              : sesion.incomodidad === 'Media'
-                              ? 'bg-retro-amber text-midnight-950'
-                              : 'bg-retro-ice text-midnight-950'
-                          }`}
-                        >
-                          Exigencia: {sesion.incomodidad}
+                        <span className="tag-tactical text-[9px] px-2 py-0.5 rounded bg-[#121c13] text-[#e28080] border-[#74a47b]/30">
+                          Incom: {sesion.incomodidad}
                         </span>
                       </div>
 
                       {sesion.calidad && (
-                        <p className="text-xs text-slate-300 mt-1 font-mono italic line-clamp-1">
+                        <p className="text-xs text-[#92aa95] mt-1 font-mono italic line-clamp-1">
                           ↳ &ldquo;{sesion.calidad}&rdquo;
                         </p>
                       )}
                     </div>
                   </div>
 
-                  {/* Right side: Net Hours Display & Action buttons */}
                   <div className="flex items-center gap-3 self-end sm:self-auto">
-                    {/* Net Hours Display */}
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-lg font-display font-extrabold text-retro-mint tabular-nums">
+                    <div className="flex items-baseline gap-1 font-mono">
+                      <span className="text-lg font-display font-extrabold text-[#d9f2c4] tabular-nums">
                         {Number(sesion.horas_netas).toFixed(2)}
                       </span>
-                      <span className="text-xs font-mono text-slate-400 font-bold uppercase">h netas</span>
+                      <span className="text-xs text-[#92aa95] font-bold uppercase">h</span>
                     </div>
 
-                    {/* Action buttons (Edit & Delete) */}
-                    <div className="flex items-center gap-1 pl-2 border-l-2 border-white/10">
+                    <div className="flex items-center gap-1 pl-2 border-l border-[#74a47b]/20">
                       {isConfirmingDelete ? (
-                        <div className="flex items-center gap-1.5 animate-fade-in">
-                          <span className="text-[10px] text-retro-coral font-mono font-bold uppercase">¿Eliminar?</span>
+                        <div className="flex items-center gap-1.5 animate-fade-in font-mono">
+                          <span className="text-[10px] text-[#e28080] font-bold">¿Borrar?</span>
                           <button
                             type="button"
                             disabled={deletingId === sesion.id}
                             onClick={() => handleDeleteSession(sesion.id)}
-                            className="btn-neo px-2 py-1 rounded bg-retro-coral text-midnight-950 font-bold text-[10px] uppercase"
+                            className="btn-tactical px-2 py-0.5 rounded text-[10px] bg-[#e28080] text-black font-bold"
                           >
                             {deletingId === sesion.id ? '...' : 'Sí'}
                           </button>
                           <button
                             type="button"
                             onClick={() => setConfirmDeleteId(null)}
-                            className="btn-neo px-2 py-1 rounded bg-midnight-900 text-slate-300 text-[10px] border-white/20 uppercase"
+                            className="btn-tactical-ghost px-2 py-0.5 rounded text-[10px]"
                           >
                             No
                           </button>
@@ -709,9 +571,8 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                           <button
                             type="button"
                             onClick={() => startEdit(sesion)}
-                            className="btn-neo p-1.5 rounded-lg text-slate-300 bg-midnight-950 border-white/20 hover:text-retro-lavender"
-                            title="Editar bloque de foco"
-                            aria-label="Editar bloque"
+                            className="btn-tactical-ghost p-1.5 rounded-lg text-[#92aa95] hover:text-[#d9f2c4]"
+                            title="Editar bloque"
                           >
                             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -722,9 +583,8 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                           <button
                             type="button"
                             onClick={() => setConfirmDeleteId(sesion.id)}
-                            className="btn-neo p-1.5 rounded-lg text-slate-300 bg-midnight-950 border-white/20 hover:text-retro-coral"
-                            title="Eliminar bloque de foco"
-                            aria-label="Eliminar bloque"
+                            className="btn-tactical-ghost p-1.5 rounded-lg text-[#92aa95] hover:text-[#e28080]"
+                            title="Eliminar bloque"
                           >
                             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <polyline points="3 6 5 6 21 6" />

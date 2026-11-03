@@ -4,18 +4,24 @@
 
 @layer base {
   :root {
-    --bg-base: #0A0E17;
-    --bg-surface: #121826;
-    --border-subtle: rgba(255, 255, 255, 0.12);
-    --border-highlight: rgba(255, 255, 255, 0.25);
+    --bg-base: #000000;
+    --bg-surface: #121c13;
+    --bg-elevated: #1a281b;
+    --border-color: #74a47b;
+    --text-main: #f8fafc;
+    --text-muted: #92aa95;
+    --accent-primary: #215e28;
+    --accent-secondary: #d9f2c4;
   }
 
   body {
-    background-color: #0A0E17;
-    color: #F1F5F9;
-    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--bg-base);
+    color: var(--text-main);
+    font-family: 'Space Grotesk', 'Inter', system-ui, -apple-system, sans-serif;
     min-height: 100vh;
+    min-height: 100dvh;
     overflow-x: hidden;
+    scrollbar-gutter: stable;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -25,91 +31,131 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Pizarra Oscura Acrílica con textura sutil de cuadrícula neo-editorial */
-.bg-chalkboard-grid {
-  background-color: #080B11;
+/* Pizarra Táctica Obsidian Emerald con retícula milimétrica */
+.bg-tactical-grid {
+  background-color: #000000;
   background-image: 
-    radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
-    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    radial-gradient(rgba(116, 164, 123, 0.14) 1px, transparent 1px),
+    linear-gradient(to right, rgba(116, 164, 123, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(116, 164, 123, 0.04) 1px, transparent 1px);
   background-size: 24px 24px, 120px 120px, 120px 120px;
 }
 
-/* Tarjeta Pizarra Acrílica Neo-Brutalista */
-.card-midnight,
-.card-acrylic {
-  background: linear-gradient(145deg, rgba(16, 23, 38, 0.92) 0%, rgba(10, 14, 24, 0.96) 100%);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border: 2px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 4px 4px 0px 0px #000000, inset 0 1px 0 rgba(255, 255, 255, 0.12);
+/* Tarjeta Táctica de Alta Gama (Superficie #121c13 con borde #74a47b y acentos #d9f2c4) */
+.card-tactical,
+.card-acrylic,
+.card-midnight {
+  background: linear-gradient(160deg, #121c13 0%, #0d150e 100%);
+  border: 1.5px solid rgba(116, 164, 123, 0.35);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(217, 242, 196, 0.15);
   border-radius: 1.15rem;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.card-midnight:hover,
-.card-acrylic:hover {
-  border-color: rgba(255, 255, 255, 0.24);
-  box-shadow: 6px 6px 0px 0px #000000, inset 0 1px 0 rgba(255, 255, 255, 0.18);
+.card-tactical:hover,
+.card-acrylic:hover,
+.card-midnight:hover {
+  border-color: rgba(116, 164, 123, 0.7);
+  box-shadow: 0 14px 35px -8px rgba(0, 0, 0, 0.9), 0 0 20px -5px rgba(116, 164, 123, 0.25), inset 0 1px 0 rgba(217, 242, 196, 0.25);
 }
 
-.card-midnight-solid {
-  background: #111827;
-  border: 2px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 4px 4px 0px 0px #000000;
+.card-elevated {
+  background: linear-gradient(160deg, #1a281b 0%, #121c13 100%);
+  border: 1.5px solid rgba(116, 164, 123, 0.45);
+  box-shadow: 0 12px 35px -8px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(217, 242, 196, 0.2);
   border-radius: 1.15rem;
 }
 
-/* Botón e interacción táctil Neo-Brutalista */
+/* Botón Táctico de Élite */
+.btn-tactical,
 .btn-neo {
-  border: 2px solid #000000;
-  box-shadow: 3px 3px 0px 0px #000000;
-  transition: all 0.14s ease-out;
+  background-color: var(--accent-secondary);
+  color: #000000;
+  font-family: 'Space Grotesk', monospace;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1.5px solid #74a47b;
+  box-shadow: 2px 2px 0px 0px #215e28, 0 4px 12px rgba(0, 0, 0, 0.5);
+  transition: all 0.16s ease-out;
 }
+
+.btn-tactical:hover,
 .btn-neo:hover {
+  background-color: #ffffff;
+  border-color: #d9f2c4;
   transform: translate(-1px, -1px);
-  box-shadow: 5px 5px 0px 0px #000000;
+  box-shadow: 4px 4px 0px 0px #215e28, 0 6px 16px rgba(116, 164, 123, 0.3);
 }
+
+.btn-tactical:active,
 .btn-neo:active {
   transform: translate(2px, 2px);
-  box-shadow: 1px 1px 0px 0px #000000;
+  box-shadow: 0px 0px 0px 0px #215e28;
 }
 
-/* Insignias de bloque retro-press */
+/* Botón Táctico Secundario (Dark Emerald) */
+.btn-tactical-ghost {
+  background-color: #121c13;
+  color: #f8fafc;
+  font-family: 'Space Grotesk', monospace;
+  font-weight: 600;
+  border: 1.5px solid rgba(116, 164, 123, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  transition: all 0.16s ease-out;
+}
+
+.btn-tactical-ghost:hover {
+  background-color: #1a281b;
+  border-color: #74a47b;
+  color: #d9f2c4;
+  box-shadow: 0 0 15px -3px rgba(116, 164, 123, 0.35);
+}
+
+.btn-tactical-ghost:active {
+  transform: scale(0.98);
+}
+
+/* Insignias de Bloque Táctico */
+.tag-tactical,
 .tag-retro {
-  border: 2px solid #000000;
-  box-shadow: 2px 2px 0px 0px #000000;
+  border: 1px solid rgba(116, 164, 123, 0.5);
   font-family: 'JetBrains Mono', monospace;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
 }
 
-/* Animaciones sutiles */
-@keyframes pulseSubtle {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.85; transform: scale(1.02); }
-}
-
-.animate-pulse-subtle {
-  animation: pulseSubtle 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-/* Custom scrollbar para pizarra acrílica */
+/* Custom Scrollbar Táctica */
 ::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #080B11;
-  border-left: 1px solid rgba(255, 255, 255, 0.05);
+  background: #000000;
+  border-left: 1px solid rgba(116, 164, 123, 0.1);
 }
 ::-webkit-scrollbar-thumb {
-  background: #1E293B;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #1a281b;
+  border: 1px solid #74a47b;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
-  border-color: rgba(255, 255, 255, 0.2);
+  background: #215e28;
+  border-color: #d9f2c4;
+}
+
+/* Animaciones y Efectos Tácticos */
+@keyframes radarSweep {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes pulseEmerald {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.05); }
+}
+
+.animate-pulse-emerald {
+  animation: pulseEmerald 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
