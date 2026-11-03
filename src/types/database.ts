@@ -92,6 +92,7 @@ export interface MetricasHoy {
   frioMental?: string | null;
   distribucionIntensidad: { Alta: number; Media: number; Baja: number };
   distribucionIncomodidad: { Alta: number; Media: number; Baja: number };
+  sesiones?: SesionFlujo[];
 }
 
 export interface MatrizCalidad {

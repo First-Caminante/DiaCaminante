@@ -5,7 +5,7 @@ import { ShutdownModal } from './ShutdownModal';
 import { VisualStats } from './VisualStats';
 import { PhilosophyView } from './PhilosophyView';
 import { DailyReflectionModal } from './DailyReflectionModal';
-import { getReflexionDeHoy, type ReflexionDiaria } from '../data/reflections';
+import { getReflexionDeHoy, getDiaDelCiclo, type ReflexionDiaria } from '../data/reflections';
 import type { DiaHoyResponse, SesionFlujo, TareaPlanificada } from '../types/database';
 
 type NavigationTab = 'stats' | 'today' | 'philosophy';
@@ -28,6 +28,7 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
   };
 
   const todayReflection: ReflexionDiaria = getReflexionDeHoy();
+  const diaCiclo = getDiaDelCiclo();
   const todayStr = getLocalTodayDate();
 
   // Fetch today's state
@@ -201,8 +202,8 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
               <span className="text-sm font-bold tracking-tight text-white font-mono">
                 DiaCaminante
               </span>
-              <span className="text-[10px] font-mono text-slate-500 hidden sm:inline-block">
-                • Deep Work &amp; Discipline
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-pastel-lavender/15 text-pastel-lavender border border-pastel-lavender/30">
+                Día {diaCiclo} / 365
               </span>
             </div>
 
@@ -296,7 +297,11 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
       {/* MAIN VIEW CONTENT (Switch between tabs) */}
       <main className="flex-1">
         {currentTab === 'stats' && (
-          <VisualStats fechaHoy={todayStr} onGoToDailyLog={() => setCurrentTab('today')} />
+          <VisualStats
+            fechaHoy={todayStr}
+            sesionesHoy={data?.sesiones || []}
+            onGoToDailyLog={() => setCurrentTab('today')}
+          />
         )}
 
         {currentTab === 'today' && (

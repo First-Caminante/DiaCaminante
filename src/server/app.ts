@@ -771,6 +771,7 @@ app.get('/estadisticas', async (c) => {
       fecha: fechaHoy,
       horasNetas: Number(horasHoy.toFixed(2)),
       sesionesCount: sesionesHoy.length,
+      sesiones: sesionesHoy,
       cierreRealizado: Boolean(diaHoyObj?.cierre_realizado),
       ejercicioHoras: diaHoyObj?.ejercicio_horas ? parseFloat(String(diaHoyObj.ejercicio_horas)) : 0,
       alimento: diaHoyObj?.alimento || null,
