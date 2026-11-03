@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import type { ReflexionDiaria } from '../data/reflections';
+import React, { useState, useEffect } from 'react';
+import { type ReflexionDiaria, getReflexionAleatoria } from '../data/reflections';
 
 interface DailyReflectionModalProps {
   isOpen: boolean;
@@ -14,6 +14,13 @@ export const DailyReflectionModal: React.FC<DailyReflectionModalProps> = ({
   reflection,
   onMarkAsReadForToday,
 }) => {
+  const [currentReflection, setCurrentReflection] = useState<ReflexionDiaria>(reflection);
+
+  // Sync with prop when opened or changed
+  useEffect(() => {
+    setCurrentReflection(reflection);
+  }, [reflection, isOpen]);
+
   // ESC key handler
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -31,6 +38,10 @@ export const DailyReflectionModal: React.FC<DailyReflectionModalProps> = ({
   const handleDismiss = () => {
     onMarkAsReadForToday();
     onClose();
+  };
+
+  const handleRandomize = () => {
+    setCurrentReflection(getReflexionAleatoria());
   };
 
   const getCategoryColor = (cat: string) => {
@@ -72,31 +83,43 @@ export const DailyReflectionModal: React.FC<DailyReflectionModalProps> = ({
         </button>
 
         <div className="space-y-6 relative z-10">
-          {/* Header pill */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono uppercase tracking-widest bg-midnight-800 text-slate-300 border border-white/10">
-              <span className="w-1.5 h-1.5 rounded-full bg-pastel-mint animate-pulse"></span>
-              Reflexión del Día • Día {reflection.dia} de 365
-            </span>
-            <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full border ${getCategoryColor(reflection.categoria)}`}>
-              {reflection.categoria}
-            </span>
+          {/* Header pill & Actions */}
+          <div className="flex items-center justify-between gap-2 flex-wrap pr-10">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono uppercase tracking-widest bg-midnight-800 text-slate-300 border border-white/10">
+                <span className="w-1.5 h-1.5 rounded-full bg-pastel-mint animate-pulse"></span>
+                Día {currentReflection.dia} de 365
+              </span>
+              <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full border ${getCategoryColor(currentReflection.categoria)}`}>
+                {currentReflection.categoria}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleRandomize}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-mono text-pastel-ice hover:text-white bg-midnight-800/80 hover:bg-midnight-700 border border-pastel-ice/20 transition-all active:scale-95 shadow-sm"
+              title="Cargar otra reflexión aleatoria"
+            >
+              <span>🎲</span>
+              <span>Cambiar Frase</span>
+            </button>
           </div>
 
           {/* Theme & Quote */}
           <div className="space-y-3">
             <h2 id="daily-reflection-title" className="text-xl sm:text-2xl font-bold tracking-tight text-white">
-              {reflection.tema}
+              {currentReflection.tema}
             </h2>
 
             <blockquote className="p-4 sm:p-5 rounded-2xl bg-midnight-950/80 border-l-4 border-pastel-lavender border border-white/5 space-y-2">
               <p className="text-base sm:text-lg font-serif italic text-slate-100 leading-relaxed">
-                &ldquo;{reflection.frase}&rdquo;
+                &ldquo;{currentReflection.frase}&rdquo;
               </p>
               <footer className="text-xs font-mono text-pastel-lavender flex items-center gap-2">
-                <span className="font-semibold">— {reflection.autor}</span>
+                <span className="font-semibold">— {currentReflection.autor}</span>
                 <span className="text-slate-500">•</span>
-                <cite className="not-italic text-slate-400">{reflection.origen}</cite>
+                <cite className="not-italic text-slate-400">{currentReflection.origen}</cite>
               </footer>
             </blockquote>
           </div>
@@ -111,7 +134,7 @@ export const DailyReflectionModal: React.FC<DailyReflectionModalProps> = ({
               <span>Aplicación Práctica para Hoy</span>
             </div>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-normal">
-              {reflection.reflexion}
+              {currentReflection.reflexion}
             </p>
           </div>
 
