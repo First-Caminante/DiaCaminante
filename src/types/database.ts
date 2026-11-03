@@ -62,3 +62,48 @@ export interface DiaHoyResponse {
   sesiones: SesionFlujo[];
   tareas: TareaPlanificada[];
 }
+
+export interface TendenciaDia {
+  fecha: string;
+  horasNetas: number;
+  sesionesCount: number;
+  cierreRealizado: boolean;
+  alimento?: number | null;
+  ejercicioHoras?: number | null;
+  frioMental?: string | null;
+}
+
+export interface DistribucionTipo {
+  tipo: string;
+  horas: number;
+  porcentaje: number;
+  count: number;
+}
+
+export interface EstadisticasResponse {
+  totalHorasNetas: number;
+  totalSesiones: number;
+  diasActivosCount: number;
+  promedioHorasDiarias: number;
+  rachaActual: number;
+  rachaMaxima: number;
+  tasaCierre: number;
+  distribucionTipos: DistribucionTipo[];
+  distribucionIntensidad: { Alta: number; Media: number; Baja: number };
+  distribucionIncomodidad: { Alta: number; Media: number; Baja: number };
+  tendenciaDias: TendenciaDia[];
+  salud: {
+    promedioAlimento: number;
+    totalEjercicioHoras: number;
+    diasConEjercicio: number;
+    distribucionFrioMental: Record<string, number>;
+  };
+  tareas: {
+    total: number;
+    hechas: number;
+    incompletas: number;
+    noHechas: number;
+    pendientes: number;
+    tasaCumplimiento: number;
+  };
+}

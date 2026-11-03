@@ -519,4 +519,252 @@ app.get('/exportar', async (c) => {
   }
 });
 
+/**
+ * GET /api/estadisticas
+ * Retorna métricas globales consolidadas, tendencias temporales, distribución de flujo,
+ * correlación psicofísica y rachas de Deep Work.
+ */
+app.get('/estadisticas', async (c) => {
+  try {
+    const supabase = getSupabaseAdmin(c.env);
+
+    // Fetch dias_salud
+    const { data: diasData, error: diasErr } = await supabase
+      .from('dias_salud')
+      .select('*')
+      .order('fecha', { ascending: true });
+
+    if (diasErr) {
+      return c.json({ error: diasErr.message }, 500);
+    }
+    const dias = diasData || [];
+
+    // Fetch sesiones
+    const { data: sesionesData, error: sesErr } = await supabase
+      .from('sesiones_flujo')
+      .select('*')
+      .order('registrado_a', { ascending: true });
+
+    if (sesErr) {
+      return c.json({ error: sesErr.message }, 500);
+    }
+    const sesiones = sesionesData || [];
+
+    // Fetch tareas
+    const { data: tareasData, error: tarErr } = await supabase
+      .from('tareas_planificadas')
+      .select('*');
+
+    if (tarErr) {
+      return c.json({ error: tarErr.message }, 500);
+    }
+    const tareas = tareasData || [];
+
+    // Map dia_id to fecha
+    const diaIdToFecha = new Map<string, string>();
+    const fechaToDia = new Map<string, any>();
+    dias.forEach((d) => {
+      diaIdToFecha.set(d.id, d.fecha);
+      fechaToDia.set(d.fecha, d);
+    });
+
+    // Sessions per date
+    const fechaToSesiones = new Map<string, any[]>();
+    let totalHorasNetas = 0;
+    const tiposMap = new Map<string, { horas: number; count: number }>();
+    const intensidadMap = { Alta: 0, Media: 0, Baja: 0 };
+    const incomodidadMap = { Alta: 0, Media: 0, Baja: 0 };
+
+    sesiones.forEach((s) => {
+      const fecha = diaIdToFecha.get(s.dia_id) || (s.registrado_a ? s.registrado_a.split('T')[0] : '');
+      const h = parseFloat(String(s.horas_netas)) || 0;
+      totalHorasNetas += h;
+
+      if (fecha) {
+        if (!fechaToSesiones.has(fecha)) {
+          fechaToSesiones.set(fecha, []);
+        }
+        fechaToSesiones.get(fecha)!.push(s);
+      }
+
+      // Tipos
+      const tipo = (s.tipo || 'Desarrollo').trim();
+      const prevTipo = tiposMap.get(tipo) || { horas: 0, count: 0 };
+      tiposMap.set(tipo, { horas: prevTipo.horas + h, count: prevTipo.count + 1 });
+
+      // Intensidad
+      if (s.intensidad === 'Alta') intensidadMap.Alta += h;
+      else if (s.intensidad === 'Baja') intensidadMap.Baja += h;
+      else intensidadMap.Media += h;
+
+      // Incomodidad
+      if (s.incomodidad === 'Alta') incomodidadMap.Alta += h;
+      else if (s.incomodidad === 'Baja') incomodidadMap.Baja += h;
+      else incomodidadMap.Media += h;
+    });
+
+    totalHorasNetas = Number(totalHorasNetas.toFixed(2));
+
+    // Distribution by types
+    const distribucionTipos = Array.from(tiposMap.entries()).map(([tipo, val]) => ({
+      tipo,
+      horas: Number(val.horas.toFixed(2)),
+      porcentaje: totalHorasNetas > 0 ? Number(((val.horas / totalHorasNetas) * 100).toFixed(1)) : 0,
+      count: val.count,
+    })).sort((a, b) => b.horas - a.horas);
+
+    // Active days count & avg
+    const fechasConSesiones = Array.from(fechaToSesiones.keys()).sort();
+    const diasActivosCount = fechasConSesiones.length;
+    const promedioHorasDiarias = diasActivosCount > 0 ? Number((totalHorasNetas / diasActivosCount).toFixed(2)) : 0;
+
+    // Streaks calculation
+    let rachaActual = 0;
+    let rachaMaxima = 0;
+
+    if (fechasConSesiones.length > 0) {
+      const sessionDateSet = new Set(fechasConSesiones);
+      
+      // Calculate max streak
+      let tempStreak = 0;
+      let prevDateObj: Date | null = null;
+      for (const f of fechasConSesiones) {
+        const curr = new Date(f + 'T00:00:00Z');
+        if (!prevDateObj) {
+          tempStreak = 1;
+        } else {
+          const diffDays = Math.round((curr.getTime() - prevDateObj.getTime()) / (1000 * 60 * 60 * 24));
+          if (diffDays === 1) {
+            tempStreak++;
+          } else if (diffDays > 1) {
+            tempStreak = 1;
+          }
+        }
+        if (tempStreak > rachaMaxima) rachaMaxima = tempStreak;
+        prevDateObj = curr;
+      }
+
+      // Calculate current streak ending today or yesterday
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+      const yest = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const yestStr = yest.toISOString().split('T')[0];
+
+      let checkDate = sessionDateSet.has(todayStr) ? now : (sessionDateSet.has(yestStr) ? yest : null);
+      if (checkDate) {
+        let cursor = new Date(checkDate.getTime());
+        while (true) {
+          const cStr = cursor.toISOString().split('T')[0];
+          if (sessionDateSet.has(cStr)) {
+            rachaActual++;
+            cursor = new Date(cursor.getTime() - 24 * 60 * 60 * 1000);
+          } else {
+            break;
+          }
+        }
+      }
+    }
+
+    // Tasa cierre
+    const totalDiasRegistrados = Math.max(1, dias.length);
+    const diasConCierre = dias.filter((d) => d.cierre_realizado).length;
+    const tasaCierre = Number(((diasConCierre / totalDiasRegistrados) * 100).toFixed(1));
+
+    // Tendencia últimos 30 días continuos
+    const tendenciaDias: any[] = [];
+    const todayDate = new Date();
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(todayDate.getTime() - i * 24 * 60 * 60 * 1000);
+      const fStr = d.toISOString().split('T')[0];
+      const diaObj = fechaToDia.get(fStr);
+      const sesList = fechaToSesiones.get(fStr) || [];
+      const horasNetas = sesList.reduce((sum, item) => sum + (parseFloat(String(item.horas_netas)) || 0), 0);
+
+      tendenciaDias.push({
+        fecha: fStr,
+        horasNetas: Number(horasNetas.toFixed(2)),
+        sesionesCount: sesList.length,
+        cierreRealizado: Boolean(diaObj?.cierre_realizado),
+        alimento: diaObj?.alimento || null,
+        ejercicioHoras: diaObj?.ejercicio_horas ? parseFloat(String(diaObj.ejercicio_horas)) : null,
+        frioMental: diaObj?.frio_mental || null,
+      });
+    }
+
+    // Salud metrics
+    const diasConAlimento = dias.filter((d) => d.alimento != null && d.alimento > 0);
+    const sumaAlimento = diasConAlimento.reduce((sum, d) => sum + Number(d.alimento), 0);
+    const promedioAlimento = diasConAlimento.length > 0 ? Number((sumaAlimento / diasConAlimento.length).toFixed(1)) : 0;
+
+    let totalEjercicioHoras = 0;
+    let diasConEjercicio = 0;
+    const distribucionFrioMental: Record<string, number> = {
+      'Frio total': 0,
+      'Inspirado': 0,
+      'Avido': 0,
+    };
+
+    dias.forEach((d) => {
+      const ej = parseFloat(String(d.ejercicio_horas)) || 0;
+      if (ej > 0) {
+        totalEjercicioHoras += ej;
+        diasConEjercicio++;
+      }
+      if (d.frio_mental) {
+        let key = d.frio_mental;
+        if (key === 'Frío total') key = 'Frio total';
+        if (key === 'Ávido') key = 'Avido';
+        distribucionFrioMental[key] = (distribucionFrioMental[key] || 0) + 1;
+      }
+    });
+
+    // Tareas metrics
+    const totalTareas = tareas.length;
+    const hechas = tareas.filter((t) => t.estado === 'hecho').length;
+    const incompletas = tareas.filter((t) => t.estado === 'incompleto').length;
+    const noHechas = tareas.filter((t) => t.estado === 'no_hecho').length;
+    const pendientes = tareas.filter((t) => t.estado === 'pendiente').length;
+    const tasaCumplimiento = totalTareas > 0 ? Number(((hechas / totalTareas) * 100).toFixed(1)) : 0;
+
+    return c.json({
+      totalHorasNetas,
+      totalSesiones: sesiones.length,
+      diasActivosCount,
+      promedioHorasDiarias,
+      rachaActual,
+      rachaMaxima,
+      tasaCierre,
+      distribucionTipos,
+      distribucionIntensidad: {
+        Alta: Number(intensidadMap.Alta.toFixed(2)),
+        Media: Number(intensidadMap.Media.toFixed(2)),
+        Baja: Number(intensidadMap.Baja.toFixed(2)),
+      },
+      distribucionIncomodidad: {
+        Alta: Number(incomodidadMap.Alta.toFixed(2)),
+        Media: Number(incomodidadMap.Media.toFixed(2)),
+        Baja: Number(incomodidadMap.Baja.toFixed(2)),
+      },
+      tendenciaDias,
+      salud: {
+        promedioAlimento,
+        totalEjercicioHoras: Number(totalEjercicioHoras.toFixed(1)),
+        diasConEjercicio,
+        distribucionFrioMental,
+      },
+      tareas: {
+        total: totalTareas,
+        hechas,
+        incompletas,
+        noHechas,
+        pendientes,
+        tasaCumplimiento,
+      },
+    });
+  } catch (err: any) {
+    console.error('Error in GET /api/estadisticas:', err);
+    return c.json({ error: err.message || 'Error al calcular estadísticas' }, 500);
+  }
+});
+
 export default app;
