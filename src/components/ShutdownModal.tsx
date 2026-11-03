@@ -151,9 +151,9 @@ export const ShutdownModal: React.FC<ShutdownModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto bg-midnight-950/85 backdrop-blur-md animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto bg-midnight-950/90 backdrop-blur-md animate-fade-in">
       <div
-        className="card-midnight-solid w-full max-w-3xl rounded-3xl p-6 sm:p-8 shadow-2xl relative my-auto border border-white/10 max-h-[90vh] overflow-y-auto"
+        className="card-acrylic w-full max-w-3xl rounded-3xl p-6 sm:p-8 shadow-brutal relative my-auto border-2 border-retro-lavender max-h-[90vh] overflow-y-auto"
         role="dialog"
         aria-modal="true"
         aria-labelledby="shutdown-title"
@@ -161,32 +161,27 @@ export const ShutdownModal: React.FC<ShutdownModalProps> = ({
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-800 transition-colors"
+          className="btn-neo absolute top-5 right-5 p-2 rounded-xl text-midnight-950 bg-retro-coral hover:brightness-110 uppercase font-mono text-xs font-bold"
           aria-label="Cerrar modal"
         >
-          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
+          ✕
         </button>
 
         {cierreExitoso ? (
           /* Celebratory Finished State */
           <div className="text-center py-10 px-4 space-y-6 animate-fade-in">
-            <div className="w-20 h-20 mx-auto rounded-full bg-pastel-mint/15 border border-pastel-mint/30 flex items-center justify-center text-pastel-mint shadow-glow-mint">
-              <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
+            <div className="w-20 h-20 mx-auto rounded-2xl bg-retro-mint border-2 border-black flex items-center justify-center text-midnight-950 shadow-brutal text-2xl font-bold">
+              ✓
             </div>
 
             <div className="space-y-2">
-              <span className="text-xs font-mono uppercase tracking-widest text-pastel-mint">
-                Shutdown Complete
+              <span className="tag-retro px-3 py-1 rounded-lg text-xs bg-retro-mint text-midnight-950 shadow-brutal-sm">
+                SHUTDOWN COMPLETE
               </span>
-              <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+              <h2 className="text-2xl sm:text-3xl font-display font-extrabold text-white uppercase tracking-tight">
                 Ritual de cierre completado. Mente liberada hasta mañana.
               </h2>
-              <p className="text-sm text-slate-400 max-w-md mx-auto italic font-serif">
+              <p className="text-sm text-slate-300 max-w-md mx-auto italic font-serif leading-relaxed">
                 &ldquo;El ritual de cierre le asegura al cerebro que ningún hilo quedó suelto, permitiendo una desconexión total para regenerar la energía cognitiva.&rdquo;
               </p>
             </div>
@@ -197,7 +192,7 @@ export const ShutdownModal: React.FC<ShutdownModalProps> = ({
                   setCierreExitoso(false);
                   onClose();
                 }}
-                className="px-6 py-2.5 rounded-xl text-xs font-semibold text-midnight-950 bg-pastel-mint hover:bg-pastel-mint/90 shadow-glow-mint transition-all"
+                className="btn-neo px-6 py-2.5 rounded-xl text-xs font-mono font-bold text-midnight-950 bg-retro-lavender uppercase"
               >
                 Volver al Tablero
               </button>
@@ -209,15 +204,17 @@ export const ShutdownModal: React.FC<ShutdownModalProps> = ({
             {/* Header */}
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="w-2 h-2 rounded-full bg-pastel-lavender"></span>
-                <span className="text-xs font-mono uppercase tracking-widest text-slate-400">
-                  Cal Newport Daily Protocol
+                <span className="tag-retro px-2 py-0.5 rounded text-[10px] bg-retro-lavender text-midnight-950">
+                  RITUAL
+                </span>
+                <span className="text-xs font-mono uppercase tracking-widest text-slate-400 font-bold">
+                  CAL NEWPORT PROTOCOL
                 </span>
               </div>
-              <h2 id="shutdown-title" className="text-2xl font-bold text-white tracking-tight">
+              <h2 id="shutdown-title" className="text-2xl font-display font-extrabold text-white tracking-tight uppercase">
                 Ritual de Cierre Diario (Shutdown Ritual)
               </h2>
-              <p className="text-xs sm:text-sm text-slate-400 mt-1">
+              <p className="text-xs sm:text-sm text-slate-400 mt-1 font-mono">
                 Audita las tareas de hoy, registra tu estado psicofísico y programa el bloque de mañana para desconectar tu mente en paz.
               </p>
             </div>
@@ -490,11 +487,11 @@ export const ShutdownModal: React.FC<ShutdownModalProps> = ({
             </div>
 
             {/* Ritual Completion Button */}
-            <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+            <div className="pt-4 border-t-2 border-white/10 flex items-center justify-between">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white transition-colors"
+                className="btn-neo px-4 py-2 rounded-xl text-xs font-mono font-bold text-slate-300 bg-midnight-950 border-white/20 uppercase"
               >
                 Cancelar
               </button>
@@ -503,7 +500,7 @@ export const ShutdownModal: React.FC<ShutdownModalProps> = ({
                 type="button"
                 disabled={submittingCierre}
                 onClick={handleCompletarRitual}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold text-midnight-950 bg-pastel-mint hover:bg-pastel-mint/90 shadow-glow-mint transition-all duration-200 active:scale-95 disabled:opacity-50"
+                className="btn-neo inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-mono font-bold text-midnight-950 bg-retro-mint uppercase disabled:opacity-50"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />

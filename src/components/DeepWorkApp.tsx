@@ -189,72 +189,81 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
         </div>
       )}
 
-      {/* TOP NAVIGATION MENU BAR */}
+      {/* TOP NAVIGATION MENU BAR - ESTILO PIZARRA ACRÍLICA RETRO-PRESS */}
       <header className="w-full max-w-5xl mx-auto pt-6 px-4 sm:px-6">
         <nav
-          className="card-midnight rounded-2xl p-2.5 sm:p-3 border border-white/7 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-lg"
+          className="card-acrylic p-3 sm:p-4 flex flex-col md:flex-row md:items-center justify-between gap-3"
           aria-label="Navegación principal"
         >
-          {/* Logo & Brand */}
-          <div className="flex items-center justify-between px-2">
-            <div className="flex items-center gap-2.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-pastel-mint animate-pulse"></span>
-              <span className="text-sm font-bold tracking-tight text-white font-mono">
-                DiaCaminante
+          {/* Logo & Brand Neo-Brutalista */}
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-3">
+              <span className="w-8 h-8 rounded-lg bg-pastel-coral border-2 border-black flex items-center justify-center font-bold text-slate-950 text-xs shadow-brutal-sm">
+                ■
               </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-pastel-lavender/15 text-pastel-lavender border border-pastel-lavender/30">
-                Día {diaCiclo} / 365
-              </span>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  <span className="text-base sm:text-lg font-black tracking-tight text-white font-display uppercase">
+                    DiaCaminante
+                  </span>
+                  <span className="tag-retro bg-pastel-lavender text-slate-950 text-[10px] px-2 py-0.5 rounded">
+                    DÍA {diaCiclo} / 365
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono text-slate-400 hidden sm:inline-block tracking-wider">
+                  SISTEMA DE AUDITORÍA DE DEEP WORK &amp; DISCIPLINA
+                </span>
+              </div>
             </div>
 
             {/* Mobile Reflection trigger */}
             <button
               onClick={() => setIsDailyReflectionOpen(true)}
-              className="md:hidden p-1.5 rounded-lg text-pastel-lavender bg-pastel-lavender/10 border border-pastel-lavender/20 text-xs flex items-center gap-1"
+              className="md:hidden tag-retro bg-pastel-coral text-slate-950 px-2.5 py-1 rounded text-xs flex items-center gap-1 active:translate-y-0.5"
               title="Ver reflexión del día"
             >
               <span>✦</span>
-              <span className="text-[11px] font-mono">Sabiduría</span>
+              <span>Sabiduría</span>
             </button>
           </div>
 
           {/* Navigation Tabs Pills */}
-          <div className="flex items-center gap-1.5 bg-midnight-950/80 p-1 rounded-xl border border-white/5 overflow-x-auto">
+          <div className="flex items-center gap-1.5 bg-midnight-950/90 p-1.5 rounded-xl border-2 border-black/80 shadow-inner overflow-x-auto">
             {/* Tab 1: Estadísticas (Principal) */}
             <button
               type="button"
               onClick={() => setCurrentTab('stats')}
-              className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap active:scale-95 ${
+              className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-lg text-xs font-mono font-bold transition-all whitespace-nowrap ${
                 currentTab === 'stats'
-                  ? 'bg-pastel-lavender text-midnight-950 font-bold shadow-glow-lavender'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                  ? 'bg-pastel-coral text-slate-950 border-2 border-black shadow-brutal-sm'
+                  : 'text-slate-300 hover:text-white hover:bg-white/5'
               }`}
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M3 3v18h18" />
                 <path d="m19 9-5 5-4-4-3 3" />
               </svg>
-              <span>Estadísticas Visuales</span>
+              <span>Estadísticas</span>
             </button>
 
             {/* Tab 2: Registro Diario */}
             <button
               type="button"
               onClick={() => setCurrentTab('today')}
-              className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap active:scale-95 ${
+              className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-lg text-xs font-mono font-bold transition-all whitespace-nowrap ${
                 currentTab === 'today'
-                  ? 'bg-pastel-lavender text-midnight-950 font-bold shadow-glow-lavender'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                  ? 'bg-pastel-mint text-slate-950 border-2 border-black shadow-brutal-sm'
+                  : 'text-slate-300 hover:text-white hover:bg-white/5'
               }`}
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <circle cx="12" cy="12" r="10" />
                 <polyline points="12 6 12 12 16 14" />
               </svg>
               <span>Registro Diario</span>
               {totalHoras > 0 && (
-                <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold ${
-                  currentTab === 'today' ? 'bg-midnight-950 text-pastel-mint' : 'bg-pastel-mint/20 text-pastel-mint'
+                <span className={`text-[10px] px-1.5 py-0.2 rounded font-mono font-bold border ${
+                  currentTab === 'today' ? 'bg-black text-pastel-mint border-black' : 'bg-pastel-mint/20 text-pastel-mint border-pastel-mint/30'
                 }`}>
                   {totalHoras.toFixed(1)}h
                 </span>
@@ -265,18 +274,18 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
             <button
               type="button"
               onClick={() => setCurrentTab('philosophy')}
-              className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap active:scale-95 ${
+              className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-lg text-xs font-mono font-bold transition-all whitespace-nowrap ${
                 currentTab === 'philosophy'
-                  ? 'bg-pastel-lavender text-midnight-950 font-bold shadow-glow-lavender'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                  ? 'bg-pastel-lavender text-slate-950 border-2 border-black shadow-brutal-sm'
+                  : 'text-slate-300 hover:text-white hover:bg-white/5'
               }`}
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
                 <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
               </svg>
-              <span>Filosofía &amp; Disciplina</span>
-              <span className="text-[10px] font-mono text-pastel-amber">365d</span>
+              <span>Filosofía</span>
+              <span className="text-[10px] px-1 rounded bg-black/30 font-mono">365d</span>
             </button>
           </div>
 
@@ -284,7 +293,7 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
           <div className="hidden md:flex items-center gap-2">
             <button
               onClick={() => setIsDailyReflectionOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-medium text-pastel-lavender hover:text-white bg-pastel-lavender/10 hover:bg-pastel-lavender/20 border border-pastel-lavender/30 transition-all active:scale-95"
+              className="btn-neo inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-mono font-bold bg-midnight-900 text-pastel-coral hover:bg-slate-800"
               title="Ver la reflexión del día"
             >
               <span>✦</span>

@@ -207,27 +207,24 @@ export const QuickLog: React.FC<QuickLogProps> = ({
   };
 
   return (
-    <section className="w-full max-w-5xl mx-auto px-4 sm:px-6 my-4 space-y-6">
+    <section className="w-full max-w-5xl mx-auto px-3 sm:px-6 my-4 space-y-6">
       {/* Quick Log Form Card */}
-      <div className="card-midnight rounded-2xl p-5 sm:p-7 shadow-xl border border-white/7 transition-all">
-        <div className="flex items-center justify-between mb-5 pb-3 border-b border-white/5">
+      <div className="card-acrylic p-5 sm:p-7 shadow-brutal border-2 border-white/20 transition-all space-y-5">
+        <div className="flex items-center justify-between pb-3 border-b-2 border-white/10">
           <div className="flex items-center gap-2">
-            <span className="p-1.5 rounded-lg bg-pastel-ice/10 text-pastel-ice">
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 6 12 12 16 14" />
-              </svg>
+            <span className="tag-retro px-2 py-0.5 rounded text-[10px] bg-retro-ice text-midnight-950">
+              REGISTRO
             </span>
-            <h2 className="text-lg font-semibold text-white tracking-tight">
+            <h2 className="text-base sm:text-xl font-display font-extrabold text-white uppercase tracking-tight">
               Registro Rápido de Flujo
             </h2>
-            <span className="text-[11px] font-mono text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-full border border-white/5 hidden sm:inline-block">
-              &lt; 15 segundos
+            <span className="tag-retro text-[10px] bg-midnight-950 text-slate-300 px-2 py-0.5 rounded border-white/20 hidden sm:inline-block">
+              &lt; 15 SEGUNDOS
             </span>
           </div>
 
           {feedbackMsg && (
-            <span className="text-xs font-medium text-pastel-mint bg-pastel-mint/10 border border-pastel-mint/30 px-3 py-1 rounded-full animate-fade-in">
+            <span className="tag-retro text-xs bg-retro-mint text-midnight-950 px-3 py-1 rounded-lg animate-fade-in shadow-brutal-sm">
               ✓ {feedbackMsg}
             </span>
           )}
@@ -427,14 +424,14 @@ export const QuickLog: React.FC<QuickLogProps> = ({
 
           {/* Submit Button & Shortcut hint */}
           <div className="flex items-center justify-between pt-2">
-            <span className="text-[11px] font-mono text-slate-500 hidden sm:inline-block">
-              Atajo: <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-white/5">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-white/5">Enter</kbd>
+            <span className="text-[11px] font-mono text-slate-400 hidden sm:inline-block">
+              Atajo: <kbd className="tag-retro px-1.5 py-0.5 rounded bg-midnight-950 text-slate-200 text-[10px]">Ctrl</kbd> + <kbd className="tag-retro px-1.5 py-0.5 rounded bg-midnight-950 text-slate-200 text-[10px]">Enter</kbd>
             </span>
 
             <button
               type="submit"
               disabled={submitting}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-xs font-semibold text-midnight-950 bg-pastel-lavender hover:bg-pastel-lavenderDark transition-all duration-200 active:scale-95 shadow-glow-lavender disabled:opacity-50"
+              className="btn-neo w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-xs font-mono font-bold text-midnight-950 bg-retro-lavender uppercase disabled:opacity-50"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -446,19 +443,17 @@ export const QuickLog: React.FC<QuickLogProps> = ({
       </div>
 
       {/* Timeline of Today's Sessions */}
-      <div className="card-midnight rounded-2xl p-5 sm:p-7 shadow-xl border border-white/7">
-        <div className="flex items-center justify-between mb-4">
+      <div className="card-acrylic p-5 sm:p-7 shadow-brutal border-2 border-white/20 space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b-2 border-white/10">
           <div className="flex items-center gap-2">
-            <span className="p-1.5 rounded-lg bg-pastel-mint/10 text-pastel-mint">
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-              </svg>
+            <span className="tag-retro px-2 py-0.5 rounded text-[10px] bg-retro-mint text-midnight-950">
+              HISTORIAL
             </span>
-            <h3 className="text-base font-semibold text-white tracking-tight">
+            <h3 className="text-base sm:text-xl font-display font-extrabold text-white uppercase tracking-tight">
               Línea de Tiempo de Hoy
             </h3>
           </div>
-          <span className="text-xs font-mono text-slate-400">
+          <span className="text-xs font-mono text-slate-300 font-bold uppercase">
             {sesiones.length} {sesiones.length === 1 ? 'bloque registrado' : 'bloques registrados'}
           </span>
         </div>
@@ -637,33 +632,33 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                 /* NORMAL DISPLAY CARD */
                 <div
                   key={sesion.id || idx}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-midnight-950/60 border border-white/5 hover:border-white/10 transition-colors group"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 rounded-xl bg-midnight-950 border-2 border-white/10 hover:border-white/25 shadow-brutal-sm transition-all group"
                 >
                   <div className="flex items-start sm:items-center gap-3">
                     {/* Time stamp */}
-                    <span className="text-xs font-mono text-slate-400 bg-midnight-800 px-2 py-1 rounded-md border border-white/5">
+                    <span className="tag-retro text-[10px] text-slate-300 bg-midnight-900 px-2 py-1 rounded-md border-white/15">
                       {formatTime(sesion.registrado_a)}
                     </span>
 
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-semibold text-white">
+                        <span className="text-sm font-display font-bold text-white uppercase">
                           {sesion.tipo}
                         </span>
 
                         {/* Intensity badge */}
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800/80 text-slate-300 border border-white/5">
-                          Intensidad: {sesion.intensidad}
+                        <span className="tag-retro text-[9px] px-2 py-0.5 rounded bg-midnight-900 text-slate-300 border-white/20">
+                          Int: {sesion.intensidad}
                         </span>
 
                         {/* Incomodidad badge */}
                         <span
-                          className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
+                          className={`tag-retro text-[9px] px-2 py-0.5 rounded ${
                             sesion.incomodidad === 'Alta'
-                              ? 'bg-pastel-coral/10 text-pastel-coral border-pastel-coral/30'
+                              ? 'bg-retro-coral text-midnight-950'
                               : sesion.incomodidad === 'Media'
-                              ? 'bg-pastel-amber/10 text-pastel-amber border-pastel-amber/30'
-                              : 'bg-pastel-ice/10 text-pastel-ice border-pastel-ice/30'
+                              ? 'bg-retro-amber text-midnight-950'
+                              : 'bg-retro-ice text-midnight-950'
                           }`}
                         >
                           Exigencia: {sesion.incomodidad}
@@ -671,8 +666,8 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                       </div>
 
                       {sesion.calidad && (
-                        <p className="text-xs text-slate-400 mt-1 font-normal line-clamp-1">
-                          ↳ {sesion.calidad}
+                        <p className="text-xs text-slate-300 mt-1 font-mono italic line-clamp-1">
+                          ↳ &ldquo;{sesion.calidad}&rdquo;
                         </p>
                       )}
                     </div>
@@ -682,29 +677,29 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                   <div className="flex items-center gap-3 self-end sm:self-auto">
                     {/* Net Hours Display */}
                     <div className="flex items-center gap-1.5">
-                      <span className="text-base font-bold font-mono text-pastel-mint tabular-nums">
+                      <span className="text-lg font-display font-extrabold text-retro-mint tabular-nums">
                         {Number(sesion.horas_netas).toFixed(2)}
                       </span>
-                      <span className="text-xs font-mono text-slate-400 font-medium">h netas</span>
+                      <span className="text-xs font-mono text-slate-400 font-bold uppercase">h netas</span>
                     </div>
 
                     {/* Action buttons (Edit & Delete) */}
-                    <div className="flex items-center gap-1 pl-2 border-l border-white/10">
+                    <div className="flex items-center gap-1 pl-2 border-l-2 border-white/10">
                       {isConfirmingDelete ? (
                         <div className="flex items-center gap-1.5 animate-fade-in">
-                          <span className="text-[11px] text-pastel-coral font-mono">¿Eliminar?</span>
+                          <span className="text-[10px] text-retro-coral font-mono font-bold uppercase">¿Eliminar?</span>
                           <button
                             type="button"
                             disabled={deletingId === sesion.id}
                             onClick={() => handleDeleteSession(sesion.id)}
-                            className="px-2 py-1 rounded bg-pastel-coral text-midnight-950 font-bold text-[10px] hover:bg-pastel-coral/90 transition-colors"
+                            className="btn-neo px-2 py-1 rounded bg-retro-coral text-midnight-950 font-bold text-[10px] uppercase"
                           >
                             {deletingId === sesion.id ? '...' : 'Sí'}
                           </button>
                           <button
                             type="button"
                             onClick={() => setConfirmDeleteId(null)}
-                            className="px-2 py-1 rounded bg-slate-800 text-slate-300 text-[10px] hover:text-white transition-colors"
+                            className="btn-neo px-2 py-1 rounded bg-midnight-900 text-slate-300 text-[10px] border-white/20 uppercase"
                           >
                             No
                           </button>
@@ -714,7 +709,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                           <button
                             type="button"
                             onClick={() => startEdit(sesion)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-pastel-lavender hover:bg-midnight-800 transition-colors"
+                            className="btn-neo p-1.5 rounded-lg text-slate-300 bg-midnight-950 border-white/20 hover:text-retro-lavender"
                             title="Editar bloque de foco"
                             aria-label="Editar bloque"
                           >
@@ -727,7 +722,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                           <button
                             type="button"
                             onClick={() => setConfirmDeleteId(sesion.id)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-pastel-coral hover:bg-midnight-800 transition-colors"
+                            className="btn-neo p-1.5 rounded-lg text-slate-300 bg-midnight-950 border-white/20 hover:text-retro-coral"
                             title="Eliminar bloque de foco"
                             aria-label="Eliminar bloque"
                           >

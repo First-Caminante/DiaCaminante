@@ -6,10 +6,10 @@ export default {
     extend: {
       colors: {
         midnight: {
-          950: '#090C10',
-          900: '#0E131F',
-          800: '#151C2C',
-          700: '#1E293B',
+          950: '#080B11',
+          900: '#0E1422',
+          800: '#141D30',
+          700: '#1F2B45',
           600: '#334155',
         },
         pastel: {
@@ -19,6 +19,16 @@ export default {
           coral: '#FDA4AF',
           amber: '#FDE68A',
           ice: '#93C5FD',
+        },
+        retro: {
+          peach: '#FDA4AF',
+          coral: '#FB7185',
+          mint: '#86EFAC',
+          lavender: '#C4B5FD',
+          amber: '#FDE68A',
+          ice: '#93C5FD',
+          dark: '#080B11',
+          card: '#121826',
         }
       },
       fontFamily: {
@@ -28,6 +38,11 @@ export default {
           'BlinkMacSystemFont',
           '"Segoe UI"',
           'Roboto',
+          'sans-serif'
+        ],
+        display: [
+          'Space Grotesk',
+          'Inter',
           'sans-serif'
         ],
         mono: [
@@ -41,9 +56,16 @@ export default {
         ],
       },
       boxShadow: {
-        'glow-lavender': '0 0 20px -5px rgba(196, 181, 253, 0.25)',
-        'glow-mint': '0 0 20px -5px rgba(134, 239, 172, 0.25)',
-        'glow-ice': '0 0 20px -5px rgba(147, 197, 253, 0.25)',
+        'brutal': '4px 4px 0px 0px #000000',
+        'brutal-sm': '2px 2px 0px 0px #000000',
+        'brutal-lg': '6px 6px 0px 0px #000000',
+        'brutal-mint': '4px 4px 0px 0px #86EFAC',
+        'brutal-coral': '4px 4px 0px 0px #FDA4AF',
+        'brutal-lavender': '4px 4px 0px 0px #C4B5FD',
+        'acrylic': '4px 4px 0px 0px #000000, inset 0 1px 0 rgba(255, 255, 255, 0.15)',
+        'glow-lavender': '0 0 20px -5px rgba(196, 181, 253, 0.3)',
+        'glow-mint': '0 0 20px -5px rgba(134, 239, 172, 0.3)',
+        'glow-ice': '0 0 20px -5px rgba(147, 197, 253, 0.3)',
       }
     },
   },
