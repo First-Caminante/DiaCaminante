@@ -26,6 +26,9 @@ export interface HoraSlot24 {
   horaLabel: string;
   rangoLabel: string;
   minutosFoco: number;
+  minutosSueno: number;
+  minutosEjercicio: number;
+  puntosComida: number;
   horasNetas: number;
   sesiones: { sesion: SesionFlujo; minutos: number }[];
   suenos: { sueno: RegistroSueno; minutos: number }[];
@@ -38,10 +41,43 @@ export interface HoraSlot24 {
   esFutura: boolean;
 }
 
-// Algoritmo para generar curvas de Montaña Bézier Cúbica Suavizada (Catmull-Rom a Bézier)
+// Helper para calcular solapamiento exacto de minutos en un slot horario (soporta cruce de medianoche)
+function calculateSlotOverlap(slotH: number, startStr?: string | null, endStr?: string | null): number {
+  if (!startStr || !endStr) return 0;
+  const [hStart, mStart] = startStr.split(':').map(Number);
+  const [hEnd, mEnd] = endStr.split(':').map(Number);
+  if (isNaN(hStart) || isNaN(mStart) || isNaN(hEnd) || isNaN(mEnd)) return 0;
+
+  const sStartMin = (hStart || 0) * 60 + (mStart || 0);
+  const sEndMin = (hEnd || 0) * 60 + (mEnd || 0);
+
+  const slotStart = slotH * 60;
+  const slotEnd = (slotH + 1) * 60;
+
+  if (sStartMin <= sEndMin) {
+    const oStart = Math.max(sStartMin, slotStart);
+    const oEnd = Math.min(sEndMin, slotEnd);
+    return Math.max(0, oEnd - oStart);
+  } else {
+    // Sesión o sueño que cruza la medianoche (ej: 23:00 - 07:00)
+    const oStart1 = Math.max(sStartMin, slotStart);
+    const oEnd1 = Math.min(1440, slotEnd);
+    const overlap1 = Math.max(0, oEnd1 - oStart1);
+
+    const oStart2 = Math.max(0, slotStart);
+    const oEnd2 = Math.min(sEndMin, slotEnd);
+    const overlap2 = Math.max(0, oEnd2 - oStart2);
+
+    return overlap1 + overlap2;
+  }
+}
+
+// Algoritmo para generar curvas de Montaña Bézier Suavizadas y Clampeadas a la base
+// Elimina rebotes / dips debajo del horizonte y garantiza un dibujo continuo sin artefactos
 function generateSmoothAreaPath(
-  points: { x: number; y: number }[],
-  baselineY: number
+  points: { x: number; y: number; value?: number }[],
+  baselineY: number,
+  topY: number = 15
 ): { linePath: string; areaPath: string } {
   if (points.length === 0) return { linePath: '', areaPath: '' };
   if (points.length === 1) {
@@ -52,27 +88,88 @@ function generateSmoothAreaPath(
     };
   }
 
+  const n = points.length;
   let d = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
-  for (let i = 0; i < points.length - 1; i++) {
+
+  for (let i = 0; i < n - 1; i++) {
     const p0 = i > 0 ? points[i - 1] : points[i];
     const p1 = points[i];
     const p2 = points[i + 1];
-    const p3 = i < points.length - 2 ? points[i + 2] : p2;
+    const p3 = i < n - 2 ? points[i + 2] : p2;
 
-    const cp1x = p1.x + (p2.x - p0.x) / 6;
-    const cp1y = p1.y + (p2.y - p0.y) / 6;
-    const cp2x = p2.x - (p3.x - p1.x) / 6;
-    const cp2y = p2.y - (p3.y - p1.y) / 6;
+    const p1OnBase = p1.y >= baselineY - 0.5;
+    const p2OnBase = p2.y >= baselineY - 0.5;
+
+    // Si ambos puntos están en la línea de base (0 actividad), se traza una línea plana horizontal
+    if (p1OnBase && p2OnBase) {
+      d += ` L ${p2.x.toFixed(1)} ${baselineY.toFixed(1)}`;
+      continue;
+    }
+
+    const dx = p2.x - p1.x;
+    let dy1 = (p2.y - p0.y) / 2;
+    let dy2 = (p3.y - p1.y) / 2;
+
+    // Si despega desde la base, la tangente no puede hundirse por debajo de la base
+    if (p1OnBase) {
+      dy1 = 0;
+    }
+    // Si aterriza en la base, la tangente final debe ser horizontal
+    if (p2OnBase) {
+      dy2 = 0;
+    }
+
+    // Aplanar tangentes en crestas / picos locales
+    if ((p1.y < p0.y && p1.y < p2.y) || (p1.y > p0.y && p1.y > p2.y)) {
+      dy1 = 0;
+    }
+    if ((p2.y < p1.y && p2.y < p3.y) || (p2.y > p1.y && p2.y > p3.y)) {
+      dy2 = 0;
+    }
+
+    let cp1x = p1.x + dx / 3;
+    let cp1y = p1.y + dy1 / 3;
+    let cp2x = p2.x - dx / 3;
+    let cp2y = p2.y - dy2 / 3;
+
+    // Clamping estricto para que la curva nunca sobrepase la base ni la cima
+    cp1y = Math.min(baselineY, Math.max(topY, cp1y));
+    cp2y = Math.min(baselineY, Math.max(topY, cp2y));
 
     d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
   }
 
-  const linePath = d;
   const first = points[0];
   const last = points[points.length - 1];
-  const areaPath = `${d} L ${last.x.toFixed(1)} ${baselineY} L ${first.x.toFixed(1)} ${baselineY} Z`;
+  const areaPath = `${d} L ${last.x.toFixed(1)} ${baselineY.toFixed(1)} L ${first.x.toFixed(1)} ${baselineY.toFixed(1)} Z`;
 
-  return { linePath, areaPath };
+  return { linePath: d, areaPath };
+}
+
+// Helper para construir estructuras de puntos y curvas de montaña para cualquier modalidad
+function buildMountainData(
+  slots: HoraSlot24[],
+  getValue: (s: HoraSlot24) => number,
+  maxExpected: number = 60,
+  width: number = 900,
+  height: number = 140
+) {
+  const paddingX = 22;
+  const baselineY = height - 18;
+  const topY = 16;
+  const usableHeight = baselineY - topY;
+
+  const step = (width - paddingX * 2) / Math.max(1, slots.length - 1);
+  const points = slots.map((slot, idx) => {
+    const x = paddingX + idx * step;
+    const val = getValue(slot);
+    const ratio = Math.min(1, Math.max(0, val / maxExpected));
+    const y = baselineY - ratio * usableHeight;
+    return { x, y, value: val, slot };
+  });
+
+  const { linePath, areaPath } = generateSmoothAreaPath(points, baselineY, topY);
+  return { width, height, baselineY, topY, points, linePath, areaPath };
 }
 
 // Función pura para construir las 24 ranuras horarias de cualquier jornada (Hoy o Histórica)
@@ -114,17 +211,7 @@ function compute24hSlots(
       let overlapMins = 0;
 
       if (s.hora_inicio && s.hora_fin) {
-        const [hStart, mStart] = s.hora_inicio.split(':').map(Number);
-        const [hEnd, mEnd] = s.hora_fin.split(':').map(Number);
-        const sStartMin = (hStart || 0) * 60 + (mStart || 0);
-        let sEndMin = (hEnd || 0) * 60 + (mEnd || 0);
-        if (sEndMin < sStartMin) sEndMin += 24 * 60;
-
-        const slotStartMin = h * 60;
-        const slotEndMin = (h + 1) * 60;
-        const oStart = Math.max(sStartMin, slotStartMin);
-        const oEnd = Math.min(sEndMin, slotEndMin);
-        overlapMins = Math.max(0, oEnd - oStart);
+        overlapMins = calculateSlotOverlap(h, s.hora_inicio, s.hora_fin);
       } else if (s.registrado_a) {
         const regDate = new Date(s.registrado_a);
         const sessionEndMs = regDate.getTime();
@@ -156,54 +243,54 @@ function compute24hSlots(
     });
 
     // 2. Registros de Sueño
+    let minutosSuenoEnSlot = 0;
     suenos.forEach((sueno) => {
       if (sueno.hora_inicio && sueno.hora_fin) {
-        const [hStart, mStart] = sueno.hora_inicio.split(':').map(Number);
-        const [hEnd, mEnd] = sueno.hora_fin.split(':').map(Number);
-        const sStartMin = (hStart || 0) * 60 + (mStart || 0);
-        let sEndMin = (hEnd || 0) * 60 + (mEnd || 0);
-        if (sEndMin < sStartMin) sEndMin += 24 * 60;
-
-        const slotStartMin = h * 60;
-        const slotEndMin = (h + 1) * 60;
-        const oStart = Math.max(sStartMin, slotStartMin);
-        const oEnd = Math.min(sEndMin, slotEndMin);
-        const overlap = Math.max(0, oEnd - oStart);
+        const overlap = calculateSlotOverlap(h, sueno.hora_inicio, sueno.hora_fin);
         if (overlap > 0) {
           suenosEnSlot.push({ sueno, minutos: overlap });
+          minutosSuenoEnSlot += overlap;
         }
       }
     });
+    minutosSuenoEnSlot = Math.min(60, minutosSuenoEnSlot);
 
-    // 3. Registros de Alimentación / Comida
+    // 3. Registros de Alimentación / Comida (Cálculo de magnitud nutricional)
+    let puntosComidaEnSlot = 0;
     comidas.forEach((comida) => {
       if (comida.hora) {
         const hComida = parseInt(comida.hora.split(':')[0], 10);
         if (hComida === h) {
           comidasEnSlot.push(comida);
+          let pts = 45;
+          if (comida.tipo_comida === 'Almuerzo') pts = 60;
+          else if (comida.tipo_comida === 'Cena') pts = 55;
+          else if (comida.tipo_comida === 'Desayuno') pts = 50;
+          else if (comida.tipo_comida === 'Merienda / Snack') pts = 35;
+          else pts = 30;
+          puntosComidaEnSlot = Math.max(puntosComidaEnSlot, pts);
         }
       }
     });
 
     // 4. Registros de Ejercicio Físico
+    let minutosEjercicioEnSlot = 0;
     ejercicios.forEach((ejercicio) => {
       if (ejercicio.hora_inicio && ejercicio.hora_fin) {
-        const [hStart, mStart] = ejercicio.hora_inicio.split(':').map(Number);
-        const [hEnd, mEnd] = ejercicio.hora_fin.split(':').map(Number);
-        const sStartMin = (hStart || 0) * 60 + (mStart || 0);
-        let sEndMin = (hEnd || 0) * 60 + (mEnd || 0);
-        if (sEndMin < sStartMin) sEndMin += 24 * 60;
-
-        const slotStartMin = h * 60;
-        const slotEndMin = (h + 1) * 60;
-        const oStart = Math.max(sStartMin, slotStartMin);
-        const oEnd = Math.min(sEndMin, slotEndMin);
-        const overlap = Math.max(0, oEnd - oStart);
+        const overlap = calculateSlotOverlap(h, ejercicio.hora_inicio, ejercicio.hora_fin);
         if (overlap > 0) {
           ejerciciosEnSlot.push({ ejercicio, minutos: overlap });
+          minutosEjercicioEnSlot += overlap;
+        }
+      } else if (ejercicio.duracion_horas) {
+        const durMin = Math.round((parseFloat(String(ejercicio.duracion_horas)) || 0) * 60);
+        if (durMin > 0 && h === 18) {
+          // Asignación por defecto en hora típica si carece de rango explícito
+          minutosEjercicioEnSlot = Math.min(60, durMin);
         }
       }
     });
+    minutosEjercicioEnSlot = Math.min(60, minutosEjercicioEnSlot);
 
     minutosEnHora = Math.min(60, minutosEnHora);
 
@@ -238,6 +325,9 @@ function compute24hSlots(
       horaLabel,
       rangoLabel,
       minutosFoco: minutosEnHora,
+      minutosSueno: minutosSuenoEnSlot,
+      minutosEjercicio: minutosEjercicioEnSlot,
+      puntosComida: puntosComidaEnSlot,
       horasNetas: Number((minutosEnHora / 60).toFixed(2)),
       sesiones: sesionesEnSlot,
       suenos: suenosEnSlot,
@@ -270,6 +360,12 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
   const [hoveredDay, setHoveredDay] = useState<TendenciaDia | null>(null);
   const [mostrarModalHistorico, setMostrarModalHistorico] = useState<boolean>(false);
   const [selectedHora, setSelectedHora] = useState<number | null>(null);
+
+  // Selector de aspecto circadiano (Trabajo, Sueño, Alimentación, Ejercicio, Comparativa)
+  const [aspectoCircadiano, setAspectoCircadiano] = useState<
+    'trabajo' | 'sueno' | 'alimentacion' | 'ejercicio' | 'comparativa'
+  >('trabajo');
+  const [hoveredSlotHora, setHoveredSlotHora] = useState<number | null>(null);
 
   // Estado para la inspección y selección de un día específico en el histórico
   const [fechaSeleccionadaHist, setFechaSeleccionadaHist] = useState<string>('');
@@ -419,25 +515,38 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
 
   const slotActivoHoy = horasSlotsHoy[selectedHora !== null ? selectedHora : horaActual] || horasSlotsHoy[0];
 
-  // Curva de Montaña Circadiana de Hoy (24 puntos)
-  const mountainHoyData = useMemo(() => {
-    const width = 900;
-    const height = 130;
-    const paddingX = 20;
-    const baselineY = height - 15;
-    const topY = 15;
-    const usableHeight = baselineY - topY;
+  // Curvas de Montaña Circadiana de Hoy para cada aspecto independiente (24 puntos cada una)
+  const mountainTrabajo = useMemo(() => {
+    return buildMountainData(horasSlotsHoy, (s) => s.minutosFoco, 60, 900, 145);
+  }, [horasSlotsHoy]);
 
-    const step = (width - paddingX * 2) / 23;
-    const points = horasSlotsHoy.map((slot, idx) => {
-      const x = paddingX + idx * step;
-      const ratio = Math.min(1, slot.minutosFoco / 60);
-      const y = baselineY - ratio * usableHeight;
-      return { x, y, slot };
-    });
+  const mountainSueno = useMemo(() => {
+    return buildMountainData(horasSlotsHoy, (s) => s.minutosSueno, 60, 900, 145);
+  }, [horasSlotsHoy]);
 
-    const { linePath, areaPath } = generateSmoothAreaPath(points, baselineY);
-    return { width, height, baselineY, points, linePath, areaPath };
+  const mountainComida = useMemo(() => {
+    return buildMountainData(horasSlotsHoy, (s) => s.puntosComida, 60, 900, 145);
+  }, [horasSlotsHoy]);
+
+  const mountainEjercicio = useMemo(() => {
+    return buildMountainData(horasSlotsHoy, (s) => s.minutosEjercicio, 60, 900, 145);
+  }, [horasSlotsHoy]);
+
+  // Mini-montañas para la vista comparativa (4 pistas sincronizadas en paralelo)
+  const miniMountainTrabajo = useMemo(() => {
+    return buildMountainData(horasSlotsHoy, (s) => s.minutosFoco, 60, 900, 48);
+  }, [horasSlotsHoy]);
+
+  const miniMountainSueno = useMemo(() => {
+    return buildMountainData(horasSlotsHoy, (s) => s.minutosSueno, 60, 900, 48);
+  }, [horasSlotsHoy]);
+
+  const miniMountainComida = useMemo(() => {
+    return buildMountainData(horasSlotsHoy, (s) => s.puntosComida, 60, 900, 48);
+  }, [horasSlotsHoy]);
+
+  const miniMountainEjercicio = useMemo(() => {
+    return buildMountainData(horasSlotsHoy, (s) => s.minutosEjercicio, 60, 900, 48);
   }, [horasSlotsHoy]);
 
   // Cronograma de 24 Horas del DÍA HISTÓRICO SELECCIONADO
@@ -673,6 +782,108 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
 
   const diasConActividadLista = stats.diasHistoricosConActividad || [];
 
+  // Configuración temática y métricas por cada dimensión circadiana
+  const ASPECTO_CONFIGS = {
+    trabajo: {
+      id: 'trabajo',
+      label: 'Trabajo Profundo',
+      icono: '🧠',
+      colorPrincipal: '#60a5fa',
+      colorAcento: '#eed59b',
+      gradienteId: 'gradTrabajoCircadiano',
+      strokeId: 'strokeTrabajoCircadiano',
+      fillStart: '#3b82f6',
+      fillMid: '#1d4ed8',
+      strokeStart: '#60a5fa',
+      strokeMid: '#eed59b',
+      strokeEnd: '#93c5fd',
+      hasData: horasHoy > 0,
+      totalStr: `${horasHoy.toFixed(1)}h`,
+      metaStr: '3.0h meta',
+      progresoPct: Math.min(100, Math.round((horasHoy / 3.0) * 100)),
+    },
+    sueno: {
+      id: 'sueno',
+      label: 'Sueño & Descanso',
+      icono: '🌙',
+      colorPrincipal: '#a78bfa',
+      colorAcento: '#c084fc',
+      gradienteId: 'gradSuenoCircadiano',
+      strokeId: 'strokeSuenoCircadiano',
+      fillStart: '#8b5cf6',
+      fillMid: '#5b21b6',
+      strokeStart: '#a78bfa',
+      strokeMid: '#c084fc',
+      strokeEnd: '#e9d5ff',
+      hasData: horasSuenoHoy > 0,
+      totalStr: `${horasSuenoHoy.toFixed(1)}h`,
+      metaStr: '8.0h ideal',
+      progresoPct: Math.min(100, Math.round((horasSuenoHoy / 8.0) * 100)),
+    },
+    alimentacion: {
+      id: 'alimentacion',
+      label: 'Alimentación',
+      icono: '🥗',
+      colorPrincipal: '#34d399',
+      colorAcento: '#6ee7b7',
+      gradienteId: 'gradComidaCircadiano',
+      strokeId: 'strokeComidaCircadiano',
+      fillStart: '#10b981',
+      fillMid: '#047857',
+      strokeStart: '#34d399',
+      strokeMid: '#6ee7b7',
+      strokeEnd: '#a7f3d0',
+      hasData: totalComidasHoy > 0,
+      totalStr: `${totalComidasHoy} comidas`,
+      metaStr: '3 comidas limpias',
+      progresoPct: Math.min(100, Math.round((comidasLimpiasHoy / 3) * 100)),
+    },
+    ejercicio: {
+      id: 'ejercicio',
+      label: 'Ejercicio Físico',
+      icono: '🏃',
+      colorPrincipal: '#fb923c',
+      colorAcento: '#f59e0b',
+      gradienteId: 'gradEjercicioCircadiano',
+      strokeId: 'strokeEjercicioCircadiano',
+      fillStart: '#f59e0b',
+      fillMid: '#b45309',
+      strokeStart: '#fb923c',
+      strokeMid: '#f59e0b',
+      strokeEnd: '#fed7aa',
+      hasData: ejercicioHoy > 0,
+      totalStr: `${ejercicioHoy.toFixed(1)}h`,
+      metaStr: '0.75h meta',
+      progresoPct: Math.min(100, Math.round((ejercicioHoy / 0.75) * 100)),
+    },
+  };
+
+  const activeConfig =
+    aspectoCircadiano === 'sueno'
+      ? ASPECTO_CONFIGS.sueno
+      : aspectoCircadiano === 'alimentacion'
+      ? ASPECTO_CONFIGS.alimentacion
+      : aspectoCircadiano === 'ejercicio'
+      ? ASPECTO_CONFIGS.ejercicio
+      : ASPECTO_CONFIGS.trabajo;
+
+  const activeMountain =
+    aspectoCircadiano === 'sueno'
+      ? mountainSueno
+      : aspectoCircadiano === 'alimentacion'
+      ? mountainComida
+      : aspectoCircadiano === 'ejercicio'
+      ? mountainEjercicio
+      : mountainTrabajo;
+
+  const handleSvgMouseMove = (e: React.MouseEvent<HTMLElement | SVGSVGElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const pct = Math.max(0, Math.min(1, mouseX / rect.width));
+    const h = Math.min(23, Math.max(0, Math.round(pct * 23)));
+    setHoveredSlotHora(h);
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* ========================================================= */}
@@ -727,126 +938,628 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
           </div>
         </div>
 
-        {/* GRAN MONTAÑA CIRCADIANA SVG (ESTILO NOCHE DE INVIERNO & BIBLIOTECA) */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-[#081229]/80 border border-[#5b9bd5]/20 shadow-inner space-y-2 relative">
-          <div className="flex items-center justify-between text-xs text-[#94a3b8] pb-1">
-            <span className="flex items-center gap-2 font-medium text-[#f8fafc]">
-              <span className="w-2 h-2 rounded-full bg-[#60a5fa] animate-ping"></span>
-              Relieve de Concentración 24 Horas
-            </span>
-            <span className="text-[#eed59b] font-medium font-serif">
-              {horasHoy > 0 ? `${(horasHoy * 60).toFixed(0)} minutos de inmersión hoy` : 'Esperando primera sesión del día'}
-            </span>
+        {/* ========================================================= */}
+        {/* RELIEVE CIRCADIANO 24 HORAS POR ASPECTO (CON VISTAS SEPARADAS Y MODO COMPARATIVO) */}
+        {/* ========================================================= */}
+        <div className="p-4 sm:p-6 rounded-2xl bg-[#081229]/90 border border-[#5b9bd5]/25 shadow-xl space-y-4 relative">
+          {/* Barra Superior: Título Dinámico + Selector de Pestañas por Dimensión */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-[#5b9bd5]/15">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span
+                  className="w-2.5 h-2.5 rounded-full animate-ping"
+                  style={{
+                    backgroundColor:
+                      aspectoCircadiano === 'trabajo'
+                        ? '#60a5fa'
+                        : aspectoCircadiano === 'sueno'
+                        ? '#a78bfa'
+                        : aspectoCircadiano === 'alimentacion'
+                        ? '#34d399'
+                        : aspectoCircadiano === 'ejercicio'
+                        ? '#fb923c'
+                        : '#eed59b',
+                  }}
+                />
+                <h3 className="text-base sm:text-lg font-serif font-bold text-white tracking-wide">
+                  {aspectoCircadiano === 'trabajo' && 'Relieve de Trabajo Profundo (24 Horas)'}
+                  {aspectoCircadiano === 'sueno' && 'Relieve de Sueño & Descanso (24 Horas)'}
+                  {aspectoCircadiano === 'alimentacion' && 'Relieve de Alimentación (24 Horas)'}
+                  {aspectoCircadiano === 'ejercicio' && 'Relieve de Ejercicio Físico (24 Horas)'}
+                  {aspectoCircadiano === 'comparativa' && 'Panorama Circadiano — 4 Dimensiones en Paralelo'}
+                </h3>
+              </div>
+              <p className="text-xs text-[#94a3b8]">
+                {aspectoCircadiano === 'trabajo' && (
+                  <span>
+                    {horasHoy > 0
+                      ? `${(horasHoy * 60).toFixed(0)} min de inmersión hoy (${pctExigenteHoy}% en alta/media incomodidad) • Meta: 3.0h`
+                      : 'Esperando primera sesión de inmersión mental • Meta: 3.0h'}
+                  </span>
+                )}
+                {aspectoCircadiano === 'sueno' && (
+                  <span>
+                    {horasSuenoHoy > 0
+                      ? `${horasSuenoHoy.toFixed(1)}h de reposo registradas (${suenosHoy?.[0]?.calidad_sueno || 'Registrado'}) • Ideal: 8.0h`
+                      : 'Sin registro de descanso nocturno para hoy • Ideal: 8.0h'}
+                  </span>
+                )}
+                {aspectoCircadiano === 'alimentacion' && (
+                  <span>
+                    {totalComidasHoy > 0
+                      ? `${totalComidasHoy} comidas registradas (${comidasLimpiasHoy} limpias / nutritivas) • Meta: 3 limpias`
+                      : 'Sin ingestas registradas hoy • Meta: 3 comidas limpias'}
+                  </span>
+                )}
+                {aspectoCircadiano === 'ejercicio' && (
+                  <span>
+                    {ejercicioHoy > 0
+                      ? `${(ejercicioHoy * 60).toFixed(0)} min de entrenamiento (${ejerciciosHoy?.[0]?.tipo_ejercicio || 'Físico'}) • Meta: 45 min`
+                      : 'Sin entrenamiento físico registrado hoy • Meta: 45 min (0.75h)'}
+                  </span>
+                )}
+                {aspectoCircadiano === 'comparativa' && (
+                  <span>
+                    Pistas horizontales sincronizadas hora a hora (00:00 — 23:59). Pasa el cursor para ver el impacto conjunto.
+                  </span>
+                )}
+              </p>
+            </div>
+
+            {/* Pestañas de Selección de Aspecto */}
+            <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-[#050b18] border border-[#5b9bd5]/20 text-xs">
+              <button
+                type="button"
+                onClick={() => setAspectoCircadiano('trabajo')}
+                className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
+                  aspectoCircadiano === 'trabajo'
+                    ? 'bg-[#1e3a8a] text-white shadow-md border border-[#60a5fa]/60'
+                    : 'text-[#94a3b8] hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <span>🧠</span>
+                <span>Trabajo</span>
+                <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-black/40 text-[#93c5fd]">
+                  {horasHoy.toFixed(1)}h
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAspectoCircadiano('sueno')}
+                className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
+                  aspectoCircadiano === 'sueno'
+                    ? 'bg-[#4c1d95] text-white shadow-md border border-[#a78bfa]/60'
+                    : 'text-[#94a3b8] hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <span>🌙</span>
+                <span>Sueño</span>
+                <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-black/40 text-[#c084fc]">
+                  {horasSuenoHoy.toFixed(1)}h
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAspectoCircadiano('alimentacion')}
+                className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
+                  aspectoCircadiano === 'alimentacion'
+                    ? 'bg-[#064e3b] text-white shadow-md border border-[#34d399]/60'
+                    : 'text-[#94a3b8] hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <span>🥗</span>
+                <span>Comida</span>
+                <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-black/40 text-[#6ee7b7]">
+                  {totalComidasHoy}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAspectoCircadiano('ejercicio')}
+                className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
+                  aspectoCircadiano === 'ejercicio'
+                    ? 'bg-[#78350f] text-white shadow-md border border-[#fb923c]/60'
+                    : 'text-[#94a3b8] hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <span>🏃</span>
+                <span>Ejercicio</span>
+                <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-black/40 text-[#fed7aa]">
+                  {ejercicioHoy.toFixed(1)}h
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAspectoCircadiano('comparativa')}
+                className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
+                  aspectoCircadiano === 'comparativa'
+                    ? 'bg-[#1e293b] text-[#eed59b] shadow-md border border-[#eed59b]/60'
+                    : 'text-[#94a3b8] hover:text-white hover:bg-white/5'
+                }`}
+                title="Ver las 4 dimensiones apiladas en simultáneo"
+              >
+                <span>📊</span>
+                <span className="hidden sm:inline">4 en Paralelo</span>
+              </button>
+            </div>
           </div>
 
-          <div className="relative w-full overflow-hidden">
-            <svg
-              viewBox={`0 0 ${mountainHoyData.width} ${mountainHoyData.height}`}
-              className="w-full h-32 sm:h-44 overflow-visible"
-            >
-              <defs>
-                <linearGradient id="midnightCircadianGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.4" />
-                  <stop offset="50%" stopColor="#1e3a8a" stopOpacity="0.18" />
-                  <stop offset="100%" stopColor="#070e1e" stopOpacity="0.0" />
-                </linearGradient>
-                <linearGradient id="midnightCircadianStroke" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#5b9bd5" />
-                  <stop offset="50%" stopColor="#eed59b" />
-                  <stop offset="100%" stopColor="#5b9bd5" />
-                </linearGradient>
-              </defs>
+          {/* VISTA INDIVIDUAL DE CADA ASPECTO */}
+          {aspectoCircadiano !== 'comparativa' && (
+            <div className="relative w-full overflow-hidden select-none">
+              <svg
+                viewBox={`0 0 ${activeMountain.width} ${activeMountain.height}`}
+                className="w-full h-36 sm:h-48 overflow-visible cursor-crosshair"
+                onMouseMove={handleSvgMouseMove}
+                onMouseLeave={() => setHoveredSlotHora(null)}
+              >
+                <defs>
+                  <linearGradient id={activeConfig.gradienteId} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={activeConfig.fillStart} stopOpacity="0.45" />
+                    <stop offset="60%" stopColor={activeConfig.fillMid} stopOpacity="0.15" />
+                    <stop offset="100%" stopColor="#070e1e" stopOpacity="0.0" />
+                  </linearGradient>
+                  <linearGradient id={activeConfig.strokeId} x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor={activeConfig.strokeStart} />
+                    <stop offset="50%" stopColor={activeConfig.strokeMid} />
+                    <stop offset="100%" stopColor={activeConfig.strokeEnd} />
+                  </linearGradient>
+                </defs>
 
-              {/* Guías horizontales */}
-              <line
-                x1="0"
-                y1={mountainHoyData.baselineY}
-                x2={mountainHoyData.width}
-                y2={mountainHoyData.baselineY}
-                stroke="#11224d"
-                strokeWidth="1.5"
-              />
-              <line
-                x1="0"
-                y1={mountainHoyData.baselineY - 50}
-                x2={mountainHoyData.width}
-                y2={mountainHoyData.baselineY - 50}
-                stroke="#19336e"
-                strokeDasharray="4 4"
-                strokeWidth="1"
-                opacity="0.6"
-              />
-
-              {/* Área spline continua */}
-              {horasHoy > 0 && (
-                <path
-                  d={mountainHoyData.areaPath}
-                  fill="url(#midnightCircadianGrad)"
-                  className="transition-all duration-700"
+                {/* Guías horizontales limpias (sin cortes) */}
+                <line
+                  x1="0"
+                  y1={activeMountain.baselineY}
+                  x2={activeMountain.width}
+                  y2={activeMountain.baselineY}
+                  stroke="#152642"
+                  strokeWidth="1.5"
                 />
-              )}
+                <line
+                  x1="0"
+                  y1={activeMountain.baselineY - 55}
+                  x2={activeMountain.width}
+                  y2={activeMountain.baselineY - 55}
+                  stroke="#19336e"
+                  strokeDasharray="4 4"
+                  strokeWidth="1"
+                  opacity="0.45"
+                />
 
-              {/* Cresta de la montaña */}
-              <path
-                d={mountainHoyData.linePath}
-                fill="none"
-                stroke={horasHoy > 0 ? 'url(#midnightCircadianStroke)' : '#19336e'}
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                className="transition-all duration-700"
-              />
+                {/* Área de la Montaña (solo cuando hay datos) */}
+                {activeConfig.hasData && (
+                  <path
+                    d={activeMountain.areaPath}
+                    fill={`url(#${activeConfig.gradienteId})`}
+                    className="transition-all duration-500"
+                  />
+                )}
 
-              {/* Cumbres y puntos */}
-              {mountainHoyData.points.map((pt) => {
-                const isCurrent = pt.slot.esHoraActual;
-                const isSelected = (selectedHora !== null ? selectedHora : horaActual) === pt.slot.hora;
-                const hasFocus = pt.slot.minutosFoco > 0;
+                {/* Línea Continua de Cresta */}
+                <path
+                  d={activeMountain.linePath}
+                  fill="none"
+                  stroke={activeConfig.hasData ? `url(#${activeConfig.strokeId})` : '#19336e'}
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  className="transition-all duration-500"
+                />
 
-                return (
-                  <g
-                    key={pt.slot.hora}
-                    className="cursor-pointer group"
-                    onClick={() => setSelectedHora(pt.slot.hora)}
-                  >
-                    {isCurrent && (
+                {/* Puntos de Cima: Únicamente donde hay actividad real > 0 */}
+                {activeMountain.points
+                  .filter((pt) => pt.value > 0)
+                  .map((pt) => {
+                    const isHovered = hoveredSlotHora === pt.slot.hora;
+                    const isSelected = selectedHora === pt.slot.hora;
+                    return (
+                      <circle
+                        key={pt.slot.hora}
+                        cx={pt.x}
+                        cy={pt.y}
+                        r={isHovered || isSelected ? 5.5 : 3.5}
+                        fill={activeConfig.colorPrincipal}
+                        stroke="#ffffff"
+                        strokeWidth={isHovered || isSelected ? 2 : 1.5}
+                        className="cursor-pointer transition-all duration-150"
+                        onClick={() => setSelectedHora(pt.slot.hora)}
+                      />
+                    );
+                  })}
+
+                {/* Marcador del Tiempo Real (Hora Actual) */}
+                {activeMountain.points
+                  .filter((pt) => pt.slot.esHoraActual)
+                  .map((pt) => (
+                    <g key="live-beacon">
                       <circle
                         cx={pt.x}
                         cy={pt.y}
-                        r="9"
+                        r="8"
                         fill="none"
                         stroke="#eed59b"
                         strokeWidth="1.5"
                         className="animate-ping opacity-75"
                       />
-                    )}
+                      <circle
+                        cx={pt.x}
+                        cy={pt.y}
+                        r="4"
+                        fill="#eed59b"
+                        stroke="#070e1e"
+                        strokeWidth="1.5"
+                      />
+                    </g>
+                  ))}
+
+                {/* Línea Guía Láser de Hover y Nodo Activo */}
+                {hoveredSlotHora !== null && activeMountain.points[hoveredSlotHora] && (
+                  <g key="hover-guide">
+                    <line
+                      x1={activeMountain.points[hoveredSlotHora].x}
+                      y1={activeMountain.topY}
+                      x2={activeMountain.points[hoveredSlotHora].x}
+                      y2={activeMountain.baselineY}
+                      stroke={activeConfig.colorPrincipal}
+                      strokeDasharray="3 3"
+                      strokeWidth="1.5"
+                      opacity="0.8"
+                    />
                     <circle
-                      cx={pt.x}
-                      cy={pt.y}
-                      r={isSelected ? 6 : hasFocus ? 4.5 : 2.5}
-                      fill={
-                        isSelected
-                          ? '#ffffff'
-                          : isCurrent
-                          ? '#eed59b'
-                          : hasFocus
-                          ? '#60a5fa'
-                          : '#11224d'
-                      }
-                      stroke="#070e1e"
-                      strokeWidth="2"
-                      className="transition-all duration-200 group-hover:scale-150"
+                      cx={activeMountain.points[hoveredSlotHora].x}
+                      cy={activeMountain.points[hoveredSlotHora].y}
+                      r="6"
+                      fill="#ffffff"
+                      stroke={activeConfig.colorPrincipal}
+                      strokeWidth="2.5"
                     />
                   </g>
-                );
-              })}
-            </svg>
-          </div>
+                )}
+              </svg>
+
+              {/* Tooltip Flotante Informativo para el aspecto activo */}
+              {hoveredSlotHora !== null && activeMountain.points[hoveredSlotHora] && (
+                <div
+                  className="absolute z-30 pointer-events-none transition-all duration-150 ease-out p-3.5 rounded-xl bg-[#060c1d]/95 backdrop-blur-md border border-[#5b9bd5]/40 shadow-2xl text-xs w-72 space-y-2"
+                  style={{
+                    left: `${Math.min(78, Math.max(22, (activeMountain.points[hoveredSlotHora].x / activeMountain.width) * 100))}%`,
+                    top: '12px',
+                    transform: 'translateX(-50%)',
+                  }}
+                >
+                  <div className="flex items-center justify-between pb-1.5 border-b border-[#5b9bd5]/20">
+                    <div className="flex items-center gap-1.5 font-medium text-white">
+                      <span className="text-sm">{activeConfig.icono}</span>
+                      <span className="font-serif font-bold">{activeConfig.label}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono text-[11px] text-[#eed59b] bg-[#1e293b]/90 px-2 py-0.5 rounded border border-[#5b9bd5]/20 font-semibold">
+                        {activeMountain.points[hoveredSlotHora].slot.rangoLabel}
+                      </span>
+                      {activeMountain.points[hoveredSlotHora].slot.esHoraActual && (
+                        <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[9px] font-bold tracking-wider">
+                          AHORA
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Detalle específico de este aspecto en esta hora */}
+                  {aspectoCircadiano === 'trabajo' && (
+                    <div className="space-y-1.5">
+                      {activeMountain.points[hoveredSlotHora].slot.minutosFoco > 0 ? (
+                        <>
+                          <div className="flex items-baseline justify-between">
+                            <span className="text-base font-serif font-bold text-white">
+                              {activeMountain.points[hoveredSlotHora].slot.minutosFoco} min
+                            </span>
+                            <span className="text-[10px] text-[#93c5fd]">
+                              Intensidad {activeMountain.points[hoveredSlotHora].slot.intensidadPredominante || 'Normal'}
+                            </span>
+                          </div>
+                          {activeMountain.points[hoveredSlotHora].slot.sesiones.map((s, idx) => (
+                            <div key={idx} className="p-1.5 rounded bg-[#0b1633] border border-[#5b9bd5]/20 text-[11px] space-y-0.5">
+                              <p className="font-medium text-white truncate">{s.sesion.tipo}</p>
+                              {s.sesion.calidad && (
+                                <p className="text-[10px] text-[#eed59b] truncate">Detalle: {s.sesion.calidad}</p>
+                              )}
+                            </div>
+                          ))}
+                          <div className="pt-1 flex items-center justify-between text-[10px] text-[#94a3b8] border-t border-white/5">
+                            <span>Progreso diario:</span>
+                            <span className="text-[#eed59b] font-medium font-mono">
+                              {horasHoy.toFixed(1)}h / 3.0h meta ({Math.min(100, Math.round((horasHoy / 3) * 100))}%)
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="py-1 text-[#94a3b8] italic text-[11px]">
+                          Sin sesiones de trabajo en esta franja horaria.
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {aspectoCircadiano === 'sueno' && (
+                    <div className="space-y-1.5">
+                      {activeMountain.points[hoveredSlotHora].slot.minutosSueno > 0 ? (
+                        <>
+                          <div className="flex items-baseline justify-between">
+                            <span className="text-base font-serif font-bold text-white">
+                              {activeMountain.points[hoveredSlotHora].slot.minutosSueno} min
+                            </span>
+                            <span className="text-[10px] text-[#c084fc]">Periodo de sueño</span>
+                          </div>
+                          {activeMountain.points[hoveredSlotHora].slot.suenos.map((sn, idx) => (
+                            <div key={idx} className="p-1.5 rounded bg-[#1a1033] border border-[#8b5cf6]/25 text-[11px] space-y-0.5">
+                              <div className="flex items-center justify-between text-[10px]">
+                                <span className="text-[#c084fc] font-medium">{sn.sueno.hora_inicio} — {sn.sueno.hora_fin}</span>
+                                <span className="text-white font-bold">{sn.sueno.horas}h totales</span>
+                              </div>
+                              <p className="text-white font-medium">Calidad: {sn.sueno.calidad_sueno}</p>
+                              {sn.sueno.sensacion && (
+                                <p className="text-[10px] text-[#94a3b8]">Sensación: {sn.sueno.sensacion}</p>
+                              )}
+                              {sn.sueno.notas && <p className="text-[10px] text-[#eed59b] italic">"{sn.sueno.notas}"</p>}
+                            </div>
+                          ))}
+                          <div className="pt-1 flex items-center justify-between text-[10px] text-[#94a3b8] border-t border-white/5">
+                            <span>Total dormido hoy:</span>
+                            <span className="text-[#c084fc] font-medium font-mono">
+                              {horasSuenoHoy.toFixed(1)}h / 8.0h ideal
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="py-1 text-[#94a3b8] italic text-[11px]">
+                          Periodo de vigilia (sin sueño registrado).
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {aspectoCircadiano === 'alimentacion' && (
+                    <div className="space-y-1.5">
+                      {activeMountain.points[hoveredSlotHora].slot.comidas.length > 0 ? (
+                        <>
+                          <div className="flex items-baseline justify-between">
+                            <span className="text-base font-serif font-bold text-white">
+                              {activeMountain.points[hoveredSlotHora].slot.comidas.length} comida(s)
+                            </span>
+                            <span className="text-[10px] text-[#34d399]">Ventana de nutrición</span>
+                          </div>
+                          {activeMountain.points[hoveredSlotHora].slot.comidas.map((c, idx) => (
+                            <div key={idx} className="p-1.5 rounded bg-[#072418] border border-[#10b981]/30 text-[11px] space-y-0.5">
+                              <div className="flex items-center justify-between text-[10px]">
+                                <span className="text-[#34d399] font-bold">{c.tipo_comida} ({c.hora})</span>
+                                <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${c.calidad.includes('Limpio') ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'}`}>
+                                  {c.calidad}
+                                </span>
+                              </div>
+                              <p className="text-white font-medium">{c.descripcion || 'Comida registrada'}</p>
+                            </div>
+                          ))}
+                          <div className="pt-1 flex items-center justify-between text-[10px] text-[#94a3b8] border-t border-white/5">
+                            <span>Balance del día:</span>
+                            <span className="text-[#34d399] font-medium font-mono">
+                              {comidasLimpiasHoy}/{totalComidasHoy} limpias
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="py-1 text-[#94a3b8] italic text-[11px]">
+                          Ventana de digestión / ayuno en este bloque.
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {aspectoCircadiano === 'ejercicio' && (
+                    <div className="space-y-1.5">
+                      {activeMountain.points[hoveredSlotHora].slot.minutosEjercicio > 0 ? (
+                        <>
+                          <div className="flex items-baseline justify-between">
+                            <span className="text-base font-serif font-bold text-white">
+                              {activeMountain.points[hoveredSlotHora].slot.minutosEjercicio} min
+                            </span>
+                            <span className="text-[10px] text-[#fb923c]">Actividad Física</span>
+                          </div>
+                          {activeMountain.points[hoveredSlotHora].slot.ejercicios.map((e, idx) => (
+                            <div key={idx} className="p-1.5 rounded bg-[#2b1406] border border-[#f59e0b]/30 text-[11px] space-y-0.5">
+                              <div className="flex items-center justify-between text-[10px]">
+                                <span className="text-[#fb923c] font-bold">{e.ejercicio.tipo_ejercicio}</span>
+                                <span className="text-white font-bold">{e.ejercicio.duracion_horas}h ({e.ejercicio.intensidad})</span>
+                              </div>
+                              <p className="text-white font-medium">{e.ejercicio.descripcion || 'Entrenamiento ejecutado'}</p>
+                            </div>
+                          ))}
+                          <div className="pt-1 flex items-center justify-between text-[10px] text-[#94a3b8] border-t border-white/5">
+                            <span>Total entrenado hoy:</span>
+                            <span className="text-[#fb923c] font-medium font-mono">
+                              {ejercicioHoy.toFixed(1)}h / 0.75h meta
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="py-1 text-[#94a3b8] italic text-[11px]">
+                          Sin actividad deportiva en este intervalo.
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* VISTA COMPARATIVA: 4 PISTAS SINCRONIZADAS EN PARALELO */}
+          {aspectoCircadiano === 'comparativa' && (
+            <div
+              className="space-y-2 relative select-none"
+              onMouseMove={handleSvgMouseMove}
+              onMouseLeave={() => setHoveredSlotHora(null)}
+            >
+              {/* Pista 1: Trabajo Profundo */}
+              <div className="flex items-center gap-3 p-2 rounded-xl bg-[#061026]/70 border border-[#3b82f6]/25">
+                <div className="w-24 sm:w-28 shrink-0 text-left">
+                  <div className="flex items-center gap-1 text-[11px] font-bold text-[#60a5fa]">
+                    <span>🧠</span>
+                    <span>Trabajo</span>
+                  </div>
+                  <p className="text-xs font-serif font-bold text-white tabular-nums">{horasHoy.toFixed(1)}h / 3h</p>
+                </div>
+                <div className="flex-1 overflow-hidden">
+                  <svg viewBox="0 0 900 48" className="w-full h-10 overflow-visible">
+                    <line x1="0" y1="42" x2="900" y2="42" stroke="#172554" strokeWidth="1" />
+                    {horasHoy > 0 && (
+                      <path d={miniMountainTrabajo.areaPath} fill="#3b82f6" fillOpacity="0.3" />
+                    )}
+                    <path d={miniMountainTrabajo.linePath} fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" />
+                    {hoveredSlotHora !== null && miniMountainTrabajo.points[hoveredSlotHora] && (
+                      <circle cx={miniMountainTrabajo.points[hoveredSlotHora].x} cy={miniMountainTrabajo.points[hoveredSlotHora].y} r="4" fill="#ffffff" stroke="#60a5fa" strokeWidth="2" />
+                    )}
+                  </svg>
+                </div>
+              </div>
+
+              {/* Pista 2: Sueño */}
+              <div className="flex items-center gap-3 p-2 rounded-xl bg-[#140b29]/70 border border-[#8b5cf6]/25">
+                <div className="w-24 sm:w-28 shrink-0 text-left">
+                  <div className="flex items-center gap-1 text-[11px] font-bold text-[#a78bfa]">
+                    <span>🌙</span>
+                    <span>Sueño</span>
+                  </div>
+                  <p className="text-xs font-serif font-bold text-white tabular-nums">{horasSuenoHoy.toFixed(1)}h / 8h</p>
+                </div>
+                <div className="flex-1 overflow-hidden">
+                  <svg viewBox="0 0 900 48" className="w-full h-10 overflow-visible">
+                    <line x1="0" y1="42" x2="900" y2="42" stroke="#2e1065" strokeWidth="1" />
+                    {horasSuenoHoy > 0 && (
+                      <path d={miniMountainSueno.areaPath} fill="#8b5cf6" fillOpacity="0.3" />
+                    )}
+                    <path d={miniMountainSueno.linePath} fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" />
+                    {hoveredSlotHora !== null && miniMountainSueno.points[hoveredSlotHora] && (
+                      <circle cx={miniMountainSueno.points[hoveredSlotHora].x} cy={miniMountainSueno.points[hoveredSlotHora].y} r="4" fill="#ffffff" stroke="#a78bfa" strokeWidth="2" />
+                    )}
+                  </svg>
+                </div>
+              </div>
+
+              {/* Pista 3: Comida */}
+              <div className="flex items-center gap-3 p-2 rounded-xl bg-[#051c14]/70 border border-[#10b981]/25">
+                <div className="w-24 sm:w-28 shrink-0 text-left">
+                  <div className="flex items-center gap-1 text-[11px] font-bold text-[#34d399]">
+                    <span>🥗</span>
+                    <span>Comida</span>
+                  </div>
+                  <p className="text-xs font-serif font-bold text-white tabular-nums">{totalComidasHoy} comidas</p>
+                </div>
+                <div className="flex-1 overflow-hidden">
+                  <svg viewBox="0 0 900 48" className="w-full h-10 overflow-visible">
+                    <line x1="0" y1="42" x2="900" y2="42" stroke="#064e3b" strokeWidth="1" />
+                    {totalComidasHoy > 0 && (
+                      <path d={miniMountainComida.areaPath} fill="#10b981" fillOpacity="0.3" />
+                    )}
+                    <path d={miniMountainComida.linePath} fill="none" stroke="#34d399" strokeWidth="2" strokeLinecap="round" />
+                    {hoveredSlotHora !== null && miniMountainComida.points[hoveredSlotHora] && (
+                      <circle cx={miniMountainComida.points[hoveredSlotHora].x} cy={miniMountainComida.points[hoveredSlotHora].y} r="4" fill="#ffffff" stroke="#34d399" strokeWidth="2" />
+                    )}
+                  </svg>
+                </div>
+              </div>
+
+              {/* Pista 4: Ejercicio */}
+              <div className="flex items-center gap-3 p-2 rounded-xl bg-[#241105]/70 border border-[#f59e0b]/25">
+                <div className="w-24 sm:w-28 shrink-0 text-left">
+                  <div className="flex items-center gap-1 text-[11px] font-bold text-[#fb923c]">
+                    <span>🏃</span>
+                    <span>Ejercicio</span>
+                  </div>
+                  <p className="text-xs font-serif font-bold text-white tabular-nums">{ejercicioHoy.toFixed(1)}h / 0.75h</p>
+                </div>
+                <div className="flex-1 overflow-hidden">
+                  <svg viewBox="0 0 900 48" className="w-full h-10 overflow-visible">
+                    <line x1="0" y1="42" x2="900" y2="42" stroke="#451a03" strokeWidth="1" />
+                    {ejercicioHoy > 0 && (
+                      <path d={miniMountainEjercicio.areaPath} fill="#f59e0b" fillOpacity="0.3" />
+                    )}
+                    <path d={miniMountainEjercicio.linePath} fill="none" stroke="#fb923c" strokeWidth="2" strokeLinecap="round" />
+                    {hoveredSlotHora !== null && miniMountainEjercicio.points[hoveredSlotHora] && (
+                      <circle cx={miniMountainEjercicio.points[hoveredSlotHora].x} cy={miniMountainEjercicio.points[hoveredSlotHora].y} r="4" fill="#ffffff" stroke="#fb923c" strokeWidth="2" />
+                    )}
+                  </svg>
+                </div>
+              </div>
+
+              {/* Eje de Horas Compartido */}
+              <div className="flex justify-between text-[10px] text-[#94a3b8] font-mono px-3 pt-1 border-t border-white/10">
+                <span>00:00</span>
+                <span>04:00</span>
+                <span>08:00</span>
+                <span>12:00</span>
+                <span>16:00</span>
+                <span>20:00</span>
+                <span>23:59</span>
+              </div>
+
+              {/* Tooltip Multidimensional en modo Comparativa */}
+              {hoveredSlotHora !== null && horasSlotsHoy[hoveredSlotHora] && (
+                <div
+                  className="absolute z-30 pointer-events-none p-3 rounded-xl bg-[#060c1d]/95 backdrop-blur-md border border-[#eed59b]/40 shadow-2xl text-xs w-72 space-y-1.5"
+                  style={{
+                    left: `${Math.min(75, Math.max(25, (miniMountainTrabajo.points[hoveredSlotHora].x / miniMountainTrabajo.width) * 100))}%`,
+                    top: '20px',
+                    transform: 'translateX(-50%)',
+                  }}
+                >
+                  <div className="flex items-center justify-between pb-1 border-b border-white/10 text-white font-serif font-bold">
+                    <span>{horasSlotsHoy[hoveredSlotHora].rangoLabel}</span>
+                    {horasSlotsHoy[hoveredSlotHora].esHoraActual && (
+                      <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1.5 py-0.2 rounded font-bold">AHORA</span>
+                    )}
+                  </div>
+                  <div className="space-y-1 text-[11px]">
+                    <div className="flex items-center justify-between text-[#93c5fd]">
+                      <span>🧠 Foco Mental:</span>
+                      <span className="font-bold text-white font-mono">{horasSlotsHoy[hoveredSlotHora].minutosFoco} min</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[#c084fc]">
+                      <span>🌙 Sueño:</span>
+                      <span className="font-bold text-white font-mono">{horasSlotsHoy[hoveredSlotHora].minutosSueno} min</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[#6ee7b7]">
+                      <span>🥗 Comidas:</span>
+                      <span className="font-bold text-white">
+                        {horasSlotsHoy[hoveredSlotHora].comidas.length > 0
+                          ? horasSlotsHoy[hoveredSlotHora].comidas.map((c) => c.tipo_comida).join(', ')
+                          : 'Ninguna'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-[#fed7aa]">
+                      <span>🏃 Ejercicio:</span>
+                      <span className="font-bold text-white font-mono">{horasSlotsHoy[hoveredSlotHora].minutosEjercicio} min</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* HUD DE LOS 4 PILARES INTEGRALES DEL DÍA */}
+        {/* HUD DE LOS 4 PILARES INTEGRALES DEL DÍA (INTERACTIVOS PARA SELECCIONAR ASPECTO) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           {/* Pilar 1: Foco Mental */}
-          <div className="card-elevated p-4 border border-[#5b9bd5]/25 space-y-1 relative overflow-hidden">
+          <div
+            onClick={() => setAspectoCircadiano('trabajo')}
+            className={`card-elevated p-4 border space-y-1 relative overflow-hidden cursor-pointer transition-all hover:scale-[1.01] ${
+              aspectoCircadiano === 'trabajo'
+                ? 'border-[#60a5fa] ring-1 ring-[#60a5fa]/50 shadow-lg bg-[#0d1c3a]/70'
+                : 'border-[#5b9bd5]/25 hover:border-[#60a5fa]/40'
+            }`}
+          >
             <div className="flex items-center justify-between text-[11px] font-sans font-medium text-[#94a3b8]">
               <span>TRABAJO PROFUNDO</span>
               <span className="text-[#60a5fa]">🧠</span>
@@ -865,7 +1578,14 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
           </div>
 
           {/* Pilar 2: Ejercicio Físico */}
-          <div className="card-elevated p-4 border border-[#f59e0b]/25 space-y-1 relative overflow-hidden">
+          <div
+            onClick={() => setAspectoCircadiano('ejercicio')}
+            className={`card-elevated p-4 border space-y-1 relative overflow-hidden cursor-pointer transition-all hover:scale-[1.01] ${
+              aspectoCircadiano === 'ejercicio'
+                ? 'border-[#fb923c] ring-1 ring-[#fb923c]/50 shadow-lg bg-[#271507]/70'
+                : 'border-[#f59e0b]/25 hover:border-[#fb923c]/40'
+            }`}
+          >
             <div className="flex items-center justify-between text-[11px] font-sans font-medium text-[#94a3b8]">
               <span>EJERCICIO FÍSICO</span>
               <span className="text-[#f59e0b]">🏃</span>
@@ -886,7 +1606,14 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
           </div>
 
           {/* Pilar 3: Sueño y Recuperación */}
-          <div className="card-elevated p-4 border border-[#818cf8]/25 space-y-1 relative overflow-hidden">
+          <div
+            onClick={() => setAspectoCircadiano('sueno')}
+            className={`card-elevated p-4 border space-y-1 relative overflow-hidden cursor-pointer transition-all hover:scale-[1.01] ${
+              aspectoCircadiano === 'sueno'
+                ? 'border-[#a78bfa] ring-1 ring-[#a78bfa]/50 shadow-lg bg-[#1a0f30]/70'
+                : 'border-[#818cf8]/25 hover:border-[#a78bfa]/40'
+            }`}
+          >
             <div className="flex items-center justify-between text-[11px] font-sans font-medium text-[#94a3b8]">
               <span>SUEÑO &amp; DESCANSO</span>
               <span className="text-[#818cf8]">🌙</span>
@@ -905,7 +1632,14 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
           </div>
 
           {/* Pilar 4: Alimentación */}
-          <div className="card-elevated p-4 border border-[#10b981]/25 space-y-1 relative overflow-hidden">
+          <div
+            onClick={() => setAspectoCircadiano('alimentacion')}
+            className={`card-elevated p-4 border space-y-1 relative overflow-hidden cursor-pointer transition-all hover:scale-[1.01] ${
+              aspectoCircadiano === 'alimentacion'
+                ? 'border-[#34d399] ring-1 ring-[#34d399]/50 shadow-lg bg-[#072418]/70'
+                : 'border-[#10b981]/25 hover:border-[#34d399]/40'
+            }`}
+          >
             <div className="flex items-center justify-between text-[11px] font-sans font-medium text-[#94a3b8]">
               <span>ALIMENTACIÓN</span>
               <span className="text-[#10b981]">🥗</span>
