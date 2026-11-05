@@ -8,6 +8,7 @@
  */
 
 let serverTimeOffsetMs = 0;
+let isSynced = false;
 
 /**
  * Sincroniza el offset con el timestamp UTC real provisto por el servidor
@@ -17,6 +18,10 @@ export function setServerTimeSync(serverTimestampMs: number): void {
     serverTimeOffsetMs = serverTimestampMs - Date.now();
     isSynced = true;
   }
+}
+
+export function isServerTimeSynced(): boolean {
+  return isSynced;
 }
 
 /**

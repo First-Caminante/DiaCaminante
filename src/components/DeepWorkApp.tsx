@@ -62,13 +62,20 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
       const res = await fetch(`/api/dia/hoy?fecha=${todayStr}`);
       if (!res.ok) throw new Error('Error al cargar datos');
       const json: DiaHoyResponse = await res.json();
-      if (json.tiempoServidor?.timestampMs) {
-        setServerTimeSync(json.tiempoServidor.timestampMs);
-        const bNow = getBoliviaNow();
-        setClockTime(bNow.horaCompleta);
-        setFormattedDate(bNow.textoFechaLarga);
-      }
+      
+      // Siempre asignar los datos recibidos de la base de datos primero
       setData(json);
+
+      if (json.tiempoServidor?.timestampMs) {
+        try {
+          setServerTimeSync(json.tiempoServidor.timestampMs);
+          const bNow = getBoliviaNow();
+          setClockTime(bNow.horaCompleta);
+          setFormattedDate(bNow.textoFechaLarga);
+        } catch (tErr) {
+          console.warn('Error sincronizando hora de servidor:', tErr);
+        }
+      }
     } catch (err) {
       console.error('Error fetching dia/hoy:', err);
     } finally {
