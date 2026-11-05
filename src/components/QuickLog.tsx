@@ -11,7 +11,9 @@ import type {
   TipoComida,
   CalidadComida,
   TipoEjercicio,
+  TareaPlanificada,
 } from '../types/database';
+import { getBoliviaShortTimeStr } from '../lib/boliviaTime';
 
 interface QuickLogProps {
   fecha: string;
@@ -19,6 +21,8 @@ interface QuickLogProps {
   suenos?: RegistroSueno[];
   comidas?: RegistroComida[];
   ejercicios?: RegistroEjercicio[];
+  tareas?: TareaPlanificada[];
+  onTaskUpdated?: (tarea: TareaPlanificada) => void;
   onSesionRegistrada: (nuevaSesion: SesionFlujo) => void;
   onSesionActualizada?: (sesionActualizada: SesionFlujo) => void;
   onSesionEliminada?: (sesionId: string) => void;
@@ -84,6 +88,8 @@ export const QuickLog: React.FC<QuickLogProps> = ({
   suenos = [],
   comidas = [],
   ejercicios = [],
+  tareas = [],
+  onTaskUpdated,
   onSesionRegistrada,
   onSesionActualizada,
   onSesionEliminada,
@@ -97,8 +103,8 @@ export const QuickLog: React.FC<QuickLogProps> = ({
   onEjercicioActualizado,
   onEjercicioEliminado,
 }) => {
-  const now = new Date();
-  const defaultFin = dateToTimeString(now);
+  const boliviaTimeStr = getBoliviaShortTimeStr();
+  const defaultFin = boliviaTimeStr || '12:00';
   const defaultInicio = addMinutesToTime(defaultFin, -90);
 
   // Tab activo de registro
@@ -114,6 +120,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
   const [tipoSeleccionado, setTipoSeleccionado] = useState<string>('Desarrollo');
   const [isCustomTipo, setIsCustomTipo] = useState<boolean>(false);
   const [customTipo, setCustomTipo] = useState<string>('');
+  const [selectedTareaId, setSelectedTareaId] = useState<string | null>(null);
   const [horaInicioTrabajo, setHoraInicioTrabajo] = useState<string>(defaultInicio);
   const [horaFinTrabajo, setHoraFinTrabajo] = useState<string>(defaultFin);
   const [horasNetas, setHorasNetas] = useState<number>(1.5);
@@ -185,6 +192,40 @@ export const QuickLog: React.FC<QuickLogProps> = ({
     if (horaInicioTrabajo) setHoraFinTrabajo(addMinutesToTime(horaInicioTrabajo, Math.round(safe * 60)));
   };
 
+  const handleSelectTareaPlanificada = (t: TareaPlanificada) => {
+    if (selectedTareaId === t.id) {
+      // Deseleccionar
+      setSelectedTareaId(null);
+      setIsCustomTipo(false);
+      setTipoSeleccionado('Desarrollo');
+      return;
+    }
+
+    setSelectedTareaId(t.id);
+    setIsCustomTipo(true);
+    setCustomTipo(t.descripcion);
+    setTipoSeleccionado(t.descripcion);
+
+    if (t.hora_inicio && t.hora_fin && t.hora_inicio !== '00:00' && t.hora_inicio !== '00:01') {
+      setHoraInicioTrabajo(t.hora_inicio);
+      setHoraFinTrabajo(t.hora_fin);
+      setHorasNetas(diffInHours(t.hora_inicio, t.hora_fin));
+    } else if (t.horas_netas_estimadas) {
+      setHorasNetas(t.horas_netas_estimadas);
+      if (horaInicioTrabajo) {
+        setHoraFinTrabajo(addMinutesToTime(horaInicioTrabajo, Math.round(t.horas_netas_estimadas * 60)));
+      }
+    }
+
+    if (t.tipo_trabajo === 'PROFUNDO') {
+      setIntensidad('Alta');
+      setIncomodidad('Alta');
+    } else {
+      setIntensidad('Media');
+      setIncomodidad('Media');
+    }
+  };
+
   const submitTrabajo = async (e?: React.SyntheticEvent) => {
     if (e) e.preventDefault();
     if (!activeTrabajoTipo.trim()) return alert('Especifica el tipo de trabajo');
@@ -207,8 +248,38 @@ export const QuickLog: React.FC<QuickLogProps> = ({
       if (!res.ok) throw new Error((await res.json()).error || 'Error al guardar sesión');
       const data = await res.json();
       onSesionRegistrada(data.sesion);
+
+      // Si estaba vinculada a una tarea planificada, marcarla automáticamente como cumplida
+      if (selectedTareaId) {
+        try {
+          const tarRes = await fetch(`/api/tareas/${selectedTareaId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              estado: 'hecho',
+              hora_inicio: horaInicioTrabajo,
+              hora_fin: horaFinTrabajo,
+              hora_completada: horaFinTrabajo,
+              horas_netas_estimadas: horasNetas,
+            }),
+          });
+          if (tarRes.ok) {
+            const tarData = await tarRes.json();
+            if (tarData?.tarea && onTaskUpdated) {
+              onTaskUpdated(tarData.tarea);
+            }
+          }
+        } catch (tarErr) {
+          console.warn('Error al actualizar tarea planificada vinculada:', tarErr);
+        }
+      }
+
       setCalidad('');
-      triggerFeedback(`+${horasNetas}h foco en ${activeTrabajoTipo}`);
+      const feedbackText = selectedTareaId
+        ? `✓ +${horasNetas}h registradas y tarea planificada cumplida`
+        : `+${horasNetas}h foco en ${activeTrabajoTipo}`;
+      triggerFeedback(feedbackText);
+      setSelectedTareaId(null);
       setHoraInicioTrabajo(horaFinTrabajo);
       setHoraFinTrabajo(addMinutesToTime(horaFinTrabajo, Math.round(horasNetas * 60)));
     } catch (err: any) {
@@ -546,6 +617,67 @@ export const QuickLog: React.FC<QuickLogProps> = ({
             ------------------------------------------------------------- */}
         {activeTab === 'trabajo' && (
           <form onSubmit={submitTrabajo} className="space-y-4 animate-fade-in">
+            {/* Vinculación Directa con Tareas Planificadas de Hoy */}
+            {tareas && tareas.length > 0 && (
+              <div className="p-3 rounded-2xl bg-[#080808] border border-white/10 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-serif font-bold text-white flex items-center gap-1.5">
+                    <span>🎯</span> Tomar Tarea Planificada de Hoy
+                  </span>
+                  {selectedTareaId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedTareaId(null);
+                        setIsCustomTipo(false);
+                        setTipoSeleccionado('Desarrollo');
+                      }}
+                      className="text-[10px] text-[#eed59b] hover:underline"
+                    >
+                      ✕ Desvincular
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pt-0.5">
+                  {tareas.map((t) => {
+                    const isSelected = selectedTareaId === t.id;
+                    const isDone = t.estado === 'hecho';
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => handleSelectTareaPlanificada(t)}
+                        className={`px-3 py-1.5 rounded-xl text-xs text-left transition-all flex items-center gap-1.5 border ${
+                          isSelected
+                            ? 'bg-[#eed59b] text-black font-semibold border-[#eed59b] shadow-md'
+                            : isDone
+                            ? 'bg-[#101010]/60 text-zinc-500 border-white/5 line-through opacity-70'
+                            : 'bg-[#121212] text-zinc-200 hover:text-white border-white/10 hover:border-[#eed59b]/40'
+                        }`}
+                        title={isDone ? 'Tarea ya cumplida (puedes volver a seleccionarla)' : 'Seleccionar para prellenar y cumplir automáticamente'}
+                      >
+                        <span className="text-[10px]">{isDone ? '✓' : '○'}</span>
+                        <span className="truncate max-w-[190px]">{t.descripcion}</span>
+                        {t.hora_inicio && t.hora_inicio !== '00:00' && (
+                          <span className={`text-[10px] font-mono ${isSelected ? 'text-black/80 font-bold' : 'text-[#eed59b]'}`}>
+                            {t.hora_inicio}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {selectedTareaId && (
+                  <div className="flex items-center gap-1.5 text-[11px] text-[#eed59b] bg-[#141414] px-2.5 py-1.5 rounded-xl border border-[#eed59b]/25">
+                    <span>✓</span>
+                    <span>Vinculada: al registrar este bloque, la tarea se marcará automáticamente como cumplida en el checklist y en el panel.</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Presets de Tipo */}
             <div>
               <label className="block text-xs font-medium text-[#94a3b8] mb-1.5">

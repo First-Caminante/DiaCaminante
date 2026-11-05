@@ -8,14 +8,78 @@ export const app = new Hono().basePath('/api');
 // Enable CORS
 app.use('*', cors());
 
-// Helper to get YYYY-MM-DD (usando fecha local o parámetro explícito)
+// Helper oficial para obtener fecha y hora exacta en Bolivia (La Paz, UTC-4)
+function getBoliviaDateParts(date = new Date()) {
+  try {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/La_Paz',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
+    const parts = formatter.formatToParts(date);
+    const getVal = (type: string) => parts.find((p) => p.type === type)?.value || '00';
+    const year = getVal('year');
+    const month = getVal('month');
+    const day = getVal('day');
+    const hour = getVal('hour');
+    const minute = getVal('minute');
+    const second = getVal('second');
+    return {
+      fecha: `${year}-${month}-${day}`,
+      horaCompleta: `${hour}:${minute}:${second}`,
+      horaCorta: `${hour}:${minute}`,
+      hora: parseInt(hour, 10),
+      minuto: parseInt(minute, 10),
+      segundo: parseInt(second, 10),
+      timestampMs: date.getTime(),
+    };
+  } catch {
+    const utcMs = date.getTime() + date.getTimezoneOffset() * 60000;
+    const bDate = new Date(utcMs - 4 * 3600000);
+    const year = bDate.getFullYear();
+    const month = String(bDate.getMonth() + 1).padStart(2, '0');
+    const day = String(bDate.getDate()).padStart(2, '0');
+    const hour = String(bDate.getHours()).padStart(2, '0');
+    const minute = String(bDate.getMinutes()).padStart(2, '0');
+    const second = String(bDate.getSeconds()).padStart(2, '0');
+    return {
+      fecha: `${year}-${month}-${day}`,
+      horaCompleta: `${hour}:${minute}:${second}`,
+      horaCorta: `${hour}:${minute}`,
+      hora: parseInt(hour, 10),
+      minuto: parseInt(minute, 10),
+      segundo: parseInt(second, 10),
+      timestampMs: date.getTime(),
+    };
+  }
+}
+
+// Helper to get YYYY-MM-DD en la zona horaria oficial de Bolivia (La Paz, UTC-4)
 function getFormattedDate(dateStr?: string): string {
   if (dateStr && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
     return dateStr;
   }
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  return getBoliviaDateParts().fecha;
 }
+
+/**
+ * GET /api/tiempo
+ * Retorna la hora y fecha exacta en la zona horaria oficial de Bolivia (La Paz).
+ */
+app.get('/tiempo', (c) => {
+  const now = new Date();
+  const info = getBoliviaDateParts(now);
+  return c.json({
+    ...info,
+    timeZone: 'America/La_Paz',
+    offsetHours: -4,
+  });
+});
 
 // Helper to get tomorrow's date string YYYY-MM-DD
 function getTomorrowDate(dateStr: string): string {
@@ -173,6 +237,7 @@ app.get('/dia/hoy', async (c) => {
       suenos,
       comidas,
       ejercicios,
+      tiempoServidor: getBoliviaDateParts(),
     });
   } catch (err: any) {
     console.error('Error in GET /api/dia/hoy:', err);

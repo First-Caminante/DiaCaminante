@@ -10,6 +10,7 @@ import { DailyReflectionModal } from './DailyReflectionModal';
 import { SnowEffect } from './SnowEffect';
 import { EnsoLogo } from './EnsoLogo';
 import { getReflexionDeHoy, getDiaDelCiclo, type ReflexionDiaria } from '../data/reflections';
+import { getBoliviaNow, getBoliviaTodayStr, fetchServerTime, setServerTimeSync } from '../lib/boliviaTime';
 import type { DiaHoyResponse, SesionFlujo, TareaPlanificada } from '../types/database';
 
 type NavigationTab = 'stats' | 'tasks' | 'today' | 'history' | 'philosophy' | 'ideal_self';
@@ -30,42 +31,30 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
 
-  // Reloj local en tiempo real con formato formal
+  // Reloj oficial de Bolivia (La Paz, UTC-4) en tiempo real
   const [clockTime, setClockTime] = useState<string>('');
   const [formattedDate, setFormattedDate] = useState<string>('');
 
   useEffect(() => {
     const updateTime = () => {
-      const now = new Date();
-      setClockTime(
-        now.toLocaleTimeString('es-ES', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: false,
-        })
-      );
-      setFormattedDate(
-        now.toLocaleDateString('es-ES', {
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long',
-        })
-      );
+      const bNow = getBoliviaNow();
+      setClockTime(bNow.horaCompleta);
+      setFormattedDate(bNow.textoFechaLarga);
     };
     updateTime();
     const interval = setInterval(updateTime, 1000);
+
+    // Calibrar contra el tiempo oficial del servidor vía API
+    fetchServerTime().then(() => {
+      updateTime();
+    });
+
     return () => clearInterval(interval);
   }, []);
 
-  const getLocalTodayDate = (): string => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  };
-
   const todayReflection: ReflexionDiaria = getReflexionDeHoy();
   const diaCiclo = getDiaDelCiclo();
-  const todayStr = getLocalTodayDate();
+  const todayStr = getBoliviaTodayStr();
 
   const fetchHoy = async () => {
     try {
@@ -73,6 +62,12 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
       const res = await fetch(`/api/dia/hoy?fecha=${todayStr}`);
       if (!res.ok) throw new Error('Error al cargar datos');
       const json: DiaHoyResponse = await res.json();
+      if (json.tiempoServidor?.timestampMs) {
+        setServerTimeSync(json.tiempoServidor.timestampMs);
+        const bNow = getBoliviaNow();
+        setClockTime(bNow.horaCompleta);
+        setFormattedDate(bNow.textoFechaLarga);
+      }
       setData(json);
     } catch (err) {
       console.error('Error fetching dia/hoy:', err);
@@ -670,6 +665,7 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
               onTaskUpdated={handleTaskUpdated}
               onTaskCreated={handleTaskCreated}
               onTaskDeleted={handleTaskDeleted}
+              onSesionRegistrada={handleSesionRegistrada}
               onGoToDailyLog={() => setCurrentTab('today')}
               onGoToTasks={() => setCurrentTab('tasks')}
               onGoToHistory={() => setCurrentTab('history')}
@@ -689,6 +685,7 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
                 onTaskUpdated={handleTaskUpdated}
                 onTaskCreated={handleTaskCreated}
                 onTaskDeleted={handleTaskDeleted}
+                onSesionRegistrada={handleSesionRegistrada}
                 onGoToDailyLog={() => setCurrentTab('today')}
                 onGoToTasks={() => setCurrentTab('tasks')}
               />
@@ -703,6 +700,7 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
                 onTaskCreated={handleTaskCreated}
                 onTaskUpdated={handleTaskUpdated}
                 onTaskDeleted={handleTaskDeleted}
+                onSesionRegistrada={handleSesionRegistrada}
                 onRefresh={fetchHoy}
               />
             </div>
@@ -725,11 +723,14 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
                 onTaskCreated={handleTaskCreated}
                 onTaskUpdated={handleTaskUpdated}
                 onTaskDeleted={handleTaskDeleted}
+                onSesionRegistrada={handleSesionRegistrada}
                 onRefresh={fetchHoy}
               />
 
               <QuickLog
                 fecha={fechaHoy}
+                tareas={data?.tareas || []}
+                onTaskUpdated={handleTaskUpdated}
                 sesiones={data?.sesiones || []}
                 suenos={data?.suenos || []}
                 comidas={data?.comidas || []}

@@ -14,6 +14,8 @@ import type {
   EstadoTarea,
 } from '../types/database';
 import { getDiaDelCiclo, FECHA_INICIO_CICLO } from '../data/reflections';
+import { getBoliviaNow } from '../lib/boliviaTime';
+import { ModalCumplirTareaYRegistrarFoco } from './ModalCumplirTareaYRegistrarFoco';
 
 interface VisualStatsProps {
   mode?: 'dashboard' | 'history';
@@ -27,6 +29,7 @@ interface VisualStatsProps {
   onTaskUpdated?: (tarea: TareaPlanificada) => void;
   onTaskCreated?: (nuevasTareas: TareaPlanificada[]) => void;
   onTaskDeleted?: (id: string) => void;
+  onSesionRegistrada?: (sesion: SesionFlujo) => void;
   onGoToDailyLog?: () => void;
   onGoToTasks?: () => void;
 }
@@ -375,6 +378,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
   onTaskUpdated,
   onTaskCreated,
   onTaskDeleted,
+  onSesionRegistrada,
   onGoToDailyLog,
   onGoToTasks,
 }) => {
@@ -386,6 +390,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
   const [hoveredDay, setHoveredDay] = useState<TendenciaDia | null>(null);
   const [mostrarModalHistorico, setMostrarModalHistorico] = useState<boolean>(false);
   const [selectedHora, setSelectedHora] = useState<number | null>(null);
+  const [tareaParaCumplir, setTareaParaCumplir] = useState<TareaPlanificada | null>(null);
 
   // Filtro de tareas en el panel diario ('todas' | 'por_cumplir' | 'cumplidas')
   const [filtroTareasVisual, setFiltroTareasVisual] = useState<'todas' | 'por_cumplir' | 'cumplidas'>('todas');
@@ -482,13 +487,13 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
   };
 
   const handleToggleTareaRapida = async (tarea: TareaPlanificada) => {
-    const isFlexible = !tarea.hora_inicio || !tarea.hora_fin || (tarea.hora_inicio === '00:00' && tarea.hora_fin === '00:01');
-    if (tarea.estado === 'pendiente' && isFlexible && !tarea.hora_completada) {
-      openVisualTimeModal(tarea);
+    // Si la tarea está pendiente, pedir datos y registrar actividad de foco automáticamente
+    if (tarea.estado === 'pendiente') {
+      setTareaParaCumplir(tarea);
       return;
     }
 
-    const nextStatus: EstadoTarea = tarea.estado === 'hecho' ? 'pendiente' : 'hecho';
+    const nextStatus: EstadoTarea = 'pendiente';
     try {
       const res = await fetch(`/api/tareas/${tarea.id}`, {
         method: 'PUT',
@@ -503,7 +508,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
       if (onTaskUpdated) {
         onTaskUpdated(data.tarea);
       }
-      showVisualTaskToast(nextStatus === 'hecho' ? '✓ Tarea marcada como cumplida' : 'Tarea devuelta a pendientes');
+      showVisualTaskToast('Tarea devuelta a pendientes');
     } catch (err) {
       console.error(err);
       alert('No se pudo actualizar la tarea');
@@ -654,20 +659,15 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
     }
   };
 
-  // Cálculos de tiempo real y ciclo de 365 días
-  const diaCiclo = getDiaDelCiclo(now);
-  const horaActual = now.getHours();
-  const minutoActual = now.getMinutes();
-  const segundoActual = now.getSeconds();
+  // Cálculos de tiempo real oficial de Bolivia (La Paz, UTC-4) y ciclo de 365 días
+  const boliviaTime = getBoliviaNow();
+  const diaCiclo = getDiaDelCiclo(new Date(boliviaTime.timestampMs));
+  const horaActual = boliviaTime.hora;
+  const minutoActual = boliviaTime.minuto;
+  const segundoActual = boliviaTime.segundo;
 
-  const tiempoExactoStr = `${String(horaActual).padStart(2, '0')}:${String(minutoActual).padStart(2, '0')}:${String(segundoActual).padStart(2, '0')}`;
-  const fechaFormateada = now.toLocaleDateString('es-ES', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-  const fechaFormateadaCapital = fechaFormateada.charAt(0).toUpperCase() + fechaFormateada.slice(1);
+  const tiempoExactoStr = boliviaTime.horaCompleta;
+  const fechaFormateadaCapital = boliviaTime.textoFechaLarga;
 
   // Progreso de la jornada
   const minutosTranscurridosHoy = horaActual * 60 + minutoActual;
@@ -3667,6 +3667,16 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
           </div>
         </div>
       )}
+
+      {/* Modal para cumplir tarea y registrar actividad de foco automáticamente */}
+      <ModalCumplirTareaYRegistrarFoco
+        isOpen={Boolean(tareaParaCumplir)}
+        onClose={() => setTareaParaCumplir(null)}
+        tarea={tareaParaCumplir}
+        fechaHoy={fechaHoy || targetFechaStr}
+        onSesionRegistrada={onSesionRegistrada}
+        onTaskUpdated={onTaskUpdated}
+      />
     </div>
   );
 };

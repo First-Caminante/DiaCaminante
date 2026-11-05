@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import type { TareaPlanificada, TipoTrabajo, EstadoTarea } from '../types/database';
+import type { TareaPlanificada, TipoTrabajo, EstadoTarea, SesionFlujo } from '../types/database';
+import { ModalCumplirTareaYRegistrarFoco } from './ModalCumplirTareaYRegistrarFoco';
 
 interface TasksManagerProps {
   fechaHoy: string;
@@ -7,6 +8,7 @@ interface TasksManagerProps {
   onTaskCreated: (nuevasTareas: TareaPlanificada[]) => void;
   onTaskUpdated: (tarea: TareaPlanificada) => void;
   onTaskDeleted: (id: string) => void;
+  onSesionRegistrada?: (sesion: SesionFlujo) => void;
   onRefresh?: () => void;
 }
 
@@ -16,6 +18,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
   onTaskCreated,
   onTaskUpdated,
   onTaskDeleted,
+  onSesionRegistrada,
   onRefresh,
 }) => {
   // Pestaña de visualización de tareas: 'hoy' o 'manana'
@@ -59,6 +62,9 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
   const [timeModalFin, setTimeModalFin] = useState<string>('10:30');
   const [timeModalCompletada, setTimeModalCompletada] = useState<string>('');
   const [savingTimeModal, setSavingTimeModal] = useState<boolean>(false);
+
+  // Estado para modal de cumplimiento y registro automático de foco
+  const [tareaParaCumplir, setTareaParaCumplir] = useState<TareaPlanificada | null>(null);
 
   // Campos para crear por bloque Markdown
   const [markdownBlock, setMarkdownBlock] = useState<string>(
@@ -269,17 +275,15 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
 
   // 2. Alternar Estado Rápido de Tarea (Checkbox)
   const handleToggleStatus = async (tarea: TareaPlanificada) => {
-    // Si la tarea está pendiente y es de horario flexible sin hora completada, dar la opción de registrar la hora
-    const isFlexible = !tarea.hora_inicio || !tarea.hora_fin || (tarea.hora_inicio === '00:00' && tarea.hora_fin === '00:01');
-    if (tarea.estado === 'pendiente' && isFlexible && !tarea.hora_completada) {
-      openTimeModal(tarea);
+    // Si la tarea está pendiente, pedir datos y registrar actividad de foco automáticamente
+    if (tarea.estado === 'pendiente') {
+      setTareaParaCumplir(tarea);
       return;
     }
 
-    // Ciclo: pendiente -> hecho -> incompleto -> pendiente
-    let nextStatus: EstadoTarea = 'hecho';
-    if (tarea.estado === 'pendiente') nextStatus = 'hecho';
-    else if (tarea.estado === 'hecho') nextStatus = 'incompleto';
+    // Ciclo para tareas ya completadas: hecho -> incompleto -> pendiente
+    let nextStatus: EstadoTarea = 'incompleto';
+    if (tarea.estado === 'hecho') nextStatus = 'incompleto';
     else nextStatus = 'pendiente';
 
     // Si pasa a incompleto, abrir prompt de desvío
@@ -1347,6 +1351,16 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
           </div>
         </div>
       )}
+
+      {/* Modal para cumplir tarea y registrar actividad de foco automáticamente */}
+      <ModalCumplirTareaYRegistrarFoco
+        isOpen={Boolean(tareaParaCumplir)}
+        onClose={() => setTareaParaCumplir(null)}
+        tarea={tareaParaCumplir}
+        fechaHoy={fechaHoy}
+        onSesionRegistrada={onSesionRegistrada}
+        onTaskUpdated={onTaskUpdated}
+      />
     </div>
   );
 };

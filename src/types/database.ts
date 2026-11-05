@@ -161,6 +161,15 @@ export interface DiaHoyResponse {
   suenos?: RegistroSueno[];
   comidas?: RegistroComida[];
   ejercicios?: RegistroEjercicio[];
+  tiempoServidor?: {
+    fecha: string;
+    horaCompleta: string;
+    horaCorta: string;
+    hora: number;
+    minuto: number;
+    segundo: number;
+    timestampMs: number;
+  };
 }
 
 export interface TendenciaDia {
@@ -207,6 +216,15 @@ export interface DetalleDiaHistorico {
   suenos?: RegistroSueno[];
   comidas?: RegistroComida[];
   ejercicios?: RegistroEjercicio[];
+  tiempoServidor?: {
+    fecha: string;
+    horaCompleta: string;
+    horaCorta: string;
+    hora: number;
+    minuto: number;
+    segundo: number;
+    timestampMs: number;
+  };
 }
 
 export interface DistribucionTipo {
