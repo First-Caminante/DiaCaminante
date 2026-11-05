@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { TareaPlanificada, Intensidad, Incomodidad, SesionFlujo } from '../types/database';
-import { getBoliviaNow, getBoliviaShortTimeStr } from '../lib/boliviaTime';
+import { getBoliviaShortTimeStr } from '../lib/boliviaTime';
 
 interface ModalCumplirTareaYRegistrarFocoProps {
   isOpen: boolean;
@@ -10,6 +10,15 @@ interface ModalCumplirTareaYRegistrarFocoProps {
   onSesionRegistrada?: (sesion: SesionFlujo) => void;
   onTaskUpdated?: (tarea: TareaPlanificada) => void;
 }
+
+const TIPOS_FOCO_SUGERIDOS = [
+  { label: 'Desarrollo', icon: '💻' },
+  { label: 'Estudio', icon: '📚' },
+  { label: 'Arquitectura', icon: '🏛️' },
+  { label: 'Escritura', icon: '✍️' },
+  { label: 'Lectura', icon: '📖' },
+  { label: 'Planificación', icon: '🎯' },
+];
 
 const addMinutes = (timeStr: string, mins: number): string => {
   if (!timeStr || !timeStr.includes(':')) return '10:00';
@@ -54,6 +63,11 @@ export const ModalCumplirTareaYRegistrarFoco: React.FC<ModalCumplirTareaYRegistr
     ? tarea.hora_inicio!
     : addMinutes(initialFin, -Math.round((tarea.horas_netas_estimadas || 1.0) * 60));
 
+  const [descripcion, setDescripcion] = useState<string>(tarea.descripcion || '');
+  const [tipoFoco, setTipoFoco] = useState<string>('Desarrollo');
+  const [isCustomTipo, setIsCustomTipo] = useState<boolean>(false);
+  const [customTipo, setCustomTipo] = useState<string>('');
+
   const [horaInicio, setHoraInicio] = useState<string>(initialInicio);
   const [horaFin, setHoraFin] = useState<string>(initialFin);
   const [horasNetas, setHorasNetas] = useState<number>(
@@ -65,11 +79,12 @@ export const ModalCumplirTareaYRegistrarFoco: React.FC<ModalCumplirTareaYRegistr
   const [incomodidad, setIncomodidad] = useState<Incomodidad>(
     tarea.tipo_trabajo === 'PROFUNDO' ? 'Alta' : 'Media'
   );
-  const [calidad, setCalidad] = useState<string>('');
+  const [entregable, setEntregable] = useState<string>('');
   const [submitting, setSubmitting] = useState<boolean>(false);
 
   useEffect(() => {
     if (tarea) {
+      setDescripcion(tarea.descripcion || '');
       const isSpec =
         tarea.hora_inicio &&
         tarea.hora_fin &&
@@ -84,7 +99,9 @@ export const ModalCumplirTareaYRegistrarFoco: React.FC<ModalCumplirTareaYRegistr
       setHorasNetas(diffHours(i, f));
       setIntensidad(tarea.tipo_trabajo === 'PROFUNDO' ? 'Alta' : 'Media');
       setIncomodidad(tarea.tipo_trabajo === 'PROFUNDO' ? 'Alta' : 'Media');
-      setCalidad('');
+      setEntregable('');
+      setIsCustomTipo(false);
+      setCustomTipo('');
     }
   }, [tarea]);
 
@@ -108,16 +125,21 @@ export const ModalCumplirTareaYRegistrarFoco: React.FC<ModalCumplirTareaYRegistr
     try {
       setSubmitting(true);
 
-      // 1. Guardar sesión de foco en la base de datos
+      const tipoFinal = isCustomTipo ? customTipo.trim() || 'Foco' : tipoFoco;
+      const descFinal = descripcion.trim() || tarea.descripcion.trim();
+
+      // 1. Guardar sesión de foco en la base de datos con congruencia total
       const sesionRes = await fetch('/api/sesiones', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tipo: tarea.descripcion.trim(),
+          tipo: tipoFinal,
+          descripcion: descFinal,
+          tarea_id: tarea.id,
           horas_netas: horasNetas,
           intensidad,
           incomodidad,
-          calidad: calidad.trim(),
+          calidad: entregable.trim(), // Entregable / Resultado Concreto
           fecha: tarea.fecha_objetivo || fechaHoy,
           hora_inicio: horaInicio,
           hora_fin: horaFin,
@@ -140,6 +162,7 @@ export const ModalCumplirTareaYRegistrarFoco: React.FC<ModalCumplirTareaYRegistr
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           estado: 'hecho',
+          descripcion: descFinal,
           hora_inicio: horaInicio,
           hora_fin: horaFin,
           hora_completada: horaFin,
@@ -206,7 +229,7 @@ export const ModalCumplirTareaYRegistrarFoco: React.FC<ModalCumplirTareaYRegistr
                 Sincronización Directa
               </span>
               <span className="text-xs text-[#eed59b] font-medium uppercase tracking-wider">
-                Tarea Planificada
+                Cumplir Tarea
               </span>
             </div>
             <h3 className="text-lg sm:text-xl font-serif font-bold text-white tracking-wide">
@@ -217,31 +240,82 @@ export const ModalCumplirTareaYRegistrarFoco: React.FC<ModalCumplirTareaYRegistr
           <button
             type="button"
             onClick={onClose}
-            className="text-zinc-400 hover:text-white p-1 rounded-lg"
+            className="text-zinc-400 hover:text-white p-1 rounded-lg text-lg leading-none"
             title="Cerrar ventana"
           >
             ✕
           </button>
         </div>
 
-        {/* Tarjeta de Tarea Seleccionada */}
-        <div className="p-3.5 rounded-2xl bg-[#0e0e0e] border border-[#eed59b]/30 space-y-1.5">
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-mono text-[10px] text-[#eed59b] uppercase">
-              {tarea.tipo_trabajo === 'PROFUNDO' ? '⚡ Trabajo Profundo' : '📋 Trabajo Superficial'}
-            </span>
-            <span className="text-[10px] text-zinc-400 font-mono">
-              Hora Bolivia: {currentBoliviaTime}
-            </span>
-          </div>
-          <p className="text-sm font-serif font-bold text-white">
-            {tarea.descripcion}
-          </p>
-        </div>
-
         {/* Formulario de Registro de Sesión */}
         <form onSubmit={handleRegistrarYCumplir} className="space-y-4 text-xs">
-          {/* Horario de Ejecución */}
+          {/* 1. Nombre / Descripción de la Tarea (Heredado y editable) */}
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-[#94a3b8]">
+              Nombre o Descripción de la Tarea / Actividad
+            </label>
+            <input
+              type="text"
+              value={descripcion}
+              onChange={(e) => setDescripcion(e.target.value)}
+              placeholder="Ej: Terminar sistema arco punto final mas metas en la pared"
+              className="w-full px-3 py-2 rounded-xl text-xs bg-[#101010] border border-white/15 text-white font-medium focus:outline-none focus:border-[#eed59b]"
+              required
+            />
+          </div>
+
+          {/* 2. Tipo de Foco / Estudio */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-[#94a3b8]">
+              Tipo de Foco / Estudio
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {TIPOS_FOCO_SUGERIDOS.map((t) => {
+                const isActive = !isCustomTipo && tipoFoco === t.label;
+                return (
+                  <button
+                    key={t.label}
+                    type="button"
+                    onClick={() => {
+                      setIsCustomTipo(false);
+                      setTipoFoco(t.label);
+                    }}
+                    className={`px-2.5 py-1 rounded-xl text-xs flex items-center gap-1 transition-all ${
+                      isActive
+                        ? 'bg-[#2563eb] text-white font-medium shadow-sm'
+                        : 'bg-[#101010] text-[#94a3b8] hover:text-white border border-white/10'
+                    }`}
+                  >
+                    <span>{t.icon}</span>
+                    <span>{t.label}</span>
+                  </button>
+                );
+              })}
+              <button
+                type="button"
+                onClick={() => setIsCustomTipo(true)}
+                className={`px-2.5 py-1 rounded-xl text-xs transition-all ${
+                  isCustomTipo
+                    ? 'bg-[#2563eb] text-white font-medium'
+                    : 'bg-[#101010] text-[#94a3b8] hover:text-white border border-white/10'
+                }`}
+              >
+                + Otro
+              </button>
+            </div>
+            {isCustomTipo && (
+              <input
+                type="text"
+                placeholder="Especificar tipo de foco..."
+                value={customTipo}
+                onChange={(e) => setCustomTipo(e.target.value)}
+                className="w-full mt-1.5 px-3 py-1.5 rounded-xl text-xs bg-[#101010] border border-white/15 text-white focus:outline-none focus:border-[#eed59b]"
+                autoFocus
+              />
+            )}
+          </div>
+
+          {/* 3. Horario de Ejecución */}
           <div className="p-3.5 rounded-2xl bg-[#0a0a0a] border border-white/10 space-y-2">
             <div className="flex items-center justify-between text-[11px]">
               <span className="text-[#eed59b] font-medium">🕒 Horario de Ejecución</span>
@@ -272,7 +346,7 @@ export const ModalCumplirTareaYRegistrarFoco: React.FC<ModalCumplirTareaYRegistr
             </div>
           </div>
 
-          {/* Intensidad e Incomodidad */}
+          {/* 4. Intensidad e Incomodidad */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-[11px] font-medium text-[#94a3b8] mb-1.5">
@@ -319,16 +393,16 @@ export const ModalCumplirTareaYRegistrarFoco: React.FC<ModalCumplirTareaYRegistr
             </div>
           </div>
 
-          {/* Calidad o Reflexión Breve */}
+          {/* 5. Entregable / Resultado Concreto (NOMBRE EXACTO Y CONGRUENTE) */}
           <div>
             <label className="block text-[11px] font-medium text-[#94a3b8] mb-1">
-              Reflexión de Calidad (Opcional)
+              Entregable / Resultado Concreto
             </label>
             <input
               type="text"
-              placeholder="Ej: Gran concentración sin interrupciones, código modular..."
-              value={calidad}
-              onChange={(e) => setCalidad(e.target.value)}
+              placeholder="Ej: Módulo de pagos probado, 10 páginas redactadas, API testeada..."
+              value={entregable}
+              onChange={(e) => setEntregable(e.target.value)}
               className="w-full px-3 py-2 rounded-xl text-xs bg-[#101010] border border-white/10 text-white placeholder-zinc-500 focus:outline-none focus:border-[#eed59b]"
             />
           </div>
@@ -348,9 +422,9 @@ export const ModalCumplirTareaYRegistrarFoco: React.FC<ModalCumplirTareaYRegistr
               type="button"
               onClick={handleSoloCumplir}
               disabled={submitting}
-              className="w-full py-2 rounded-full text-[11px] text-[#94a3b8] hover:text-white transition-colors"
+              className="w-full py-2.5 rounded-full text-xs font-medium text-zinc-400 hover:text-white bg-[#0e0e0e] hover:bg-[#161616] border border-white/10 transition-all text-center"
             >
-              Solo marcar como cumplida (sin registrar bloque de foco)
+              Solo marcar tarea como cumplida (sin registrar foco)
             </button>
           </div>
         </form>

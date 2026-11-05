@@ -75,6 +75,8 @@ export interface SesionFlujo {
   registrado_a: string;
   hora_inicio?: string; // Formato HH:MM
   hora_fin?: string;    // Formato HH:MM
+  descripcion?: string; // Nombre / Descripción concreta de la tarea o actividad
+  tarea_id?: string;    // ID de la tarea planificada vinculada
 }
 
 export interface TareaPlanificada {

@@ -117,6 +117,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
   // ==========================================
   // ESTADO: TRABAJO PROFUNDO
   // ==========================================
+  const [descripcionTrabajo, setDescripcionTrabajo] = useState<string>('');
   const [tipoSeleccionado, setTipoSeleccionado] = useState<string>('Desarrollo');
   const [isCustomTipo, setIsCustomTipo] = useState<boolean>(false);
   const [customTipo, setCustomTipo] = useState<string>('');
@@ -196,15 +197,12 @@ export const QuickLog: React.FC<QuickLogProps> = ({
     if (selectedTareaId === t.id) {
       // Deseleccionar
       setSelectedTareaId(null);
-      setIsCustomTipo(false);
-      setTipoSeleccionado('Desarrollo');
+      setDescripcionTrabajo('');
       return;
     }
 
     setSelectedTareaId(t.id);
-    setIsCustomTipo(true);
-    setCustomTipo(t.descripcion);
-    setTipoSeleccionado(t.descripcion);
+    setDescripcionTrabajo(t.descripcion);
 
     if (t.hora_inicio && t.hora_fin && t.hora_inicio !== '00:00' && t.hora_inicio !== '00:01') {
       setHoraInicioTrabajo(t.hora_inicio);
@@ -228,18 +226,22 @@ export const QuickLog: React.FC<QuickLogProps> = ({
 
   const submitTrabajo = async (e?: React.SyntheticEvent) => {
     if (e) e.preventDefault();
-    if (!activeTrabajoTipo.trim()) return alert('Especifica el tipo de trabajo');
+    if (!activeTrabajoTipo.trim()) return alert('Especifica el tipo de foco');
     try {
       setSubmitting(true);
+      const descFinal = descripcionTrabajo.trim() || activeTrabajoTipo.trim();
+
       const res = await fetch('/api/sesiones', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tipo: activeTrabajoTipo.trim(),
+          descripcion: descFinal,
+          tarea_id: selectedTareaId || undefined,
           horas_netas: horasNetas,
           intensidad,
           incomodidad,
-          calidad: calidad.trim(),
+          calidad: calidad.trim(), // Entregable / Resultado Concreto
           fecha,
           hora_inicio: horaInicioTrabajo,
           hora_fin: horaFinTrabajo,
@@ -257,6 +259,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               estado: 'hecho',
+              descripcion: descFinal,
               hora_inicio: horaInicioTrabajo,
               hora_fin: horaFinTrabajo,
               hora_completada: horaFinTrabajo,
@@ -274,6 +277,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
         }
       }
 
+      setDescripcionTrabajo('');
       setCalidad('');
       const feedbackText = selectedTareaId
         ? `✓ +${horasNetas}h registradas y tarea planificada cumplida`
@@ -471,8 +475,10 @@ export const QuickLog: React.FC<QuickLogProps> = ({
       category: 'trabajo' as const,
       horaInicio: s.hora_inicio || '00:00',
       horaFin: s.hora_fin,
-      titulo: s.tipo,
-      subtitulo: `${parseFloat(String(s.horas_netas)).toFixed(2)}h de Foco`,
+      titulo: s.descripcion || s.tipo,
+      subtitulo: s.descripcion
+        ? `${s.tipo} • ${parseFloat(String(s.horas_netas)).toFixed(2)}h de Foco`
+        : `${parseFloat(String(s.horas_netas)).toFixed(2)}h de Foco`,
       detalle: s.calidad,
       badges: [
         { text: `Intensidad: ${s.intensidad}`, color: 'bg-[#1e3a8a] text-zinc-300 border-[#eed59b]/30' },
@@ -677,6 +683,21 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                 )}
               </div>
             )}
+
+            {/* Nombre o Descripción de la Tarea / Actividad */}
+            <div className="space-y-1">
+              <label className="block text-xs font-medium text-[#94a3b8]">
+                Nombre o Descripción de la Tarea / Actividad
+              </label>
+              <input
+                type="text"
+                placeholder="Ej: Terminar sistema arco punto final mas metas en la pared"
+                value={descripcionTrabajo}
+                onChange={(e) => setDescripcionTrabajo(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl text-xs bg-[#080808] border border-white/15 text-white placeholder-[#94a3b8]/40 focus:outline-none focus:border-[#eed59b]"
+                required
+              />
+            </div>
 
             {/* Presets de Tipo */}
             <div>
@@ -1179,7 +1200,35 @@ export const QuickLog: React.FC<QuickLogProps> = ({
 
                     {/* Formulario Dinámico de Edición según Categoría */}
                     {item.category === 'trabajo' && (
-                      <div className="space-y-3">
+                      <div className="space-y-2.5">
+                        <div>
+                          <label className="text-[10px] text-[#94a3b8]">Nombre / Descripción de la Tarea</label>
+                          <input
+                            type="text"
+                            value={editingItem.data.descripcion || editingItem.data.tipo || ''}
+                            onChange={(e) =>
+                              setEditingItem({
+                                ...editingItem,
+                                data: { ...editingItem.data, descripcion: e.target.value },
+                              })
+                            }
+                            className="w-full px-2.5 py-1.5 rounded-lg bg-[#101010] border border-white/15 text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-[#94a3b8]">Tipo de Foco / Estudio</label>
+                          <input
+                            type="text"
+                            value={editingItem.data.tipo || ''}
+                            onChange={(e) =>
+                              setEditingItem({
+                                ...editingItem,
+                                data: { ...editingItem.data, tipo: e.target.value },
+                              })
+                            }
+                            className="w-full px-2.5 py-1.5 rounded-lg bg-[#101010] border border-white/15 text-white"
+                          />
+                        </div>
                         <div className="grid grid-cols-2 gap-2">
                           <div>
                             <label className="text-[10px] text-[#94a3b8]">Inicio</label>
@@ -1211,7 +1260,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                           </div>
                         </div>
                         <div>
-                          <label className="text-[10px] text-[#94a3b8]">Entregable</label>
+                          <label className="text-[10px] text-[#94a3b8]">Entregable / Resultado Concreto</label>
                           <input
                             type="text"
                             value={editingItem.data.calidad || ''}
@@ -1481,9 +1530,14 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                     ))}
                   </div>
 
-                  {/* Detalle / Comentarios */}
+                  {/* Detalle / Entregable / Comentarios */}
                   {item.detalle && (
-                    <p className="text-xs text-[#94a3b8] italic bg-[#101010]/60 p-2.5 rounded-xl border-l-2 border-[#eed59b] font-serif">
+                    <p className="text-xs text-[#eed59b] italic bg-[#101010]/60 p-2.5 rounded-xl border-l-2 border-[#eed59b] font-serif">
+                      {item.category === 'trabajo' && (
+                        <span className="font-sans font-semibold text-zinc-400 not-italic text-[11px] mr-1.5">
+                          🎯 Entregable:
+                        </span>
+                      )}
                       &ldquo;{item.detalle}&rdquo;
                     </p>
                   )}

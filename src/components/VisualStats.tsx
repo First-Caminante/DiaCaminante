@@ -1974,9 +1974,12 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                           </div>
                           {activeMountain.points[hoveredSlotHora].slot.sesiones.map((s, idx) => (
                             <div key={idx} className="p-1.5 rounded bg-[#0b1633] border border-white/10 text-[11px] space-y-0.5">
-                              <p className="font-medium text-white truncate">{s.sesion.tipo}</p>
+                              <p className="font-medium text-white truncate">{s.sesion.descripcion || s.sesion.tipo}</p>
+                              {s.sesion.descripcion && (
+                                <p className="text-[10px] text-zinc-400">Tipo: {s.sesion.tipo}</p>
+                              )}
                               {s.sesion.calidad && (
-                                <p className="text-[10px] text-[#eed59b] truncate">Detalle: {s.sesion.calidad}</p>
+                                <p className="text-[10px] text-[#eed59b] truncate">🎯 Entregable: {s.sesion.calidad}</p>
                               )}
                             </div>
                           ))}
@@ -2890,8 +2893,15 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                         }`}
                       >
                         <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-serif font-bold text-white text-sm">🧠 {item.sesion.tipo}</span>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-serif font-bold text-white text-sm">
+                              🧠 {item.sesion.descripcion || item.sesion.tipo}
+                            </span>
+                            {item.sesion.descripcion && (
+                              <span className="text-[11px] text-zinc-400 font-sans">
+                                ({item.sesion.tipo})
+                              </span>
+                            )}
                             <span className="tag-formal text-[10px] px-2 py-0.5 rounded-full bg-[#141414] text-zinc-300 border border-[#eed59b]/30">
                               {item.minutos} min en este tramo
                             </span>
@@ -2902,8 +2912,8 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                             )}
                           </div>
                           {item.sesion.calidad && (
-                            <p className="text-xs text-[#94a3b8] italic font-serif">
-                              &ldquo;{item.sesion.calidad}&rdquo;
+                            <p className="text-xs text-[#eed59b] italic font-serif">
+                              🎯 <span className="font-sans font-semibold text-zinc-400 not-italic text-[11px]">Entregable / Resultado Concreto:</span> &ldquo;{item.sesion.calidad}&rdquo;
                             </p>
                           )}
                         </div>

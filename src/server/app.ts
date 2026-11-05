@@ -377,6 +377,8 @@ app.post('/sesiones', async (c) => {
     const body = await c.req.json();
     const {
       tipo,
+      descripcion,
+      tarea_id,
       horas_netas,
       intensidad,
       incomodidad,
@@ -451,6 +453,12 @@ app.post('/sesiones', async (c) => {
       registrado_a: finalRegistradoA,
     };
 
+    if (descripcion && String(descripcion).trim()) {
+      insertPayload.descripcion = String(descripcion).trim();
+    }
+    if (tarea_id) {
+      insertPayload.tarea_id = tarea_id;
+    }
     if (hora_inicio) insertPayload.hora_inicio = hora_inicio;
     if (hora_fin) insertPayload.hora_fin = hora_fin;
 
@@ -460,8 +468,15 @@ app.post('/sesiones', async (c) => {
       .select('*')
       .single();
 
-    // Fallback tolerante si las columnas hora_inicio o hora_fin no existen aún en Supabase
+    // Fallback tolerante si alguna de las columnas no existe aún en la tabla Supabase
     if (insertErr && (insertErr.code === '42703' || String(insertErr.message).includes('column'))) {
+      const savedDesc = insertPayload.descripcion;
+      const savedTareaId = insertPayload.tarea_id;
+      const savedHoraInicio = insertPayload.hora_inicio;
+      const savedHoraFin = insertPayload.hora_fin;
+
+      delete insertPayload.descripcion;
+      delete insertPayload.tarea_id;
       delete insertPayload.hora_inicio;
       delete insertPayload.hora_fin;
 
@@ -475,13 +490,33 @@ app.post('/sesiones', async (c) => {
       sesion = retry.data;
 
       if (!insertErr && sesion) {
-        sesion.hora_inicio = hora_inicio;
-        sesion.hora_fin = hora_fin;
+        if (savedDesc) sesion.descripcion = savedDesc;
+        if (savedTareaId) sesion.tarea_id = savedTareaId;
+        if (savedHoraInicio) sesion.hora_inicio = savedHoraInicio;
+        if (savedHoraFin) sesion.hora_fin = savedHoraFin;
       }
     }
 
     if (insertErr) {
       return c.json({ error: insertErr.message || 'Error al registrar sesión' }, 500);
+    }
+
+    // Si viene vinculada a una tarea_id, marcar automáticamente la tarea como 'hecho'
+    if (tarea_id) {
+      try {
+        await supabase
+          .from('tareas_planificadas')
+          .update({
+            estado: 'hecho',
+            hora_inicio: hora_inicio || null,
+            hora_fin: hora_fin || null,
+            hora_completada: hora_fin || null,
+            horas_netas_estimadas: parsedHoras,
+          })
+          .eq('id', tarea_id);
+      } catch (tErr) {
+        console.warn('Error al marcar tarea como cumplida en backend:', tErr);
+      }
     }
 
     return c.json({ success: true, sesion }, 201);
@@ -502,6 +537,8 @@ app.put('/sesiones/:id', async (c) => {
     const body = await c.req.json();
     const {
       tipo,
+      descripcion,
+      tarea_id,
       horas_netas,
       intensidad,
       incomodidad,
@@ -519,6 +556,14 @@ app.put('/sesiones/:id', async (c) => {
         return c.json({ error: 'El tipo de actividad no puede estar vacío' }, 400);
       }
       updatePayload.tipo = String(tipo).trim();
+    }
+
+    if (descripcion !== undefined) {
+      updatePayload.descripcion = String(descripcion).trim();
+    }
+
+    if (tarea_id !== undefined) {
+      updatePayload.tarea_id = tarea_id;
     }
 
     if (horas_netas !== undefined) {
@@ -563,12 +608,17 @@ app.put('/sesiones/:id', async (c) => {
       .select('*')
       .single();
 
-    // Fallback tolerante si las columnas hora_inicio o hora_fin no existen aún en Supabase
+    // Fallback tolerante si alguna columna no existe aún en Supabase
     if (updateErr && (updateErr.code === '42703' || String(updateErr.message).includes('column'))) {
       const savedHoraInicio = updatePayload.hora_inicio;
       const savedHoraFin = updatePayload.hora_fin;
+      const savedDesc = updatePayload.descripcion;
+      const savedTareaId = updatePayload.tarea_id;
+
       delete updatePayload.hora_inicio;
       delete updatePayload.hora_fin;
+      delete updatePayload.descripcion;
+      delete updatePayload.tarea_id;
 
       const retry = await supabase
         .from('sesiones_flujo')
@@ -581,8 +631,10 @@ app.put('/sesiones/:id', async (c) => {
       sesion = retry.data;
 
       if (!updateErr && sesion) {
-        sesion.hora_inicio = savedHoraInicio;
-        sesion.hora_fin = savedHoraFin;
+        if (savedHoraInicio) sesion.hora_inicio = savedHoraInicio;
+        if (savedHoraFin) sesion.hora_fin = savedHoraFin;
+        if (savedDesc) sesion.descripcion = savedDesc;
+        if (savedTareaId) sesion.tarea_id = savedTareaId;
       }
     }
 
