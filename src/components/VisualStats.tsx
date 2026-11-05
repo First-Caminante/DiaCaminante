@@ -16,6 +16,8 @@ import type {
 import { getDiaDelCiclo, FECHA_INICIO_CICLO } from '../data/reflections';
 
 interface VisualStatsProps {
+  mode?: 'dashboard' | 'history';
+  onGoToHistory?: () => void;
   fechaHoy?: string;
   sesionesHoy?: SesionFlujo[];
   suenosHoy?: RegistroSueno[];
@@ -362,6 +364,8 @@ function compute24hSlots(
 }
 
 export const VisualStats: React.FC<VisualStatsProps> = ({
+  mode = 'dashboard',
+  onGoToHistory,
   fechaHoy,
   sesionesHoy,
   suenosHoy = [],
@@ -860,7 +864,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
   if (loading && !stats) {
     return (
       <div className="w-full flex flex-col items-center justify-center min-h-[50vh] space-y-4">
-        <div className="w-12 h-12 rounded-2xl bg-[#0d1a3d] border border-[#5b9bd5]/30 shadow-midnight flex items-center justify-center text-[#e5c179] font-serif text-2xl animate-pulse">
+        <div className="w-12 h-12 rounded-2xl bg-[#141414] border border-white/15 shadow-midnight flex items-center justify-center text-[#e5c179] font-serif text-2xl animate-pulse">
           ✦
         </div>
         <p className="text-xs font-serif italic tracking-wide text-[#94a3b8]">
@@ -1097,7 +1101,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
         className={`p-3.5 sm:p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
           isDone
             ? 'bg-[#06241a]/50 border-[#10b981]/40'
-            : 'bg-[#081229]/80 border-[#5b9bd5]/20 hover:border-[#60a5fa]/40'
+            : 'bg-[#080808]/80 border-white/10 hover:border-[#eed59b]/40'
         }`}
       >
         <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
@@ -1108,7 +1112,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
             className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-all border ${
               isDone
                 ? 'bg-emerald-500 border-emerald-400 text-black shadow-[0_0_8px_rgba(16,185,129,0.5)]'
-                : 'bg-[#0d1a3d] border-[#5b9bd5]/40 text-transparent hover:border-emerald-400 hover:text-emerald-400'
+                : 'bg-[#141414] border-white/15 text-transparent hover:border-emerald-400 hover:text-emerald-400'
             }`}
             title={isDone ? 'Tarea cumplida (Clic para desmarcar)' : 'Marcar como cumplida'}
           >
@@ -1125,7 +1129,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                   <span>{tarea.hora_completada ? `Realizada: ${tarea.hora_completada}` : 'Horario Flexible'}</span>
                 </span>
               ) : (
-                <span className="font-mono text-[11px] font-semibold text-[#eed59b] bg-[#0d1733] px-2 py-0.5 rounded border border-[#5b9bd5]/25">
+                <span className="font-mono text-[11px] font-semibold text-[#eed59b] bg-[#101010] px-2 py-0.5 rounded border border-white/10">
                   {tarea.hora_inicio} — {tarea.hora_fin}
                 </span>
               )}
@@ -1133,7 +1137,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
               <span
                 className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
                   isProfundo
-                    ? 'bg-[#1e3a8a]/70 text-[#93c5fd] border border-[#60a5fa]/40'
+                    ? 'bg-[#161616]/70 text-zinc-300 border border-[#eed59b]/40'
                     : 'bg-[#334155]/60 text-[#cbd5e1] border border-slate-600/40'
                 }`}
               >
@@ -1176,7 +1180,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
           <button
             type="button"
             onClick={() => openVisualTimeModal(tarea)}
-            className="px-2.5 py-1.5 rounded-lg bg-[#111f3d] border border-[#38bdf8]/30 text-[#93c5fd] hover:text-white hover:border-[#38bdf8] text-xs transition-all flex items-center gap-1"
+            className="px-2.5 py-1.5 rounded-lg bg-[#111f3d] border border-[#38bdf8]/30 text-zinc-300 hover:text-white hover:border-[#38bdf8] text-xs transition-all flex items-center gap-1"
             title="Registrar o editar el horario en que se realizó esta tarea"
           >
             <span>⏱️</span>
@@ -1190,8 +1194,8 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
             onClick={() => handleToggleTareaRapida(tarea)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
               isDone
-                ? 'bg-[#0d1733] text-[#94a3b8] hover:text-white border border-[#5b9bd5]/20'
-                : 'bg-gradient-to-r from-[#1e3a8a] to-[#2563eb] text-white hover:brightness-110 border border-[#60a5fa]/40 shadow-sm'
+                ? 'bg-[#101010] text-[#94a3b8] hover:text-white border border-white/10'
+                : 'bg-gradient-to-r from-[#1e3a8a] to-[#2563eb] text-white hover:brightness-110 border border-[#eed59b]/40 shadow-sm'
             }`}
           >
             <span>{isDone ? '↩ Desmarcar' : '✓ Cumplir'}</span>
@@ -1201,20 +1205,405 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
     );
   };
 
+
+
+  const renderCuerpoHistorico = () => (
+    <div className="space-y-6 min-w-0">
+      {/* SELECTOR Y AUDITORÍA DE DÍA ESPECÍFICO */}
+              <section className="card-elevated p-4 sm:p-6 border border-white/10 space-y-5">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/10">
+                  <div className="space-y-0.5">
+                    <h4 className="text-sm sm:text-base font-serif font-bold text-white">
+                      Auditar Día Específico
+                    </h4>
+                    <p className="text-xs text-[#94a3b8]">
+                      Selecciona una fecha en el calendario o haz clic en cualquier jornada con actividad registrada.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => handlePasoDia(-1)}
+                      className="btn-formal-outline px-3 py-1.5 rounded-full text-xs"
+                      title="Ir al día anterior"
+                    >
+                      ◀ Ant
+                    </button>
+
+                    <input
+                      type="date"
+                      value={fechaSeleccionadaHist}
+                      onChange={(e) => handleSeleccionarDia(e.target.value)}
+                      className="px-3.5 py-1.5 rounded-full text-xs font-mono font-medium bg-[#000000] text-[#eed59b] border border-white/15 focus:outline-none focus:border-[#eed59b]"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => handlePasoDia(1)}
+                      className="btn-formal-outline px-3 py-1.5 rounded-full text-xs"
+                      title="Ir al día siguiente"
+                    >
+                      Sig ▶
+                    </button>
+                  </div>
+                </div>
+
+                {/* Días con actividad */}
+                {diasConActividadLista.length > 0 && (
+                  <div className="space-y-2">
+                    <span className="text-[11px] text-[#94a3b8] uppercase font-medium tracking-wide block">
+                      Días con actividad registrada:
+                    </span>
+                    <div className="flex items-center gap-2 overflow-x-auto pb-2 pt-0.5">
+                      {diasConActividadLista.map((dItem) => {
+                        const isSelected = fechaSeleccionadaHist === dItem.fecha;
+                        const isToday = dItem.fecha === targetFechaStr;
+                        return (
+                          <button
+                            key={dItem.fecha}
+                            type="button"
+                            onClick={() => handleSeleccionarDia(dItem.fecha)}
+                            className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition-all ${
+                              isSelected
+                                ? 'bg-[#2563eb] text-white font-semibold shadow-midnight'
+                                : 'bg-[#101010] text-[#94a3b8] hover:text-white border border-white/10'
+                            }`}
+                          >
+                            <span>📅 {formatShortDate(dItem.fecha)}</span>
+                            {isToday && (
+                              <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-[#eed59b] text-[#070e1e] font-bold">
+                                Hoy
+                              </span>
+                            )}
+                            <span className="font-mono font-bold text-[#eed59b]">
+                              {dItem.horasNetas.toFixed(1)}h
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Detalle del día seleccionado */}
+                {loadingDiaHist ? (
+                  <div className="py-12 flex flex-col items-center justify-center space-y-3">
+                    <div className="w-8 h-8 rounded-full border-2 border-[#eed59b] border-t-transparent animate-spin"></div>
+                    <span className="text-xs text-[#94a3b8]">
+                      Cargando auditoría histórica para {fechaSeleccionadaHist}...
+                    </span>
+                  </div>
+                ) : (
+                  <div className="space-y-5 animate-fade-in">
+                    <div className="p-4 sm:p-5 rounded-2xl bg-[#080808]/80 border border-white/10 space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="tag-formal px-2.5 py-0.5 rounded-full text-xs bg-[#141414] text-zinc-300 border border-[#eed59b]/30 font-medium">
+                              {fechaSeleccionadaHist >= FECHA_INICIO_CICLO
+                                ? `Día ${getDiaCicloParaFecha(fechaSeleccionadaHist)} de 365`
+                                : 'Previo al Ciclo'}
+                            </span>
+                          </div>
+                          <h5 className="text-lg sm:text-2xl font-serif font-bold text-white">
+                            {formatFechaLargaEspanol(fechaSeleccionadaHist)}
+                          </h5>
+                        </div>
+
+                        <span className="tag-formal px-3.5 py-1.5 rounded-full bg-[#101010] border border-[#e5c179]/30 text-[#eed59b] font-serif font-bold text-xs">
+                          Total: {(detalleDiaHist?.totalHorasNetas ?? 0).toFixed(2)}h netas
+                        </span>
+                      </div>
+
+                      {/* Micro KPIs */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 text-xs">
+                        <div className="p-3 rounded-xl bg-[#101010]/70 border border-white/10 space-y-1">
+                          <span className="text-[10px] text-[#94a3b8] block uppercase font-medium">Tiempo de Foco</span>
+                          <span className="text-lg font-serif font-bold text-[#eed59b]">
+                            {(detalleDiaHist?.totalHorasNetas ?? 0).toFixed(1)}h
+                          </span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-[#101010]/70 border border-white/10 space-y-1">
+                          <span className="text-[10px] text-[#94a3b8] block uppercase font-medium">Entrenamiento</span>
+                          <span className="text-lg font-serif font-bold text-white">
+                            {detalleDiaHist?.ejercicioHoras != null ? `${Number(detalleDiaHist.ejercicioHoras).toFixed(1)}h` : '0h'}
+                          </span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-[#101010]/70 border border-white/10 space-y-1">
+                          <span className="text-[10px] text-[#94a3b8] block uppercase font-medium">Alimentación</span>
+                          <span className="text-lg font-serif font-bold text-[#60a5fa]">
+                            {detalleDiaHist?.alimento != null ? `${detalleDiaHist.alimento}/5 ⭐` : '—'}
+                          </span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-[#101010]/70 border border-white/10 space-y-1">
+                          <span className="text-[10px] text-[#94a3b8] block uppercase font-medium">Cierre Diario</span>
+                          <span className={`text-base font-serif font-bold ${detalleDiaHist?.cierreRealizado ? 'text-emerald-300' : 'text-[#94a3b8]'}`}>
+                            {detalleDiaHist?.cierreRealizado ? 'Concluido' : 'Sin Cierre'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bloques de Foco Auditados con hora exacta */}
+                    <div className="space-y-3">
+                      <h6 className="text-xs sm:text-sm font-serif font-bold uppercase tracking-wide text-white">
+                        Sesiones de Concentración Ejecutadas ({sesionesDiaHist.length})
+                      </h6>
+
+                      {sesionesDiaHist.length === 0 ? (
+                        <div className="p-6 rounded-2xl bg-[#080808]/60 border border-dashed border-white/10 text-center text-xs text-[#94a3b8]">
+                          No se registraron sesiones de trabajo profundo en esta fecha.
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {sesionesDiaHist.map((sesion, idx) => {
+                            const timeInfo = getSessionTimeRange(sesion);
+                            return (
+                              <div
+                                key={sesion.id || idx}
+                                className="p-4 rounded-2xl bg-[#080808]/90 border border-white/10 space-y-2.5"
+                              >
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-white/10">
+                                  <div className="flex items-center gap-2">
+                                    <span className="tag-formal px-2.5 py-0.5 rounded-full text-xs bg-[#141414] text-zinc-300 border border-[#eed59b]/30">
+                                      🕒 {timeInfo.inicio} — {timeInfo.fin}
+                                    </span>
+                                    <span className="text-xs text-white font-medium">
+                                      ({timeInfo.durMin} min / {sesion.horas_netas}h netas)
+                                    </span>
+                                  </div>
+                                  <span className="text-[11px] text-[#94a3b8]">
+                                    Registrado a las <strong>{timeInfo.exacta}</strong>
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="text-base font-serif font-bold text-white">
+                                    {sesion.tipo}
+                                  </span>
+                                  <div className="flex items-center gap-2 text-[10px]">
+                                    <span className="tag-formal px-2.5 py-0.5 rounded-full bg-[#101010] text-[#60a5fa] border border-white/10">
+                                      Intensidad: {sesion.intensidad}
+                                    </span>
+                                    <span className="tag-formal px-2.5 py-0.5 rounded-full bg-[#101010] text-[#eed59b] border border-[#e5c179]/30">
+                                      Incomodidad: {sesion.incomodidad}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {sesion.calidad && (
+                                  <blockquote className="p-3 rounded-xl bg-[#101010]/80 border-l-2 border-[#eed59b] text-xs text-[#94a3b8] italic font-serif">
+                                    &ldquo;{sesion.calidad}&rdquo;
+                                  </blockquote>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </section>
+
+              {/* GRÁFICO HISTÓRICO: MONTAÑAS DE FOCO SPLINE (7D / 14D / 30D) */}
+              <section className="card-elevated p-5 sm:p-6 border border-white/10 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+                  <div className="space-y-0.5">
+                    <h4 className="text-sm font-serif font-bold text-white">
+                      Relieve Temporal Acumulado
+                    </h4>
+                    <p className="text-xs text-[#94a3b8]">
+                      Total de inmersión en el período: <strong className="text-[#eed59b] font-mono">{totalHorasEnRango.toFixed(1)}h</strong>
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 bg-[#000000] p-1 rounded-full border border-white/10">
+                      <button
+                        type="button"
+                        onClick={() => setModoGraficoHist('montana')}
+                        className={`px-3 py-1 rounded-full text-xs transition-all ${
+                          modoGraficoHist === 'montana' ? 'bg-[#2563eb] text-white font-medium' : 'text-[#94a3b8]'
+                        }`}
+                      >
+                        ⛰️ Montañas
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setModoGraficoHist('columnas')}
+                        className={`px-3 py-1 rounded-full text-xs transition-all ${
+                          modoGraficoHist === 'columnas' ? 'bg-[#2563eb] text-white font-medium' : 'text-[#94a3b8]'
+                        }`}
+                      >
+                        📊 Columnas
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-1 bg-[#000000] p-1 rounded-full border border-white/10">
+                      {([7, 14, 30] as const).map((r) => (
+                        <button
+                          key={r}
+                          onClick={() => setRangoDias(r)}
+                          className={`px-2.5 py-1 rounded-full text-xs transition-all ${
+                            rangoDias === r ? 'bg-[#161616] text-[#eed59b] font-bold' : 'text-[#94a3b8]'
+                          }`}
+                        >
+                          {r}d
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Montañas Históricas SVG */}
+                {modoGraficoHist === 'montana' ? (
+                  <div className="p-4 rounded-2xl bg-[#080808]/80 border border-white/10 overflow-x-auto">
+                    <div className="min-w-[620px] relative">
+                      <svg viewBox={`0 0 ${svgTrendWidth} ${svgTrendHeight}`} className="w-full h-44 overflow-visible">
+                        <defs>
+                          <linearGradient id="histMountainAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.35" />
+                            <stop offset="50%" stopColor="#1e3a8a" stopOpacity="0.15" />
+                            <stop offset="100%" stopColor="#070e1e" stopOpacity="0.0" />
+                          </linearGradient>
+                          <linearGradient id="histMountainLineGrad" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0%" stopColor="#5b9bd5" />
+                            <stop offset="50%" stopColor="#eed59b" />
+                            <stop offset="100%" stopColor="#5b9bd5" />
+                          </linearGradient>
+                        </defs>
+
+                        <line x1="0" y1={svgTrendBaselineY} x2={svgTrendWidth} y2={svgTrendBaselineY} stroke="#222222" strokeWidth="1.5" />
+                        <line x1="0" y1={newportGoalY} x2={svgTrendWidth} y2={newportGoalY} stroke="#5b9bd5" strokeDasharray="4 4" strokeWidth="1.2" opacity="0.6" />
+                        <text x={svgTrendWidth - 10} y={newportGoalY - 6} textAnchor="end" fill="#93c5fd" fontSize="10" fontFamily="sans-serif">
+                          Meta Newport: 4.0h
+                        </text>
+
+                        <path d={mountainTrendArea} fill="url(#histMountainAreaGrad)" className="transition-all duration-500" />
+                        <path d={mountainTrendLine} fill="none" stroke="url(#histMountainLineGrad)" strokeWidth="2.5" strokeLinecap="round" className="transition-all duration-500" />
+
+                        {mountainTrendPoints.map((pt) => {
+                          const isSelected = fechaSeleccionadaHist === pt.day.fecha;
+                          const hasHours = pt.day.horasNetas > 0;
+
+                          return (
+                            <g
+                              key={pt.day.fecha}
+                              className="cursor-pointer group"
+                              onClick={() => handleSeleccionarDia(pt.day.fecha)}
+                              onMouseEnter={() => setHoveredDay(pt.day)}
+                              onMouseLeave={() => setHoveredDay(null)}
+                            >
+                              <circle
+                                cx={pt.x}
+                                cy={pt.y}
+                                r={isSelected ? 6.5 : hasHours ? 4.5 : 2.5}
+                                fill={isSelected ? '#eed59b' : hasHours ? '#60a5fa' : '#11224d'}
+                                stroke="#070e1e"
+                                strokeWidth="2"
+                                className="transition-all duration-200"
+                              />
+                            </g>
+                          );
+                        })}
+                      </svg>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="relative pt-4 pb-2 overflow-x-auto">
+                    <div className="min-w-[480px]">
+                      <div className="relative h-44 w-full border-b border-white/10 flex items-end justify-between gap-1.5 px-2">
+                        {filteredTrend.map((day, idx) => {
+                          const heightPercent = maxHoursInTrend > 0
+                            ? Math.min(100, Math.max(day.horasNetas > 0 ? 8 : 2, (day.horasNetas / maxHoursInTrend) * 100))
+                            : 4;
+                          const isSelectedDate = fechaSeleccionadaHist === day.fecha;
+                          const hasHours = day.horasNetas > 0;
+
+                          return (
+                            <div
+                              key={day.fecha || idx}
+                              onClick={() => handleSeleccionarDia(day.fecha)}
+                              className="flex-1 flex flex-col items-center h-full justify-end cursor-pointer group relative z-10"
+                            >
+                              <div
+                                style={{ height: `${heightPercent}%` }}
+                                className={`w-full max-w-[28px] rounded-t-lg transition-all duration-200 ${
+                                  isSelectedDate
+                                    ? 'bg-[#eed59b] shadow-midnight-glow'
+                                    : hasHours
+                                    ? 'bg-[#2563eb] hover:bg-[#3b82f6]'
+                                    : 'bg-[#101010]'
+                                }`}
+                              ></div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </section>
+    </div>
+  );
+
+
+  if (mode === 'history') {
+    return (
+      <div className="space-y-6 animate-fade-in min-w-0">
+        {/* Cabecera de Archivo Histórico Standalone */}
+        <section className="card-midnight p-5 sm:p-7 space-y-3 border border-white/10 relative overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-white/10">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="tag-formal px-2.5 py-0.5 rounded-full text-[10px] bg-[#141414] text-[#eed59b] border border-[#eed59b]/30 font-medium">
+                  Archivo Histórico
+                </span>
+                <span className="text-xs text-[#eed59b] font-medium uppercase tracking-wider">
+                  Auditoría Retrospectiva
+                </span>
+              </div>
+              <h2 className="text-xl sm:text-3xl font-serif font-bold text-white tracking-wide">
+                Consulta de Jornadas &amp; Montañas Acumuladas
+              </h2>
+              <p className="text-xs sm:text-sm text-[#94a3b8]">
+                Auditoría detallada con selector de fecha, micro-indicadores y relieve circadiano por bloques de trabajo.
+              </p>
+            </div>
+
+            {onGoToDailyLog && (
+              <button
+                type="button"
+                onClick={onGoToDailyLog}
+                className="btn-formal-outline px-4 py-2 rounded-full text-xs font-medium self-start sm:self-auto flex items-center gap-1.5"
+              >
+                <span>← Ir a Registro Diario</span>
+              </button>
+            )}
+          </div>
+        </section>
+
+        {renderCuerpoHistorico()}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* ========================================================= */}
       {/* 1. ZONA HERO PANORÁMICA: GRAN MONTAÑA CIRCADIANA + HUD KPIs */}
       {/* ========================================================= */}
-      <section className="card-midnight p-5 sm:p-7 space-y-6 border border-[#5b9bd5]/25 relative overflow-hidden">
+      <section className="card-midnight p-5 sm:p-7 space-y-6 border border-white/10 relative overflow-hidden">
         {/* Glow de fondo superior etéreo */}
         <div className="absolute -top-24 right-1/4 w-96 h-96 bg-[#3b82f6]/15 rounded-full blur-[140px] pointer-events-none"></div>
 
         {/* Header de la Zona Hero */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10 pb-3 border-b border-[#5b9bd5]/15">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10 pb-3 border-b border-white/10">
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="tag-formal px-3 py-1 rounded-full text-[10px] bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30 font-medium">
+              <span className="tag-formal px-3 py-1 rounded-full text-[10px] bg-[#141414] text-zinc-300 border border-[#eed59b]/30 font-medium">
                 Ritmo en Vivo
               </span>
               <span className="text-xs font-sans text-[#94a3b8] font-medium">
@@ -1236,7 +1625,13 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
             {/* Botón para Abrir Archivo Histórico */}
             <button
               type="button"
-              onClick={() => setMostrarModalHistorico(true)}
+              onClick={() => {
+                if (onGoToHistory) {
+                  onGoToHistory();
+                } else {
+                  setMostrarModalHistorico(true);
+                }
+              }}
               className="btn-formal-outline px-4 py-2 rounded-full text-xs font-medium flex items-center gap-2"
               title="Abrir ventana del archivo histórico y auditoría de días anteriores"
             >
@@ -1258,9 +1653,9 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
         {/* ========================================================= */}
         {/* RELIEVE CIRCADIANO 24 HORAS POR ASPECTO (CON VISTAS SEPARADAS Y MODO COMPARATIVO) */}
         {/* ========================================================= */}
-        <div className="p-4 sm:p-6 rounded-2xl bg-[#081229]/90 border border-[#5b9bd5]/25 shadow-xl space-y-4 relative">
+        <div className="p-4 sm:p-6 rounded-2xl bg-[#080808]/90 border border-white/10 shadow-xl space-y-4 relative">
           {/* Barra Superior: Título Dinámico + Selector de Pestañas por Dimensión */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-[#5b9bd5]/15">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-white/10">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span
@@ -1324,19 +1719,19 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
             </div>
 
             {/* Pestañas de Selección de Aspecto */}
-            <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-[#050b18] border border-[#5b9bd5]/20 text-xs">
+            <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-[#050b18] border border-white/10 text-xs">
               <button
                 type="button"
                 onClick={() => setAspectoCircadiano('trabajo')}
                 className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
                   aspectoCircadiano === 'trabajo'
-                    ? 'bg-[#1e3a8a] text-white shadow-md border border-[#60a5fa]/60'
+                    ? 'bg-[#161616] text-white shadow-md border border-[#60a5fa]/60'
                     : 'text-[#94a3b8] hover:text-white hover:bg-white/5'
                 }`}
               >
                 <span>🧠</span>
                 <span>Trabajo</span>
-                <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-black/40 text-[#93c5fd]">
+                <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-black/40 text-zinc-300">
                   {horasHoy.toFixed(1)}h
                 </span>
               </button>
@@ -1540,20 +1935,20 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
               {/* Tooltip Flotante Informativo para el aspecto activo */}
               {hoveredSlotHora !== null && activeMountain.points[hoveredSlotHora] && (
                 <div
-                  className="absolute z-30 pointer-events-none transition-all duration-150 ease-out p-3.5 rounded-xl bg-[#060c1d]/95 backdrop-blur-md border border-[#5b9bd5]/40 shadow-2xl text-xs w-72 space-y-2"
+                  className="absolute z-30 pointer-events-none transition-all duration-150 ease-out p-3.5 rounded-xl bg-[#060c1d]/95 backdrop-blur-md border border-white/15 shadow-2xl text-xs w-72 space-y-2"
                   style={{
                     left: `${Math.min(78, Math.max(22, (activeMountain.points[hoveredSlotHora].x / activeMountain.width) * 100))}%`,
                     top: '12px',
                     transform: 'translateX(-50%)',
                   }}
                 >
-                  <div className="flex items-center justify-between pb-1.5 border-b border-[#5b9bd5]/20">
+                  <div className="flex items-center justify-between pb-1.5 border-b border-white/10">
                     <div className="flex items-center gap-1.5 font-medium text-white">
                       <span className="text-sm">{activeConfig.icono}</span>
                       <span className="font-serif font-bold">{activeConfig.label}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className="font-mono text-[11px] text-[#eed59b] bg-[#1e293b]/90 px-2 py-0.5 rounded border border-[#5b9bd5]/20 font-semibold">
+                      <span className="font-mono text-[11px] text-[#eed59b] bg-[#1e293b]/90 px-2 py-0.5 rounded border border-white/10 font-semibold">
                         {activeMountain.points[hoveredSlotHora].slot.rangoLabel}
                       </span>
                       {activeMountain.points[hoveredSlotHora].slot.esHoraActual && (
@@ -1573,12 +1968,12 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                             <span className="text-base font-serif font-bold text-white">
                               {activeMountain.points[hoveredSlotHora].slot.minutosFoco} min
                             </span>
-                            <span className="text-[10px] text-[#93c5fd]">
+                            <span className="text-[10px] text-zinc-300">
                               Intensidad {activeMountain.points[hoveredSlotHora].slot.intensidadPredominante || 'Normal'}
                             </span>
                           </div>
                           {activeMountain.points[hoveredSlotHora].slot.sesiones.map((s, idx) => (
-                            <div key={idx} className="p-1.5 rounded bg-[#0b1633] border border-[#5b9bd5]/20 text-[11px] space-y-0.5">
+                            <div key={idx} className="p-1.5 rounded bg-[#0b1633] border border-white/10 text-[11px] space-y-0.5">
                               <p className="font-medium text-white truncate">{s.sesion.tipo}</p>
                               {s.sesion.calidad && (
                                 <p className="text-[10px] text-[#eed59b] truncate">Detalle: {s.sesion.calidad}</p>
@@ -1839,7 +2234,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                     )}
                   </div>
                   <div className="space-y-1 text-[11px]">
-                    <div className="flex items-center justify-between text-[#93c5fd]">
+                    <div className="flex items-center justify-between text-zinc-300">
                       <span>🧠 Foco Mental:</span>
                       <span className="font-bold text-white font-mono">{horasSlotsHoy[hoveredSlotHora].minutosFoco} min</span>
                     </div>
@@ -1874,7 +2269,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
             className={`card-elevated p-4 border space-y-1 relative overflow-hidden cursor-pointer transition-all hover:scale-[1.01] ${
               aspectoCircadiano === 'trabajo'
                 ? 'border-[#60a5fa] ring-1 ring-[#60a5fa]/50 shadow-lg bg-[#0d1c3a]/70'
-                : 'border-[#5b9bd5]/25 hover:border-[#60a5fa]/40'
+                : 'border-white/10 hover:border-[#eed59b]/40'
             }`}
           >
             <div className="flex items-center justify-between text-[11px] font-sans font-medium text-[#94a3b8]">
@@ -1980,7 +2375,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
       {/* SECCIÓN FORMAL: PLAN DE VUELO & TAREAS DE LA JORNADA     */}
       {/* (Tareas que tengo, las que debo cumplir y las ya cumplidas) */}
       {/* ========================================================= */}
-      <section className="card-midnight p-5 sm:p-7 border border-[#5b9bd5]/25 shadow-midnight space-y-5 rounded-2xl relative">
+      <section className="card-midnight p-5 sm:p-7 border border-white/10 shadow-midnight space-y-5 rounded-2xl relative">
         {/* Toast Local de Tareas */}
         {visualTaskFeedback && (
           <div className="absolute top-4 right-4 z-30 px-3.5 py-1.5 rounded-full bg-[#064e3b] text-emerald-200 border border-[#10b981]/40 text-xs font-medium shadow-lg animate-fade-in flex items-center gap-1.5">
@@ -1990,10 +2385,10 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
         )}
 
         {/* Cabecera y Resumen */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#5b9bd5]/15">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/10">
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="tag-formal px-2.5 py-0.5 rounded-full text-[10px] bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30 font-medium">
+              <span className="tag-formal px-2.5 py-0.5 rounded-full text-[10px] bg-[#141414] text-zinc-300 border border-[#eed59b]/30 font-medium">
                 Plan de Vuelo • Jornada Activa
               </span>
               <span className="text-xs text-[#eed59b] font-serif font-medium">
@@ -2036,7 +2431,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
 
         {/* HUD de Cumplimiento de Tareas */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="p-3.5 rounded-xl bg-[#070e1e]/80 border border-[#5b9bd5]/20 space-y-0.5">
+          <div className="p-3.5 rounded-xl bg-[#000000]/80 border border-white/10 space-y-0.5">
             <span className="text-[10px] text-[#94a3b8] uppercase tracking-wider font-medium">Total Programadas</span>
             <div className="flex items-baseline gap-1.5">
               <span className="text-2xl font-serif font-bold text-white tabular-nums">{totalTareasCount}</span>
@@ -2059,22 +2454,22 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
           </div>
 
           <div className="p-3.5 rounded-xl bg-[#0b1633]/80 border border-[#3b82f6]/30 space-y-0.5">
-            <span className="text-[10px] text-[#93c5fd] uppercase tracking-wider font-medium">Por Cumplir</span>
+            <span className="text-[10px] text-zinc-300 uppercase tracking-wider font-medium">Por Cumplir</span>
             <div className="flex items-baseline gap-1.5">
-              <span className="text-2xl font-serif font-bold text-[#93c5fd] tabular-nums">{porCumplirList.length}</span>
+              <span className="text-2xl font-serif font-bold text-zinc-300 tabular-nums">{porCumplirList.length}</span>
               <span className="text-[10px] text-[#94a3b8]">pendientes</span>
             </div>
-            <span className="text-[10px] text-[#93c5fd]/80 font-mono block">
+            <span className="text-[10px] text-zinc-300/80 font-mono block">
               {horasTareasPorCumplir.toFixed(1)}h restantes
             </span>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-[#0d1733]/80 border border-[#e5c179]/30 space-y-1.5 flex flex-col justify-between">
+          <div className="p-3.5 rounded-xl bg-[#101010]/80 border border-[#e5c179]/30 space-y-1.5 flex flex-col justify-between">
             <div className="flex justify-between items-center text-[10px] uppercase tracking-wider text-[#eed59b] font-medium">
               <span>Cumplimiento</span>
               <span className="font-mono font-bold">{pctTareasCumplidas}%</span>
             </div>
-            <div className="w-full h-2.5 rounded-full bg-[#070e1e] overflow-hidden border border-[#5b9bd5]/20 p-0.5">
+            <div className="w-full h-2.5 rounded-full bg-[#000000] overflow-hidden border border-white/10 p-0.5">
               <div
                 style={{ width: `${pctTareasCumplidas}%` }}
                 className="h-full bg-gradient-to-r from-[#2563eb] to-[#10b981] rounded-full transition-all duration-500"
@@ -2092,7 +2487,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
 
         {/* Selector de Pestañas de Visualización */}
         {totalTareasCount > 0 && (
-          <div className="flex items-center gap-2 pt-2 border-t border-[#5b9bd5]/15 flex-wrap">
+          <div className="flex items-center gap-2 pt-2 border-t border-white/10 flex-wrap">
             <span className="text-[11px] font-sans text-[#94a3b8] uppercase tracking-wider font-semibold mr-1">
               Mostrar:
             </span>
@@ -2101,8 +2496,8 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
               onClick={() => setFiltroTareasVisual('todas')}
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
                 filtroTareasVisual === 'todas'
-                  ? 'bg-[#1e3a8a] text-white border border-[#60a5fa]/50 shadow-sm'
-                  : 'bg-[#0d1733] text-[#94a3b8] border border-[#5b9bd5]/20 hover:text-white'
+                  ? 'bg-[#161616] text-white border border-[#60a5fa]/50 shadow-sm'
+                  : 'bg-[#101010] text-[#94a3b8] border border-white/10 hover:text-white'
               }`}
             >
               <span>📋 Todas las Tareas</span>
@@ -2116,12 +2511,12 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
               onClick={() => setFiltroTareasVisual('por_cumplir')}
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
                 filtroTareasVisual === 'por_cumplir'
-                  ? 'bg-[#1e3a8a] text-white border border-[#3b82f6]/60 shadow-sm ring-1 ring-blue-400/40'
-                  : 'bg-[#0d1733] text-[#93c5fd] border border-blue-500/30 hover:bg-[#1e3a8a]/40'
+                  ? 'bg-[#161616] text-white border border-[#3b82f6]/60 shadow-sm ring-1 ring-blue-400/40'
+                  : 'bg-[#101010] text-zinc-300 border border-blue-500/30 hover:bg-[#141414]'
               }`}
             >
               <span>⏳ Por Cumplir</span>
-              <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-blue-900/50 text-[#93c5fd]">
+              <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-blue-900/50 text-zinc-300">
                 {porCumplirList.length}
               </span>
             </button>
@@ -2146,7 +2541,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
         {/* Listado de Tareas */}
         <div className="space-y-3 pt-1">
           {totalTareasCount === 0 ? (
-            <div className="p-8 sm:p-10 rounded-2xl bg-[#070e1e]/60 border border-dashed border-[#5b9bd5]/25 text-center space-y-3">
+            <div className="p-8 sm:p-10 rounded-2xl bg-[#000000]/60 border border-dashed border-white/10 text-center space-y-3">
               <span className="text-3xl">📋</span>
               <div className="space-y-1">
                 <p className="text-sm font-serif font-bold text-white">
@@ -2170,13 +2565,13 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
               {/* VISTA 1: SOLO POR CUMPLIR */}
               {filtroTareasVisual === 'por_cumplir' && (
                 porCumplirList.length === 0 ? (
-                  <div className="p-6 text-center text-xs text-[#94a3b8] bg-[#070e1e]/60 rounded-xl border border-dashed border-emerald-500/30 space-y-1">
+                  <div className="p-6 text-center text-xs text-[#94a3b8] bg-[#000000]/60 rounded-xl border border-dashed border-emerald-500/30 space-y-1">
                     <p className="font-serif font-bold text-emerald-300 text-sm">🎉 ¡Extraordinario! No tienes tareas pendientes</p>
                     <p>Has cumplido todos los objetivos planificados para la jornada de hoy.</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <div className="px-1 text-xs font-serif font-bold text-[#93c5fd] uppercase tracking-wider flex items-center gap-1.5">
+                    <div className="px-1 text-xs font-serif font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
                       <span>⏳</span> Tareas Que Debes Cumplir ({porCumplirList.length})
                     </div>
                     {porCumplirList.map((tarea) => renderVisualTaskCard(tarea))}
@@ -2187,7 +2582,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
               {/* VISTA 2: SOLO YA CUMPLIDAS */}
               {filtroTareasVisual === 'cumplidas' && (
                 cumplidasList.length === 0 ? (
-                  <div className="p-6 text-center text-xs text-[#94a3b8] bg-[#070e1e]/60 rounded-xl border border-dashed border-[#5b9bd5]/20 space-y-1">
+                  <div className="p-6 text-center text-xs text-[#94a3b8] bg-[#000000]/60 rounded-xl border border-dashed border-white/10 space-y-1">
                     <p className="font-serif font-bold text-white text-sm">Aún no has marcado tareas como cumplidas hoy</p>
                     <p>Ejecuta tu bloque de trabajo y pulsa el recuadro para marcarla completada.</p>
                   </div>
@@ -2226,7 +2621,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                   </div>
 
                   {/* Bloque: Las ya cumplidas */}
-                  <div className="space-y-2.5 pt-3 border-t border-[#5b9bd5]/15">
+                  <div className="space-y-2.5 pt-3 border-t border-white/10">
                     <div className="flex items-center justify-between px-1">
                       <span className="text-xs font-serif font-bold text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
                         <span>✅</span> Tareas Ya Cumplidas ({cumplidasList.length})
@@ -2236,7 +2631,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                       </span>
                     </div>
                     {cumplidasList.length === 0 ? (
-                      <div className="p-4 text-center text-xs text-[#94a3b8] bg-[#070e1e]/40 rounded-xl border border-dashed border-[#5b9bd5]/20">
+                      <div className="p-4 text-center text-xs text-[#94a3b8] bg-[#000000]/40 rounded-xl border border-dashed border-white/10">
                         Aún no has marcado tareas completadas hoy.
                       </div>
                     ) : (
@@ -2257,13 +2652,13 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
       {/* ========================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* COLUMNA PRINCIPAL (65% -> col-span-8): CRONOGRAMA 24H & MATRIZ 2D */}
-        <div className="lg:col-span-8 space-y-6">
+        <div className="lg:col-span-8 min-w-0 space-y-6">
           {/* CRONOGRAMA DE 24 RANURAS HORARIAS */}
-          <section className="card-midnight p-5 sm:p-6 space-y-5 border border-[#5b9bd5]/20">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#5b9bd5]/15">
+          <section className="card-midnight p-5 sm:p-6 space-y-5 border border-white/10">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
               <div className="space-y-0.5">
                 <h3 className="text-base sm:text-lg font-serif font-bold text-white tracking-wide flex items-center gap-2">
-                  <span className="tag-formal px-2.5 py-0.5 rounded-full text-[10px] bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30 font-medium">
+                  <span className="tag-formal px-2.5 py-0.5 rounded-full text-[10px] bg-[#141414] text-zinc-300 border border-[#eed59b]/30 font-medium">
                     24 Horas
                   </span>
                   Distribución Horaria del Día (00:00 — 23:59)
@@ -2274,10 +2669,10 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
               </div>
 
               <div className="flex items-center gap-2 text-[11px]">
-                <span className="tag-formal px-3 py-1 rounded-full bg-[#0d1733] text-[#f8fafc] border border-[#5b9bd5]/25">
+                <span className="tag-formal px-3 py-1 rounded-full bg-[#101010] text-[#f8fafc] border border-white/10">
                   Activas: <strong className="text-[#eed59b] font-mono">{horasConFocoCount}</strong> / 24h
                 </span>
-                <span className="tag-formal px-3 py-1 rounded-full bg-[#1e3a8a]/50 text-[#93c5fd] border border-[#60a5fa]/30">
+                <span className="tag-formal px-3 py-1 rounded-full bg-[#141414] text-zinc-300 border border-[#eed59b]/30">
                   Ahora: <strong className="font-mono">{String(horaActual).padStart(2, '0')}:00</strong>
                 </span>
               </div>
@@ -2286,7 +2681,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
             {/* Pista de las 24 Columnas */}
             <div className="overflow-x-auto pb-2 pt-1">
               <div className="min-w-[620px]">
-                <div className="flex items-end justify-between gap-1 sm:gap-1.5 h-32 border-b border-[#5b9bd5]/20 px-1">
+                <div className="flex items-end justify-between gap-1 sm:gap-1.5 h-32 border-b border-white/10 px-1">
                   {horasSlotsHoy.map((slot) => {
                     const isSelected = (selectedHora !== null ? selectedHora : horaActual) === slot.hora;
                     const hasWork = slot.minutosFoco > 0;
@@ -2396,14 +2791,14 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                         <div
                           className={`w-full max-w-[26px] h-20 rounded-lg flex flex-col justify-end p-0.5 transition-all duration-200 border ${
                             slot.esHoraActual
-                              ? 'bg-[#0d1a3d] border-[#eed59b] shadow-midnight-glow'
+                              ? 'bg-[#141414] border-[#eed59b] shadow-midnight-glow'
                               : isSelected
                               ? 'bg-[#132247] border-white shadow-md'
                               : hasAnyActivity
-                              ? 'bg-[#0d1a3d] border-[#5b9bd5]/40 hover:border-[#60a5fa]'
+                              ? 'bg-[#141414] border-white/15 hover:border-[#60a5fa]'
                               : slot.esFutura
-                              ? 'bg-[#070e1e]/60 border-dashed border-[#5b9bd5]/15'
-                              : 'bg-[#070e1e]/80 border-[#5b9bd5]/15 hover:border-[#5b9bd5]/35'
+                              ? 'bg-[#000000]/60 border-dashed border-white/10'
+                              : 'bg-[#000000]/80 border-white/10 hover:border-white/10/35'
                           } ${isSelected ? 'scale-105' : ''}`}
                         >
                           {hasAnyActivity ? (
@@ -2437,8 +2832,8 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
             </div>
 
             {/* Inspección de la Franja Horaria Seleccionada */}
-            <div className="p-4 rounded-2xl bg-[#081229]/80 border border-[#5b9bd5]/20 shadow-inner space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-[#5b9bd5]/15">
+            <div className="p-4 rounded-2xl bg-[#080808]/80 border border-white/10 shadow-inner space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-white/10">
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <span className="text-sm sm:text-base font-serif font-bold text-white">
                     Franja: {slotActivoHoy.rangoLabel}
@@ -2449,7 +2844,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                     </span>
                   )}
                   {slotActivoHoy.minutosFoco > 0 && !slotActivoHoy.esHoraActual && (
-                    <span className="tag-formal px-2.5 py-0.5 rounded-full text-[10px] bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30 font-medium">
+                    <span className="tag-formal px-2.5 py-0.5 rounded-full text-[10px] bg-[#141414] text-zinc-300 border border-[#eed59b]/30 font-medium">
                       🧠 Trabajo Profundo
                     </span>
                   )}
@@ -2488,16 +2883,16 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                     return (
                       <div
                         key={item.sesion.id || idx}
-                        className={`p-3.5 rounded-xl bg-[#0d1733]/90 border text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
+                        className={`p-3.5 rounded-xl bg-[#101010]/90 border text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
                           isUltraDeep
                             ? 'border-[#f59e0b] shadow-[0_0_12px_rgba(245,158,11,0.2)]'
-                            : 'border-[#5b9bd5]/25'
+                            : 'border-white/10'
                         }`}
                       >
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
                             <span className="font-serif font-bold text-white text-sm">🧠 {item.sesion.tipo}</span>
-                            <span className="tag-formal text-[10px] px-2 py-0.5 rounded-full bg-[#1e3a8a]/50 text-[#93c5fd] border border-[#60a5fa]/30">
+                            <span className="tag-formal text-[10px] px-2 py-0.5 rounded-full bg-[#141414] text-zinc-300 border border-[#eed59b]/30">
                               {item.minutos} min en este tramo
                             </span>
                             {isUltraDeep && (
@@ -2514,14 +2909,14 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                         </div>
 
                         <div className="flex items-center gap-2 text-[10px] shrink-0">
-                          <span className="tag-formal px-2.5 py-1 rounded-full bg-[#070e1e] text-[#94a3b8] border border-[#5b9bd5]/25">
+                          <span className="tag-formal px-2.5 py-1 rounded-full bg-[#000000] text-[#94a3b8] border border-white/10">
                             Intensidad: <b className="text-[#60a5fa]">{item.sesion.intensidad}</b>
                           </span>
                           <span
-                            className={`tag-formal px-2.5 py-1 rounded-full bg-[#070e1e] border ${
+                            className={`tag-formal px-2.5 py-1 rounded-full bg-[#000000] border ${
                               item.sesion.incomodidad === 'Alta'
                                 ? 'text-[#fde68a] border-[#f59e0b]/50'
-                                : 'text-[#94a3b8] border-[#5b9bd5]/25'
+                                : 'text-[#94a3b8] border-white/10'
                             }`}
                           >
                             Incomodidad: <b className="text-[#eed59b]">{item.sesion.incomodidad}</b>
@@ -2536,7 +2931,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                     slotActivoHoy.ejercicios.map((item, idx) => (
                       <div
                         key={item.ejercicio.id || idx}
-                        className="p-3.5 rounded-xl bg-[#0d1733]/90 border border-[#f59e0b]/35 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                        className="p-3.5 rounded-xl bg-[#101010]/90 border border-[#f59e0b]/35 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
                       >
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
@@ -2553,7 +2948,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                             </p>
                           )}
                         </div>
-                        <span className="tag-formal text-[10px] px-2.5 py-1 rounded-full bg-[#070e1e] text-[#fed7aa] border border-[#f59e0b]/30">
+                        <span className="tag-formal text-[10px] px-2.5 py-1 rounded-full bg-[#000000] text-[#fed7aa] border border-[#f59e0b]/30">
                           Intensidad: <b>{item.ejercicio.intensidad}</b>
                         </span>
                       </div>
@@ -2564,7 +2959,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                     slotActivoHoy.comidas.map((comida, idx) => (
                       <div
                         key={comida.id || idx}
-                        className="p-3.5 rounded-xl bg-[#0d1733]/90 border border-[#10b981]/35 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                        className="p-3.5 rounded-xl bg-[#101010]/90 border border-[#10b981]/35 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
                       >
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
@@ -2577,7 +2972,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                             Ingesta: &ldquo;{comida.descripcion}&rdquo;
                           </p>
                         </div>
-                        <span className="tag-formal text-[10px] px-2.5 py-1 rounded-full bg-[#070e1e] text-[#a7f3d0] border border-[#10b981]/30">
+                        <span className="tag-formal text-[10px] px-2.5 py-1 rounded-full bg-[#000000] text-[#a7f3d0] border border-[#10b981]/30">
                           Calidad: <b>{comida.calidad}</b>
                         </span>
                       </div>
@@ -2588,7 +2983,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                     slotActivoHoy.suenos.map((item, idx) => (
                       <div
                         key={item.sueno.id || idx}
-                        className="p-3.5 rounded-xl bg-[#0d1733]/90 border border-[#6366f1]/35 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                        className="p-3.5 rounded-xl bg-[#101010]/90 border border-[#6366f1]/35 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
                       >
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
@@ -2604,7 +2999,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                           )}
                         </div>
                         {item.sueno.sensacion && (
-                          <span className="tag-formal text-[10px] px-2.5 py-1 rounded-full bg-[#070e1e] text-[#c7d2fe] border border-[#6366f1]/30">
+                          <span className="tag-formal text-[10px] px-2.5 py-1 rounded-full bg-[#000000] text-[#c7d2fe] border border-[#6366f1]/30">
                             Despertar: <b>{item.sueno.sensacion}</b>
                           </span>
                         )}
@@ -2613,7 +3008,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
 
                   {/* 5. Tareas Planificadas en esta Franja */}
                   {slotActivoHoy.tareas && slotActivoHoy.tareas.length > 0 && (
-                    <div className="space-y-2 pt-2 border-t border-[#5b9bd5]/15">
+                    <div className="space-y-2 pt-2 border-t border-white/10">
                       <div className="flex items-center justify-between text-[11px] font-sans font-bold uppercase tracking-wider text-[#eed59b]">
                         <span>📋 Tareas Programadas en este Horario ({slotActivoHoy.tareas.length})</span>
                       </div>
@@ -2625,7 +3020,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                             className={`p-3 rounded-xl border flex items-center justify-between gap-3 text-xs ${
                               isDone
                                 ? 'bg-[#06241a]/60 border-[#10b981]/40'
-                                : 'bg-[#0d1733]/90 border-[#3b82f6]/40'
+                                : 'bg-[#101010]/90 border-[#3b82f6]/40'
                             }`}
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
@@ -2635,7 +3030,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                                 className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 text-xs border ${
                                   isDone
                                     ? 'bg-emerald-500 border-emerald-400 text-black font-bold'
-                                    : 'bg-[#070e1e] border-[#5b9bd5]/40 text-transparent hover:border-emerald-400'
+                                    : 'bg-[#000000] border-white/15 text-transparent hover:border-emerald-400'
                                 }`}
                                 title={isDone ? 'Cumplida (Clic para desmarcar)' : 'Pendiente (Clic para marcar cumplida)'}
                               >
@@ -2676,11 +3071,11 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
           </section>
 
           {/* MATRIZ DE CALIDAD COGNITIVA & ESPECTRO */}
-          <section className="card-midnight p-5 sm:p-6 space-y-5 border border-[#5b9bd5]/20">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#5b9bd5]/15">
+          <section className="card-midnight p-5 sm:p-6 space-y-5 border border-white/10">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-white/10">
               <div className="space-y-0.5">
                 <h3 className="text-base font-serif font-bold text-white tracking-wide flex items-center gap-2">
-                  <span className="tag-formal px-2.5 py-0.5 rounded-full text-[10px] bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30 font-medium">
+                  <span className="tag-formal px-2.5 py-0.5 rounded-full text-[10px] bg-[#141414] text-zinc-300 border border-[#eed59b]/30 font-medium">
                     Espectro
                   </span>
                   Matriz de Esfuerzo e Incomodidad
@@ -2689,19 +3084,19 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                   Distribución cruzada de profundidad mental y fricción cognitiva de la jornada de hoy
                 </p>
               </div>
-              <span className="tag-formal text-xs text-[#eed59b] px-3.5 py-1 rounded-full bg-[#0d1733] border border-[#e5c179]/30 font-semibold font-mono">
+              <span className="tag-formal text-xs text-[#eed59b] px-3.5 py-1 rounded-full bg-[#101010] border border-[#e5c179]/30 font-semibold font-mono">
                 Total Hoy: {horasHoy.toFixed(1)}h
               </span>
             </div>
 
             {/* Espectros Proporcionales */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 rounded-2xl bg-[#081229]/80 border border-[#5b9bd5]/20 space-y-2.5">
+              <div className="p-4 rounded-2xl bg-[#080808]/80 border border-white/10 space-y-2.5">
                 <div className="flex justify-between text-xs">
                   <span className="text-white font-medium">Incomodidad Cognitiva</span>
                   <span className="text-[#eed59b] font-mono font-medium">{incomodidadHoy.Alta.toFixed(1)}h Alta / {totalIncomodidadHoy.toFixed(1)}h</span>
                 </div>
-                <div className="h-3 w-full rounded-full bg-[#070e1e] overflow-hidden flex border border-[#5b9bd5]/25 p-0.5">
+                <div className="h-3 w-full rounded-full bg-[#000000] overflow-hidden flex border border-white/10 p-0.5">
                   <div style={{ width: `${pctIncomodidadAltaHoy}%` }} className="h-full bg-[#eed59b] rounded-l-full" title={`Alta: ${incomodidadHoy.Alta.toFixed(1)}h`}></div>
                   <div style={{ width: `${pctIncomodidadMediaHoy}%` }} className="h-full bg-[#60a5fa]" title={`Media: ${incomodidadHoy.Media.toFixed(1)}h`}></div>
                   <div style={{ width: `${pctIncomodidadBajaHoy}%` }} className="h-full bg-[#3b82f6] rounded-r-full" title={`Baja: ${incomodidadHoy.Baja.toFixed(1)}h`}></div>
@@ -2713,15 +3108,15 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-[#081229]/80 border border-[#5b9bd5]/20 space-y-2.5">
+              <div className="p-4 rounded-2xl bg-[#080808]/80 border border-white/10 space-y-2.5">
                 <div className="flex justify-between text-xs">
                   <span className="text-white font-medium">Intensidad de Foco</span>
                   <span className="text-[#60a5fa] font-mono font-medium">{intensidadHoy.Alta.toFixed(1)}h Alta / {totalIntensidadHoy.toFixed(1)}h</span>
                 </div>
-                <div className="h-3 w-full rounded-full bg-[#070e1e] overflow-hidden flex border border-[#5b9bd5]/25 p-0.5">
+                <div className="h-3 w-full rounded-full bg-[#000000] overflow-hidden flex border border-white/10 p-0.5">
                   <div style={{ width: `${pctIntensidadAltaHoy}%` }} className="h-full bg-[#60a5fa] rounded-l-full" title={`Alta: ${intensidadHoy.Alta.toFixed(1)}h`}></div>
                   <div style={{ width: `${pctIntensidadMediaHoy}%` }} className="h-full bg-[#3b82f6]" title={`Media: ${intensidadHoy.Media.toFixed(1)}h`}></div>
-                  <div style={{ width: `${pctIntensidadBajaHoy}%` }} className="h-full bg-[#1e3a8a] rounded-r-full" title={`Baja: ${intensidadHoy.Baja.toFixed(1)}h`}></div>
+                  <div style={{ width: `${pctIntensidadBajaHoy}%` }} className="h-full bg-[#161616] rounded-r-full" title={`Baja: ${intensidadHoy.Baja.toFixed(1)}h`}></div>
                 </div>
                 <div className="flex justify-between text-[11px] text-[#94a3b8]">
                   <span>Alta: {intensidadHoy.Alta.toFixed(1)}h</span>
@@ -2736,22 +3131,22 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
               <div className="min-w-[380px] space-y-2 font-sans">
                 <div className="grid grid-cols-4 gap-2 text-center text-[11px] text-[#94a3b8]">
                   <div className="text-left font-medium text-white self-center">Intensidad \ Incomodidad</div>
-                  <div className="p-1.5 rounded-lg bg-[#0d1733] text-[#eed59b] font-medium border border-[#eed59b]/25">Alta (Frontera)</div>
-                  <div className="p-1.5 rounded-lg bg-[#0d1733] text-[#60a5fa] font-medium border border-[#60a5fa]/25">Media (Esfuerzo)</div>
-                  <div className="p-1.5 rounded-lg bg-[#0d1733] text-[#94a3b8] font-medium border border-[#5b9bd5]/20">Baja (Confort)</div>
+                  <div className="p-1.5 rounded-lg bg-[#101010] text-[#eed59b] font-medium border border-[#eed59b]/25">Alta (Frontera)</div>
+                  <div className="p-1.5 rounded-lg bg-[#101010] text-[#60a5fa] font-medium border border-[#60a5fa]/25">Media (Esfuerzo)</div>
+                  <div className="p-1.5 rounded-lg bg-[#101010] text-[#94a3b8] font-medium border border-white/10">Baja (Confort)</div>
                 </div>
 
                 <div className="grid grid-cols-4 gap-2 text-center text-xs">
                   <div className="flex items-center text-left text-xs font-serif font-bold text-[#eed59b]">Alta</div>
-                  <div className={`p-2.5 rounded-xl border ${matrizHoy.Alta.Alta > 0 ? 'bg-[#1e3a8a]/80 border-[#eed59b] text-[#eed59b] shadow-sm' : 'bg-[#081229] border-[#5b9bd5]/15 text-[#94a3b8]/40'}`}>
+                  <div className={`p-2.5 rounded-xl border ${matrizHoy.Alta.Alta > 0 ? 'bg-[#161616]/80 border-[#eed59b] text-[#eed59b] shadow-sm' : 'bg-[#080808] border-white/10 text-[#94a3b8]/40'}`}>
                     <span className="font-bold font-mono block">{matrizHoy.Alta.Alta.toFixed(1)}h</span>
                     <span className="text-[10px]">Maestría</span>
                   </div>
-                  <div className={`p-2.5 rounded-xl border ${matrizHoy.Alta.Media > 0 ? 'bg-[#1e3a8a]/60 border-[#60a5fa] text-[#93c5fd]' : 'bg-[#081229] border-[#5b9bd5]/15 text-[#94a3b8]/40'}`}>
+                  <div className={`p-2.5 rounded-xl border ${matrizHoy.Alta.Media > 0 ? 'bg-[#161616]/60 border-[#60a5fa] text-zinc-300' : 'bg-[#080808] border-white/10 text-[#94a3b8]/40'}`}>
                     <span className="font-bold font-mono block">{matrizHoy.Alta.Media.toFixed(1)}h</span>
                     <span className="text-[10px]">Inmersión</span>
                   </div>
-                  <div className={`p-2.5 rounded-xl border ${matrizHoy.Alta.Baja > 0 ? 'bg-[#0d1733] border-[#5b9bd5]/30 text-[#94a3b8]' : 'bg-[#081229] border-[#5b9bd5]/15 text-[#94a3b8]/40'}`}>
+                  <div className={`p-2.5 rounded-xl border ${matrizHoy.Alta.Baja > 0 ? 'bg-[#101010] border-white/15 text-[#94a3b8]' : 'bg-[#080808] border-white/10 text-[#94a3b8]/40'}`}>
                     <span className="font-bold font-mono block">{matrizHoy.Alta.Baja.toFixed(1)}h</span>
                     <span className="text-[10px]">Mecánico</span>
                   </div>
@@ -2759,15 +3154,15 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
 
                 <div className="grid grid-cols-4 gap-2 text-center text-xs">
                   <div className="flex items-center text-left text-xs font-serif font-bold text-[#60a5fa]">Media</div>
-                  <div className={`p-2.5 rounded-xl border ${matrizHoy.Media.Alta > 0 ? 'bg-[#0d1733] border-[#eed59b]/40 text-[#eed59b]' : 'bg-[#081229] border-[#5b9bd5]/15 text-[#94a3b8]/40'}`}>
+                  <div className={`p-2.5 rounded-xl border ${matrizHoy.Media.Alta > 0 ? 'bg-[#101010] border-[#eed59b]/40 text-[#eed59b]' : 'bg-[#080808] border-white/10 text-[#94a3b8]/40'}`}>
                     <span className="font-bold font-mono block">{matrizHoy.Media.Alta.toFixed(1)}h</span>
                     <span className="text-[10px]">Desafío</span>
                   </div>
-                  <div className={`p-2.5 rounded-xl border ${matrizHoy.Media.Media > 0 ? 'bg-[#0d1733] border-[#5b9bd5]/35 text-white' : 'bg-[#081229] border-[#5b9bd5]/15 text-[#94a3b8]/40'}`}>
+                  <div className={`p-2.5 rounded-xl border ${matrizHoy.Media.Media > 0 ? 'bg-[#101010] border-white/10/35 text-white' : 'bg-[#080808] border-white/10 text-[#94a3b8]/40'}`}>
                     <span className="font-bold font-mono block">{matrizHoy.Media.Media.toFixed(1)}h</span>
                     <span className="text-[10px]">Sostenible</span>
                   </div>
-                  <div className={`p-2.5 rounded-xl border ${matrizHoy.Media.Baja > 0 ? 'bg-[#081229] border-[#5b9bd5]/20 text-[#94a3b8]' : 'bg-[#081229] border-[#5b9bd5]/15 text-[#94a3b8]/40'}`}>
+                  <div className={`p-2.5 rounded-xl border ${matrizHoy.Media.Baja > 0 ? 'bg-[#080808] border-white/10 text-[#94a3b8]' : 'bg-[#080808] border-white/10 text-[#94a3b8]/40'}`}>
                     <span className="font-bold font-mono block">{matrizHoy.Media.Baja.toFixed(1)}h</span>
                     <span className="text-[10px]">Rutinario</span>
                   </div>
@@ -2775,15 +3170,15 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
 
                 <div className="grid grid-cols-4 gap-2 text-center text-xs">
                   <div className="flex items-center text-left text-xs font-serif font-bold text-[#94a3b8]">Baja</div>
-                  <div className={`p-2.5 rounded-xl border ${matrizHoy.Baja.Alta > 0 ? 'bg-[#081229] border-rose-500/40 text-rose-300' : 'bg-[#081229] border-[#5b9bd5]/15 text-[#94a3b8]/40'}`}>
+                  <div className={`p-2.5 rounded-xl border ${matrizHoy.Baja.Alta > 0 ? 'bg-[#080808] border-rose-500/40 text-rose-300' : 'bg-[#080808] border-white/10 text-[#94a3b8]/40'}`}>
                     <span className="font-bold font-mono block">{matrizHoy.Baja.Alta.toFixed(1)}h</span>
                     <span className="text-[10px]">Fatiga</span>
                   </div>
-                  <div className={`p-2.5 rounded-xl border ${matrizHoy.Baja.Media > 0 ? 'bg-[#081229] border-[#5b9bd5]/20 text-[#94a3b8]' : 'bg-[#081229] border-[#5b9bd5]/15 text-[#94a3b8]/40'}`}>
+                  <div className={`p-2.5 rounded-xl border ${matrizHoy.Baja.Media > 0 ? 'bg-[#080808] border-white/10 text-[#94a3b8]' : 'bg-[#080808] border-white/10 text-[#94a3b8]/40'}`}>
                     <span className="font-bold font-mono block">{matrizHoy.Baja.Media.toFixed(1)}h</span>
                     <span className="text-[10px]">Distracción</span>
                   </div>
-                  <div className={`p-2.5 rounded-xl border ${matrizHoy.Baja.Baja > 0 ? 'bg-[#081229] border-rose-500/20 text-rose-300' : 'bg-[#081229] border-[#5b9bd5]/15 text-[#94a3b8]/40'}`}>
+                  <div className={`p-2.5 rounded-xl border ${matrizHoy.Baja.Baja > 0 ? 'bg-[#080808] border-rose-500/20 text-rose-300' : 'bg-[#080808] border-white/10 text-[#94a3b8]/40'}`}>
                     <span className="font-bold font-mono block">{matrizHoy.Baja.Baja.toFixed(1)}h</span>
                     <span className="text-[10px]">Superficial</span>
                   </div>
@@ -2794,11 +3189,11 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
         </div>
 
         {/* COLUMNA LATERAL (35% -> col-span-4): EVALUACIÓN DE COMPROMISO & SEMÁFORO FORMAL */}
-        <div className="lg:col-span-4 space-y-6">
+        <div className="lg:col-span-4 min-w-0 space-y-6">
           {/* TARJETA DE CONSTANCIA Y RACHA */}
-          <div className="card-midnight p-5 border border-[#5b9bd5]/25 shadow-midnight space-y-3">
+          <div className="card-midnight p-5 border border-white/10 shadow-midnight space-y-3">
             <div className="flex items-center justify-between">
-              <span className="tag-formal text-[10px] px-3 py-1 rounded-full bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30 font-medium">
+              <span className="tag-formal text-[10px] px-3 py-1 rounded-full bg-[#141414] text-zinc-300 border border-[#eed59b]/30 font-medium">
                 Continuidad
               </span>
               <span className="text-xl">{stats.rachaActual > 0 ? '✨' : '🕯️'}</span>
@@ -2817,8 +3212,8 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
           </div>
 
           {/* SEMÁFORO DE COMPROMISO DIARIO CON CITAS DE AUTORES */}
-          <section className="card-midnight p-5 space-y-4 border border-[#5b9bd5]/25">
-            <div className="flex items-center justify-between pb-3 border-b border-[#5b9bd5]/15">
+          <section className="card-midnight p-5 space-y-4 border border-white/10">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <div className="space-y-0.5">
                 <h3 className="text-sm font-serif font-bold text-white tracking-wide flex items-center gap-1.5">
                   <span>⚖️</span>
@@ -2844,15 +3239,15 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
               <div className="space-y-3 font-sans">
                 {/* Alerta 1: Trabajo Profundo */}
                 {alertaTrabajo && (
-                  <div className="p-4 rounded-2xl bg-[#081229]/80 border border-blue-500/30 space-y-2">
-                    <div className="flex items-center justify-between text-xs font-semibold text-[#93c5fd]">
+                  <div className="p-4 rounded-2xl bg-[#080808]/80 border border-blue-500/30 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-semibold text-zinc-300">
                       <span>Tiempo de Foco Requerido</span>
                       <span className="font-mono">{horasHoy.toFixed(1)}h / 3.0h</span>
                     </div>
                     <p className="text-xs text-[#f8fafc]">
                       Aún restan {deficitTrabajoHoy.toFixed(1)}h para completar la meta de inmersión cognitiva.
                     </p>
-                    <blockquote className="p-3 rounded-xl bg-[#0d1733]/90 border-l-2 border-[#eed59b] text-xs text-[#94a3b8] italic font-serif">
+                    <blockquote className="p-3 rounded-xl bg-[#101010]/90 border-l-2 border-[#eed59b] text-xs text-[#94a3b8] italic font-serif">
                       &ldquo;No es que tengamos poco tiempo, sino que perdemos mucho.&rdquo;
                       <span className="block text-[10px] font-sans text-[#eed59b] font-medium not-italic mt-1">— Séneca</span>
                     </blockquote>
@@ -2861,7 +3256,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
 
                 {/* Alerta 2: Fricción Cognitiva */}
                 {alertaEstudio && (
-                  <div className="p-4 rounded-2xl bg-[#081229]/80 border border-amber-500/30 space-y-2">
+                  <div className="p-4 rounded-2xl bg-[#080808]/80 border border-amber-500/30 space-y-2">
                     <div className="flex items-center justify-between text-xs font-semibold text-amber-300">
                       <span>Incomodidad Cognitiva</span>
                       <span className="font-mono">{pctExigenteHoy}% / 50%</span>
@@ -2869,7 +3264,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                     <p className="text-xs text-[#f8fafc]">
                       {horasHoy === 0 ? 'Sin sesiones con desafío mental aún.' : 'Poco tiempo invertido en la frontera de dificultad.'}
                     </p>
-                    <blockquote className="p-3 rounded-xl bg-[#0d1733]/90 border-l-2 border-amber-400 text-xs text-[#94a3b8] italic font-serif">
+                    <blockquote className="p-3 rounded-xl bg-[#101010]/90 border-l-2 border-amber-400 text-xs text-[#94a3b8] italic font-serif">
                       &ldquo;Empieza siempre por la tarea más difícil y no titubees.&rdquo;
                       <span className="block text-[10px] font-sans text-amber-300 font-medium not-italic mt-1">— Brian Tracy</span>
                     </blockquote>
@@ -2878,7 +3273,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
 
                 {/* Alerta 3: Entrenamiento */}
                 {alertaEntrenamiento && (
-                  <div className="p-4 rounded-2xl bg-[#081229]/80 border border-rose-500/30 space-y-2">
+                  <div className="p-4 rounded-2xl bg-[#080808]/80 border border-rose-500/30 space-y-2">
                     <div className="flex items-center justify-between text-xs font-semibold text-rose-300">
                       <span>Entrenamiento Físico</span>
                       <span className="font-mono">{ejercicioHoy.toFixed(1)}h / 0.75h</span>
@@ -2886,7 +3281,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                     <p className="text-xs text-[#f8fafc]">
                       {ejercicioHoy === 0 ? 'No has registrado actividad física hoy.' : `Faltan ${deficitEjercicioHoy.toFixed(1)}h de entrenamiento.`}
                     </p>
-                    <blockquote className="p-3 rounded-xl bg-[#0d1733]/90 border-l-2 border-rose-400 text-xs text-[#94a3b8] italic font-serif">
+                    <blockquote className="p-3 rounded-xl bg-[#101010]/90 border-l-2 border-rose-400 text-xs text-[#94a3b8] italic font-serif">
                       &ldquo;Cuando tu mente dice basta, apenas has rozado tu potencial.&rdquo;
                       <span className="block text-[10px] font-sans text-rose-300 font-medium not-italic mt-1">— David Goggins</span>
                     </blockquote>
@@ -2895,23 +3290,23 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
 
                 {/* Alerta 4: Cierre */}
                 {alertaCierre && (
-                  <div className="p-4 rounded-2xl bg-[#081229]/80 border border-[#5b9bd5]/30 space-y-2">
-                    <div className="flex items-center justify-between text-xs font-semibold text-[#93c5fd]">
+                  <div className="p-4 rounded-2xl bg-[#080808]/80 border border-white/15 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-semibold text-zinc-300">
                       <span>Cierre de Jornada</span>
                       <span className="font-mono">Pendiente</span>
                     </div>
                     <p className="text-xs text-[#f8fafc]">
                       Realiza el protocolo formal antes de medianoche para liberar la mente de pendientes.
                     </p>
-                    <blockquote className="p-3 rounded-xl bg-[#0d1733]/90 border-l-2 border-[#5b9bd5] text-xs text-[#94a3b8] italic font-serif">
+                    <blockquote className="p-3 rounded-xl bg-[#101010]/90 border-l-2 border-white/10 text-xs text-[#94a3b8] italic font-serif">
                       &ldquo;Al anochecer, confina tus pensamientos y haz las paces con lo inacabado.&rdquo;
-                      <span className="block text-[10px] font-sans text-[#93c5fd] font-medium not-italic mt-1">— Marco Aurelio</span>
+                      <span className="block text-[10px] font-sans text-zinc-300 font-medium not-italic mt-1">— Marco Aurelio</span>
                     </blockquote>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="p-5 rounded-2xl bg-[#081229]/80 border border-emerald-500/40 text-center space-y-2.5">
+              <div className="p-5 rounded-2xl bg-[#080808]/80 border border-emerald-500/40 text-center space-y-2.5">
                 <span className="text-2xl">🏆</span>
                 <h4 className="text-sm font-serif font-bold text-[#eed59b]">
                   Jornada Ejemplar Cumplida
@@ -2919,7 +3314,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                 <p className="text-xs text-[#94a3b8]">
                   Todos los objetivos de foco profundo, esfuerzo intelectual, cuerpo y cierre han sido completados hoy.
                 </p>
-                <blockquote className="p-2.5 rounded-xl bg-[#0d1733]/80 text-[11px] text-[#eed59b] italic font-serif">
+                <blockquote className="p-2.5 rounded-xl bg-[#101010]/80 text-[11px] text-[#eed59b] italic font-serif">
                   &ldquo;La excelencia no es un acto aislado, sino un hábito cotidiano.&rdquo;
                   <span className="block text-[9px] font-sans text-[#94a3b8] not-italic mt-1">— Aristóteles</span>
                 </blockquote>
@@ -2928,7 +3323,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
           </section>
 
           {/* ACCESO A BÓVEDA HISTÓRICA */}
-          <div className="card-elevated p-5 border border-[#5b9bd5]/25 space-y-3">
+          <div className="card-elevated p-5 border border-white/10 space-y-3">
             <span className="text-sm font-serif font-bold text-white block">
               Archivo Histórico Retrospectivo
             </span>
@@ -2937,7 +3332,13 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
             </p>
             <button
               type="button"
-              onClick={() => setMostrarModalHistorico(true)}
+              onClick={() => {
+                if (onGoToHistory) {
+                  onGoToHistory();
+                } else {
+                  setMostrarModalHistorico(true);
+                }
+              }}
               className="btn-formal w-full py-2.5 rounded-full text-xs font-medium text-center block"
             >
               🏛️ Abrir Archivo Histórico
@@ -2954,17 +3355,17 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
           role="dialog"
           aria-modal="true"
           aria-labelledby="modal-historico-title"
-          className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-5 bg-black/80 backdrop-blur-md overflow-hidden animate-fade-in"
+          className="fixed inset-0 z-50 flex items-start justify-center p-2 sm:p-6 pt-4 sm:pt-8 bg-black/85 backdrop-blur-md overflow-y-auto animate-fade-in"
           onClick={(e) => {
             if (e.target === e.currentTarget) setMostrarModalHistorico(false);
           }}
         >
-          <div className="relative w-full max-w-6xl max-h-[94vh] bg-[#081229] border border-[#5b9bd5]/30 rounded-3xl shadow-2xl flex flex-col overflow-hidden">
+          <div className="relative w-full max-w-6xl bg-[#080808] border border-white/15 rounded-3xl shadow-2xl flex flex-col overflow-hidden my-auto sm:my-4">
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-[#5b9bd5]/20 bg-[#081229] sticky top-0 z-30">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/10 bg-[#080808] sticky top-0 z-30">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="tag-formal px-2.5 py-0.5 rounded-full text-[10px] bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30 font-medium">
+                  <span className="tag-formal px-2.5 py-0.5 rounded-full text-[10px] bg-[#141414] text-[#eed59b] border border-[#eed59b]/30 font-medium">
                     Archivo Histórico
                   </span>
                   <span className="text-xs text-[#eed59b] font-medium uppercase tracking-wider">
@@ -2985,349 +3386,13 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
               </button>
             </div>
 
-            {/* Modal Body */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-7 space-y-7">
-              {/* SELECTOR Y AUDITORÍA DE DÍA ESPECÍFICO */}
-              <section className="card-elevated p-4 sm:p-6 border border-[#5b9bd5]/25 space-y-5">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#5b9bd5]/15">
-                  <div className="space-y-0.5">
-                    <h4 className="text-sm sm:text-base font-serif font-bold text-white">
-                      Auditar Día Específico
-                    </h4>
-                    <p className="text-xs text-[#94a3b8]">
-                      Selecciona una fecha en el calendario o haz clic en cualquier jornada con actividad registrada.
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <button
-                      type="button"
-                      onClick={() => handlePasoDia(-1)}
-                      className="btn-formal-outline px-3 py-1.5 rounded-full text-xs"
-                      title="Ir al día anterior"
-                    >
-                      ◀ Ant
-                    </button>
-
-                    <input
-                      type="date"
-                      value={fechaSeleccionadaHist}
-                      onChange={(e) => handleSeleccionarDia(e.target.value)}
-                      className="px-3.5 py-1.5 rounded-full text-xs font-mono font-medium bg-[#070e1e] text-[#eed59b] border border-[#5b9bd5]/40 focus:outline-none focus:border-[#eed59b]"
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() => handlePasoDia(1)}
-                      className="btn-formal-outline px-3 py-1.5 rounded-full text-xs"
-                      title="Ir al día siguiente"
-                    >
-                      Sig ▶
-                    </button>
-                  </div>
-                </div>
-
-                {/* Días con actividad */}
-                {diasConActividadLista.length > 0 && (
-                  <div className="space-y-2">
-                    <span className="text-[11px] text-[#94a3b8] uppercase font-medium tracking-wide block">
-                      Días con actividad registrada:
-                    </span>
-                    <div className="flex items-center gap-2 overflow-x-auto pb-2 pt-0.5">
-                      {diasConActividadLista.map((dItem) => {
-                        const isSelected = fechaSeleccionadaHist === dItem.fecha;
-                        const isToday = dItem.fecha === targetFechaStr;
-                        return (
-                          <button
-                            key={dItem.fecha}
-                            type="button"
-                            onClick={() => handleSeleccionarDia(dItem.fecha)}
-                            className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition-all ${
-                              isSelected
-                                ? 'bg-[#2563eb] text-white font-semibold shadow-midnight'
-                                : 'bg-[#0d1733] text-[#94a3b8] hover:text-white border border-[#5b9bd5]/20'
-                            }`}
-                          >
-                            <span>📅 {formatShortDate(dItem.fecha)}</span>
-                            {isToday && (
-                              <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-[#eed59b] text-[#070e1e] font-bold">
-                                Hoy
-                              </span>
-                            )}
-                            <span className="font-mono font-bold text-[#eed59b]">
-                              {dItem.horasNetas.toFixed(1)}h
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Detalle del día seleccionado */}
-                {loadingDiaHist ? (
-                  <div className="py-12 flex flex-col items-center justify-center space-y-3">
-                    <div className="w-8 h-8 rounded-full border-2 border-[#eed59b] border-t-transparent animate-spin"></div>
-                    <span className="text-xs text-[#94a3b8]">
-                      Cargando auditoría histórica para {fechaSeleccionadaHist}...
-                    </span>
-                  </div>
-                ) : (
-                  <div className="space-y-5 animate-fade-in">
-                    <div className="p-4 sm:p-5 rounded-2xl bg-[#081229]/80 border border-[#5b9bd5]/20 space-y-3">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="tag-formal px-2.5 py-0.5 rounded-full text-xs bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30 font-medium">
-                              {fechaSeleccionadaHist >= FECHA_INICIO_CICLO
-                                ? `Día ${getDiaCicloParaFecha(fechaSeleccionadaHist)} de 365`
-                                : 'Previo al Ciclo'}
-                            </span>
-                          </div>
-                          <h5 className="text-lg sm:text-2xl font-serif font-bold text-white">
-                            {formatFechaLargaEspanol(fechaSeleccionadaHist)}
-                          </h5>
-                        </div>
-
-                        <span className="tag-formal px-3.5 py-1.5 rounded-full bg-[#0d1733] border border-[#e5c179]/30 text-[#eed59b] font-serif font-bold text-xs">
-                          Total: {(detalleDiaHist?.totalHorasNetas ?? 0).toFixed(2)}h netas
-                        </span>
-                      </div>
-
-                      {/* Micro KPIs */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 text-xs">
-                        <div className="p-3 rounded-xl bg-[#0d1733]/70 border border-[#5b9bd5]/20 space-y-1">
-                          <span className="text-[10px] text-[#94a3b8] block uppercase font-medium">Tiempo de Foco</span>
-                          <span className="text-lg font-serif font-bold text-[#eed59b]">
-                            {(detalleDiaHist?.totalHorasNetas ?? 0).toFixed(1)}h
-                          </span>
-                        </div>
-                        <div className="p-3 rounded-xl bg-[#0d1733]/70 border border-[#5b9bd5]/20 space-y-1">
-                          <span className="text-[10px] text-[#94a3b8] block uppercase font-medium">Entrenamiento</span>
-                          <span className="text-lg font-serif font-bold text-white">
-                            {detalleDiaHist?.ejercicioHoras != null ? `${Number(detalleDiaHist.ejercicioHoras).toFixed(1)}h` : '0h'}
-                          </span>
-                        </div>
-                        <div className="p-3 rounded-xl bg-[#0d1733]/70 border border-[#5b9bd5]/20 space-y-1">
-                          <span className="text-[10px] text-[#94a3b8] block uppercase font-medium">Alimentación</span>
-                          <span className="text-lg font-serif font-bold text-[#60a5fa]">
-                            {detalleDiaHist?.alimento != null ? `${detalleDiaHist.alimento}/5 ⭐` : '—'}
-                          </span>
-                        </div>
-                        <div className="p-3 rounded-xl bg-[#0d1733]/70 border border-[#5b9bd5]/20 space-y-1">
-                          <span className="text-[10px] text-[#94a3b8] block uppercase font-medium">Cierre Diario</span>
-                          <span className={`text-base font-serif font-bold ${detalleDiaHist?.cierreRealizado ? 'text-emerald-300' : 'text-[#94a3b8]'}`}>
-                            {detalleDiaHist?.cierreRealizado ? 'Concluido' : 'Sin Cierre'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Bloques de Foco Auditados con hora exacta */}
-                    <div className="space-y-3">
-                      <h6 className="text-xs sm:text-sm font-serif font-bold uppercase tracking-wide text-white">
-                        Sesiones de Concentración Ejecutadas ({sesionesDiaHist.length})
-                      </h6>
-
-                      {sesionesDiaHist.length === 0 ? (
-                        <div className="p-6 rounded-2xl bg-[#081229]/60 border border-dashed border-[#5b9bd5]/20 text-center text-xs text-[#94a3b8]">
-                          No se registraron sesiones de trabajo profundo en esta fecha.
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {sesionesDiaHist.map((sesion, idx) => {
-                            const timeInfo = getSessionTimeRange(sesion);
-                            return (
-                              <div
-                                key={sesion.id || idx}
-                                className="p-4 rounded-2xl bg-[#081229]/90 border border-[#5b9bd5]/25 space-y-2.5"
-                              >
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-[#5b9bd5]/15">
-                                  <div className="flex items-center gap-2">
-                                    <span className="tag-formal px-2.5 py-0.5 rounded-full text-xs bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30">
-                                      🕒 {timeInfo.inicio} — {timeInfo.fin}
-                                    </span>
-                                    <span className="text-xs text-white font-medium">
-                                      ({timeInfo.durMin} min / {sesion.horas_netas}h netas)
-                                    </span>
-                                  </div>
-                                  <span className="text-[11px] text-[#94a3b8]">
-                                    Registrado a las <strong>{timeInfo.exacta}</strong>
-                                  </span>
-                                </div>
-
-                                <div className="flex items-center justify-between gap-2">
-                                  <span className="text-base font-serif font-bold text-white">
-                                    {sesion.tipo}
-                                  </span>
-                                  <div className="flex items-center gap-2 text-[10px]">
-                                    <span className="tag-formal px-2.5 py-0.5 rounded-full bg-[#0d1733] text-[#60a5fa] border border-[#5b9bd5]/25">
-                                      Intensidad: {sesion.intensidad}
-                                    </span>
-                                    <span className="tag-formal px-2.5 py-0.5 rounded-full bg-[#0d1733] text-[#eed59b] border border-[#e5c179]/30">
-                                      Incomodidad: {sesion.incomodidad}
-                                    </span>
-                                  </div>
-                                </div>
-
-                                {sesion.calidad && (
-                                  <blockquote className="p-3 rounded-xl bg-[#0d1733]/80 border-l-2 border-[#eed59b] text-xs text-[#94a3b8] italic font-serif">
-                                    &ldquo;{sesion.calidad}&rdquo;
-                                  </blockquote>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </section>
-
-              {/* GRÁFICO HISTÓRICO: MONTAÑAS DE FOCO SPLINE (7D / 14D / 30D) */}
-              <section className="card-elevated p-5 sm:p-6 border border-[#5b9bd5]/25 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#5b9bd5]/15">
-                  <div className="space-y-0.5">
-                    <h4 className="text-sm font-serif font-bold text-white">
-                      Relieve Temporal Acumulado
-                    </h4>
-                    <p className="text-xs text-[#94a3b8]">
-                      Total de inmersión en el período: <strong className="text-[#eed59b] font-mono">{totalHorasEnRango.toFixed(1)}h</strong>
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1 bg-[#070e1e] p-1 rounded-full border border-[#5b9bd5]/25">
-                      <button
-                        type="button"
-                        onClick={() => setModoGraficoHist('montana')}
-                        className={`px-3 py-1 rounded-full text-xs transition-all ${
-                          modoGraficoHist === 'montana' ? 'bg-[#2563eb] text-white font-medium' : 'text-[#94a3b8]'
-                        }`}
-                      >
-                        ⛰️ Montañas
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setModoGraficoHist('columnas')}
-                        className={`px-3 py-1 rounded-full text-xs transition-all ${
-                          modoGraficoHist === 'columnas' ? 'bg-[#2563eb] text-white font-medium' : 'text-[#94a3b8]'
-                        }`}
-                      >
-                        📊 Columnas
-                      </button>
-                    </div>
-
-                    <div className="flex items-center gap-1 bg-[#070e1e] p-1 rounded-full border border-[#5b9bd5]/25">
-                      {([7, 14, 30] as const).map((r) => (
-                        <button
-                          key={r}
-                          onClick={() => setRangoDias(r)}
-                          className={`px-2.5 py-1 rounded-full text-xs transition-all ${
-                            rangoDias === r ? 'bg-[#1e3a8a] text-[#eed59b] font-bold' : 'text-[#94a3b8]'
-                          }`}
-                        >
-                          {r}d
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Montañas Históricas SVG */}
-                {modoGraficoHist === 'montana' ? (
-                  <div className="p-4 rounded-2xl bg-[#081229]/80 border border-[#5b9bd5]/20 overflow-x-auto">
-                    <div className="min-w-[620px] relative">
-                      <svg viewBox={`0 0 ${svgTrendWidth} ${svgTrendHeight}`} className="w-full h-44 overflow-visible">
-                        <defs>
-                          <linearGradient id="histMountainAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.35" />
-                            <stop offset="50%" stopColor="#1e3a8a" stopOpacity="0.15" />
-                            <stop offset="100%" stopColor="#070e1e" stopOpacity="0.0" />
-                          </linearGradient>
-                          <linearGradient id="histMountainLineGrad" x1="0" y1="0" x2="1" y2="0">
-                            <stop offset="0%" stopColor="#5b9bd5" />
-                            <stop offset="50%" stopColor="#eed59b" />
-                            <stop offset="100%" stopColor="#5b9bd5" />
-                          </linearGradient>
-                        </defs>
-
-                        <line x1="0" y1={svgTrendBaselineY} x2={svgTrendWidth} y2={svgTrendBaselineY} stroke="#11224d" strokeWidth="1.5" />
-                        <line x1="0" y1={newportGoalY} x2={svgTrendWidth} y2={newportGoalY} stroke="#5b9bd5" strokeDasharray="4 4" strokeWidth="1.2" opacity="0.6" />
-                        <text x={svgTrendWidth - 10} y={newportGoalY - 6} textAnchor="end" fill="#93c5fd" fontSize="10" fontFamily="sans-serif">
-                          Meta Newport: 4.0h
-                        </text>
-
-                        <path d={mountainTrendArea} fill="url(#histMountainAreaGrad)" className="transition-all duration-500" />
-                        <path d={mountainTrendLine} fill="none" stroke="url(#histMountainLineGrad)" strokeWidth="2.5" strokeLinecap="round" className="transition-all duration-500" />
-
-                        {mountainTrendPoints.map((pt) => {
-                          const isSelected = fechaSeleccionadaHist === pt.day.fecha;
-                          const hasHours = pt.day.horasNetas > 0;
-
-                          return (
-                            <g
-                              key={pt.day.fecha}
-                              className="cursor-pointer group"
-                              onClick={() => handleSeleccionarDia(pt.day.fecha)}
-                              onMouseEnter={() => setHoveredDay(pt.day)}
-                              onMouseLeave={() => setHoveredDay(null)}
-                            >
-                              <circle
-                                cx={pt.x}
-                                cy={pt.y}
-                                r={isSelected ? 6.5 : hasHours ? 4.5 : 2.5}
-                                fill={isSelected ? '#eed59b' : hasHours ? '#60a5fa' : '#11224d'}
-                                stroke="#070e1e"
-                                strokeWidth="2"
-                                className="transition-all duration-200"
-                              />
-                            </g>
-                          );
-                        })}
-                      </svg>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="relative pt-4 pb-2 overflow-x-auto">
-                    <div className="min-w-[480px]">
-                      <div className="relative h-44 w-full border-b border-[#5b9bd5]/20 flex items-end justify-between gap-1.5 px-2">
-                        {filteredTrend.map((day, idx) => {
-                          const heightPercent = maxHoursInTrend > 0
-                            ? Math.min(100, Math.max(day.horasNetas > 0 ? 8 : 2, (day.horasNetas / maxHoursInTrend) * 100))
-                            : 4;
-                          const isSelectedDate = fechaSeleccionadaHist === day.fecha;
-                          const hasHours = day.horasNetas > 0;
-
-                          return (
-                            <div
-                              key={day.fecha || idx}
-                              onClick={() => handleSeleccionarDia(day.fecha)}
-                              className="flex-1 flex flex-col items-center h-full justify-end cursor-pointer group relative z-10"
-                            >
-                              <div
-                                style={{ height: `${heightPercent}%` }}
-                                className={`w-full max-w-[28px] rounded-t-lg transition-all duration-200 ${
-                                  isSelectedDate
-                                    ? 'bg-[#eed59b] shadow-midnight-glow'
-                                    : hasHours
-                                    ? 'bg-[#2563eb] hover:bg-[#3b82f6]'
-                                    : 'bg-[#0d1733]'
-                                }`}
-                              ></div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </section>
+            {/* Modal Body reutilizando renderCuerpoHistorico */}
+            <div className="p-4 sm:p-7 space-y-7 overflow-y-auto">
+              {renderCuerpoHistorico()}
             </div>
 
             {/* Modal Footer */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 sm:p-5 border-t border-[#5b9bd5]/20 bg-[#081229] sticky bottom-0 z-30">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 sm:p-5 border-t border-white/10 bg-[#080808] sticky bottom-0 z-30">
               <p className="text-xs text-[#94a3b8] italic font-serif hidden sm:block">
                 &ldquo;El pasado ya murió; el futuro aún no nace; la única victoria posible ocurre hoy.&rdquo;
               </p>
@@ -3343,7 +3408,6 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
         </div>
       )}
 
-      {/* ========================================================= */}
       {/* 4. MODAL RÁPIDO PARA AGREGAR TAREA EN EL PANEL DIARIO     */}
       {/* ========================================================= */}
       {isQuickCreateTaskOpen && (
@@ -3355,8 +3419,8 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
             if (e.target === e.currentTarget) setIsQuickCreateTaskOpen(false);
           }}
         >
-          <div className="card-midnight p-5 sm:p-6 rounded-2xl border border-[#5b9bd5]/30 max-w-lg w-full space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-[#5b9bd5]/15">
+          <div className="card-midnight p-5 sm:p-6 rounded-2xl border border-white/15 max-w-lg w-full space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <div className="space-y-0.5">
                 <span className="text-[10px] font-sans font-bold uppercase tracking-widest text-[#eed59b]">
                   Plan de Vuelo
@@ -3385,13 +3449,13 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                   placeholder="Ej: Implementar arquitectura del nuevo módulo"
                   value={quickTaskDesc}
                   onChange={(e) => setQuickTaskDesc(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#070e1e] text-white border border-[#5b9bd5]/30 focus:outline-none focus:border-[#eed59b]"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#000000] text-white border border-white/15 focus:outline-none focus:border-[#eed59b]"
                 />
               </div>
 
               {/* Opción de horario flexible */}
               <div className="p-2.5 rounded-xl bg-[#0d162a]/80 border border-[#38bdf8]/30 flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer text-xs text-[#93c5fd] font-medium">
+                <label className="flex items-center gap-2 cursor-pointer text-xs text-zinc-300 font-medium">
                   <input
                     type="checkbox"
                     checked={quickTaskIsFlexible}
@@ -3413,7 +3477,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                       type="time"
                       value={quickTaskInicio}
                       onChange={(e) => handleHorasQuickTask(e.target.value, quickTaskFin)}
-                      className="w-full px-3 py-2 rounded-xl bg-[#070e1e] text-[#eed59b] border border-[#5b9bd5]/30 font-mono"
+                      className="w-full px-3 py-2 rounded-xl bg-[#000000] text-[#eed59b] border border-white/15 font-mono"
                     />
                   </div>
 
@@ -3423,7 +3487,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                       type="time"
                       value={quickTaskFin}
                       onChange={(e) => handleHorasQuickTask(quickTaskInicio, e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-[#070e1e] text-[#eed59b] border border-[#5b9bd5]/30 font-mono"
+                      className="w-full px-3 py-2 rounded-xl bg-[#000000] text-[#eed59b] border border-white/15 font-mono"
                     />
                   </div>
                 </div>
@@ -3438,8 +3502,8 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                       onClick={() => setQuickTaskTipo('PROFUNDO')}
                       className={`py-2 px-2 rounded-xl text-center font-bold text-[11px] transition-all border ${
                         quickTaskTipo === 'PROFUNDO'
-                          ? 'bg-[#1e3a8a] text-white border-[#60a5fa]'
-                          : 'bg-[#070e1e] text-[#94a3b8] border-[#5b9bd5]/20'
+                          ? 'bg-[#161616] text-white border-[#60a5fa]'
+                          : 'bg-[#000000] text-[#94a3b8] border-white/10'
                       }`}
                     >
                       🧠 Profundo
@@ -3450,7 +3514,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                       className={`py-2 px-2 rounded-xl text-center font-bold text-[11px] transition-all border ${
                         quickTaskTipo === 'SUPERFICIAL'
                           ? 'bg-[#334155] text-white border-slate-500'
-                          : 'bg-[#070e1e] text-[#94a3b8] border-[#5b9bd5]/20'
+                          : 'bg-[#000000] text-[#94a3b8] border-white/10'
                       }`}
                     >
                       ⚡ Superficial
@@ -3468,12 +3532,12 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                     required
                     value={quickTaskHoras}
                     onChange={(e) => setQuickTaskHoras(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#070e1e] text-white border border-[#5b9bd5]/30 font-mono"
+                    className="w-full px-3 py-2 rounded-xl bg-[#000000] text-white border border-white/15 font-mono"
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2.5 pt-2 border-t border-[#5b9bd5]/15">
+              <div className="flex justify-end gap-2.5 pt-2 border-t border-white/10">
                 <button
                   type="button"
                   onClick={() => setIsQuickCreateTaskOpen(false)}
@@ -3538,7 +3602,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                   type="time"
                   value={visualTimeModalIni}
                   onChange={(e) => setVisualTimeModalIni(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
+                  className="w-full px-3 py-2 rounded-xl bg-[#050b18] border border-white/15 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
                 />
               </div>
 
@@ -3553,7 +3617,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                     setVisualTimeModalFin(e.target.value);
                     if (!visualTimeModalCompletada) setVisualTimeModalCompletada(e.target.value);
                   }}
-                  className="w-full px-3 py-2 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
+                  className="w-full px-3 py-2 rounded-xl bg-[#050b18] border border-white/15 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
                 />
               </div>
             </div>
@@ -3567,7 +3631,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                 value={visualTimeModalCompletada}
                 onChange={(e) => setVisualTimeModalCompletada(e.target.value)}
                 placeholder="HH:MM"
-                className="w-full px-3 py-2 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
+                className="w-full px-3 py-2 rounded-xl bg-[#050b18] border border-white/15 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
               />
             </div>
 

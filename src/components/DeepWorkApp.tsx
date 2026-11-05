@@ -12,7 +12,7 @@ import { EnsoLogo } from './EnsoLogo';
 import { getReflexionDeHoy, getDiaDelCiclo, type ReflexionDiaria } from '../data/reflections';
 import type { DiaHoyResponse, SesionFlujo, TareaPlanificada } from '../types/database';
 
-type NavigationTab = 'stats' | 'tasks' | 'today' | 'philosophy' | 'ideal_self';
+type NavigationTab = 'stats' | 'tasks' | 'today' | 'history' | 'philosophy' | 'ideal_self';
 
 interface DeepWorkAppProps {
   initialData?: DiaHoyResponse | null;
@@ -318,20 +318,20 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
       )}
 
       {/* =========================================================================
-          SIDEBAR DESPLEGABLE / RETRÁCTIL (INSPIRADO EN BIBLIOTECA ZEN)
+          SIDEBAR DESPLEGABLE / RETRÁCTIL (INSPIRADO EN BIBLIOTECA ZEN OBSIDIANA)
           ========================================================================= */}
       <aside
-        className={`fixed md:sticky top-0 left-0 z-50 h-screen flex flex-col justify-between bg-[#050a14]/95 backdrop-blur-xl border-r border-[#5b9bd5]/20 shadow-2xl transition-all duration-300 ease-in-out ${
+        className={`fixed md:sticky top-0 left-0 z-50 h-screen flex flex-col justify-between bg-[#000000]/95 backdrop-blur-xl border-r border-white/10 shadow-2xl transition-all duration-300 ease-in-out ${
           isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         } ${isSidebarCollapsed ? 'w-20' : 'w-72'}`}
         aria-label="Barra lateral de navegación"
       >
         {/* Cabecera del Sidebar */}
-        <div className="p-4 border-b border-[#5b9bd5]/15 flex items-center justify-between">
+        <div className="p-4 border-b border-white/10 flex items-center justify-between">
           {!isSidebarCollapsed ? (
             <div className="flex items-center gap-3">
               {/* Logo Zen Ensō */}
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#0e172a] to-[#020408] border border-[#eed59b]/40 flex items-center justify-center text-white shadow-midnight p-1">
+              <div className="w-10 h-10 rounded-2xl bg-[#080808] border border-[#eed59b]/40 flex items-center justify-center text-white shadow-midnight p-1">
                 <EnsoLogo className="w-7 h-7" />
               </div>
               <div className="flex flex-col">
@@ -345,7 +345,7 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
             </div>
           ) : (
             <div className="mx-auto">
-              <div className="w-10 h-10 rounded-2xl bg-[#081122] border border-[#eed59b]/40 flex items-center justify-center p-1">
+              <div className="w-10 h-10 rounded-2xl bg-[#080808] border border-[#eed59b]/40 flex items-center justify-center p-1">
                 <EnsoLogo className="w-7 h-7" />
               </div>
             </div>
@@ -355,7 +355,7 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
           <button
             type="button"
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            className="hidden md:flex p-1.5 rounded-xl text-[#94a3b8] hover:text-[#f8fafc] hover:bg-[#0c162b] transition-colors"
+            className="hidden md:flex p-1.5 rounded-xl text-[#94a3b8] hover:text-[#f8fafc] hover:bg-white/5 transition-colors"
             title={isSidebarCollapsed ? 'Expandir barra lateral' : 'Contraer barra lateral'}
           >
             <svg
@@ -381,7 +381,7 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
 
         {/* Tarjeta de Estado de la Jornada (Solo expandido) */}
         {!isSidebarCollapsed && (
-          <div className="mx-4 my-3 p-3.5 rounded-2xl bg-gradient-to-br from-[#0d1a3d]/80 to-[#070e1e]/90 border border-[#5b9bd5]/20 shadow-midnight">
+          <div className="mx-4 my-3 p-3.5 rounded-2xl bg-[#0a0a0a] border border-white/10 shadow-midnight">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] font-sans font-bold tracking-widest text-[#eed59b] uppercase">
                 Día {diaCiclo} de 365
@@ -389,9 +389,9 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
               <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium ${
                 cierreRealizado
                   ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
-                  : 'bg-blue-500/15 text-blue-300 border border-blue-500/30'
+                  : 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
               }`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${cierreRealizado ? 'bg-emerald-400' : 'bg-blue-400 animate-pulse'}`}></span>
+                <span className={`w-1.5 h-1.5 rounded-full ${cierreRealizado ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`}></span>
                 <span>{cierreRealizado ? 'Jornada Concluida' : 'En Curso'}</span>
               </span>
             </div>
@@ -418,10 +418,10 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
             }}
             className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-sm font-medium transition-all ${
               currentTab === 'stats'
-                ? 'bg-gradient-to-r from-[#2563eb] to-[#3b82f6] text-white shadow-midnight-glow'
-                : 'text-[#94a3b8] hover:text-white hover:bg-[#0d1a3d]'
+                ? 'bg-[#141414] text-white border border-[#eed59b]/40 shadow-sm'
+                : 'text-[#94a3b8] hover:text-white hover:bg-white/5'
             }`}
-            title="Panel General y Estadísticas"
+            title="Panel General y Ritmo Circadiano"
           >
             <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
@@ -440,8 +440,8 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
             }}
             className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-sm font-medium transition-all ${
               currentTab === 'tasks'
-                ? 'bg-gradient-to-r from-[#2563eb] to-[#3b82f6] text-white shadow-midnight-glow'
-                : 'text-[#94a3b8] hover:text-white hover:bg-[#0d1a3d]'
+                ? 'bg-[#141414] text-white border border-[#eed59b]/40 shadow-sm'
+                : 'text-[#94a3b8] hover:text-white hover:bg-white/5'
             }`}
             title="Plan de Vuelo y Tareas Planificadas"
           >
@@ -460,7 +460,7 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
             )}
           </button>
 
-          {/* Tab 3: Registro de Foco */}
+          {/* Tab 3: Registro Diario */}
           <button
             type="button"
             onClick={() => {
@@ -469,8 +469,8 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
             }}
             className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-sm font-medium transition-all ${
               currentTab === 'today'
-                ? 'bg-gradient-to-r from-[#2563eb] to-[#3b82f6] text-white shadow-midnight-glow'
-                : 'text-[#94a3b8] hover:text-white hover:bg-[#0d1a3d]'
+                ? 'bg-[#141414] text-white border border-[#eed59b]/40 shadow-sm'
+                : 'text-[#94a3b8] hover:text-white hover:bg-white/5'
             }`}
             title="Registro de Sesiones de Foco y Salud"
           >
@@ -490,7 +490,27 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
             )}
           </button>
 
-          {/* Tab 4: Biblioteca de Pensamiento */}
+          {/* Tab 4: Archivo Histórico (Acceso directo desde menú) */}
+          <button
+            type="button"
+            onClick={() => {
+              setCurrentTab('history');
+              setIsMobileSidebarOpen(false);
+            }}
+            className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-sm font-medium transition-all ${
+              currentTab === 'history'
+                ? 'bg-[#141414] text-white border border-[#eed59b]/40 shadow-sm'
+                : 'text-[#94a3b8] hover:text-white hover:bg-white/5'
+            }`}
+            title="Archivo Histórico y Auditoría Retrospectiva"
+          >
+            <span className="text-base flex-shrink-0">🏛️</span>
+            {!isSidebarCollapsed && (
+              <span className="truncate">Archivo Histórico</span>
+            )}
+          </button>
+
+          {/* Tab 5: Biblioteca de Pensamiento */}
           <button
             type="button"
             onClick={() => {
@@ -499,8 +519,8 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
             }}
             className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-sm font-medium transition-all ${
               currentTab === 'philosophy'
-                ? 'bg-gradient-to-r from-[#2563eb] to-[#3b82f6] text-white shadow-midnight-glow'
-                : 'text-[#94a3b8] hover:text-white hover:bg-[#081122]'
+                ? 'bg-[#141414] text-white border border-[#eed59b]/40 shadow-sm'
+                : 'text-[#94a3b8] hover:text-white hover:bg-white/5'
             }`}
             title="Biblioteca de Pensamiento (365 Días)"
           >
@@ -512,7 +532,7 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
             )}
           </button>
 
-          {/* Tab 5: Mi Yo Ideal */}
+          {/* Tab 6: Mi Yo Ideal */}
           <button
             type="button"
             onClick={() => {
@@ -521,8 +541,8 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
             }}
             className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-sm font-medium transition-all ${
               currentTab === 'ideal_self'
-                ? 'bg-gradient-to-r from-[#1e3a8a] to-[#2563eb] text-white shadow-midnight-glow'
-                : 'text-[#94a3b8] hover:text-white hover:bg-[#081122]'
+                ? 'bg-[#141414] text-white border border-[#eed59b]/40 shadow-sm'
+                : 'text-[#94a3b8] hover:text-white hover:bg-white/5'
             }`}
             title="Mi Yo Ideal — 6 Dimensiones y 3 Filtros de Validación"
           >
@@ -534,7 +554,7 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
         </div>
 
         {/* Acciones Rápidas en la Base del Sidebar */}
-        <div className="p-3 border-t border-[#5b9bd5]/15 space-y-2">
+        <div className="p-3 border-t border-white/10 space-y-2">
           {/* Botón Perla Diaria */}
           <button
             type="button"
@@ -542,7 +562,7 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
               setIsDailyReflectionOpen(true);
               setIsMobileSidebarOpen(false);
             }}
-            className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all text-[#eed59b] bg-[#081122] hover:bg-[#0c162b] border border-[#e5c179]/30 ${
+            className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all text-[#eed59b] bg-[#0c0c0c] hover:bg-[#161616] border border-[#eed59b]/30 ${
               isSidebarCollapsed ? 'justify-center' : ''
             }`}
             title="Leer reflexión del día"
@@ -558,7 +578,7 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
               setIsShutdownOpen(true);
               setIsMobileSidebarOpen(false);
             }}
-            className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all text-white bg-gradient-to-r from-[#1e3a8a] to-[#2563eb] hover:brightness-110 border border-[#60a5fa]/40 shadow-midnight ${
+            className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all text-white bg-[#141414] hover:bg-[#1f1f1f] border border-white/15 hover:border-[#eed59b]/40 shadow-midnight ${
               isSidebarCollapsed ? 'justify-center' : ''
             }`}
             title="Realizar protocolo de cierre de jornada"
@@ -582,13 +602,13 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
           ========================================================================= */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen relative z-10">
         {/* Cabecera Móvil y Barra Superior Sutil */}
-        <header className="sticky top-0 z-30 flex items-center justify-between px-4 sm:px-8 py-3.5 bg-[#020408]/85 backdrop-blur-md border-b border-[#5b9bd5]/15">
-          <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-30 flex items-center justify-between px-4 sm:px-8 py-3.5 bg-[#000000]/90 backdrop-blur-md border-b border-white/10">
+          <div className="flex items-center gap-3 min-w-0">
             {/* Botón Menú Móvil */}
             <button
               type="button"
               onClick={() => setIsMobileSidebarOpen(true)}
-              className="md:hidden p-2 rounded-xl bg-[#081122] border border-[#5b9bd5]/30 text-[#f8fafc]"
+              className="md:hidden p-2 rounded-xl bg-[#0c0c0c] border border-white/15 text-[#f8fafc] flex-shrink-0"
               aria-label="Abrir menú de navegación"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -596,18 +616,20 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
               </svg>
             </button>
 
-            <div>
-              <h1 className="font-serif text-lg sm:text-xl font-bold text-white tracking-wide">
+            <div className="min-w-0">
+              <h1 className="font-serif text-lg sm:text-xl font-bold text-white tracking-wide truncate">
                 {currentTab === 'stats' && 'Panel General y Ritmo Diario'}
                 {currentTab === 'tasks' && 'Plan de Vuelo & Tareas'}
                 {currentTab === 'today' && 'Registro de Sesiones de Foco'}
+                {currentTab === 'history' && 'Archivo Histórico y Retrospectiva'}
                 {currentTab === 'philosophy' && 'Biblioteca de Pensamiento'}
                 {currentTab === 'ideal_self' && 'Mi Yo Ideal — Compás de Identidad Nuclear'}
               </h1>
-              <p className="text-xs text-[#94a3b8] font-sans">
-                {currentTab === 'stats' && 'Visualización circadiana, intensidad y auditoría retrospectiva.'}
+              <p className="text-xs text-[#94a3b8] font-sans truncate">
+                {currentTab === 'stats' && 'Visualización circadiana, intensidad y cronograma de 24 horas.'}
                 {currentTab === 'tasks' && 'Gestión y checklist de objetivos para hoy y mañana.'}
                 {currentTab === 'today' && 'Control cronológico de horas netas e incomodidad cognitiva.'}
+                {currentTab === 'history' && 'Consulta de jornadas pasadas, auditoría detallada y relieve de montañas.'}
                 {currentTab === 'philosophy' && 'Compendio de reflexiones para la excelencia y la disciplina.'}
                 {currentTab === 'ideal_self' && 'Estructura formal de autogobierno bajo las 6 dimensiones y los 3 filtros de validación.'}
               </p>
@@ -615,10 +637,10 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
           </div>
 
           {/* Acciones de Cabecera Superior */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 flex-shrink-0">
             <button
               onClick={() => setIsDailyReflectionOpen(true)}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium text-[#eed59b] bg-[#081122] border border-[#e5c179]/30 hover:bg-[#0c162b] transition-all shadow-sm"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium text-[#eed59b] bg-[#0c0c0c] border border-[#eed59b]/30 hover:bg-[#161616] transition-all shadow-sm"
             >
               <span>✦</span>
               <span>Reflexión del Día</span>
@@ -626,7 +648,7 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
 
             <button
               onClick={() => setIsShutdownOpen(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold text-white bg-gradient-to-r from-[#2563eb] to-[#3b82f6] border border-[#60a5fa]/40 hover:brightness-110 shadow-midnight transition-all"
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold text-white bg-[#141414] hover:bg-[#1f1f1f] border border-white/20 hover:border-[#eed59b]/40 shadow-midnight transition-all"
             >
               <span>🌙</span>
               <span>{cierreRealizado ? 'Cierre Realizado' : 'Cerrar Jornada'}</span>
@@ -635,9 +657,10 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
         </header>
 
         {/* CONTENEDOR DE PESTAÑAS */}
-        <main className="flex-1 p-4 sm:p-8 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-3 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto min-w-0">
           {currentTab === 'stats' && (
             <VisualStats
+              mode="dashboard"
               fechaHoy={todayStr}
               sesionesHoy={data?.sesiones || []}
               suenosHoy={data?.suenos || []}
@@ -649,11 +672,31 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
               onTaskDeleted={handleTaskDeleted}
               onGoToDailyLog={() => setCurrentTab('today')}
               onGoToTasks={() => setCurrentTab('tasks')}
+              onGoToHistory={() => setCurrentTab('history')}
             />
           )}
 
+          {currentTab === 'history' && (
+            <div className="space-y-6 animate-fade-in min-w-0">
+              <VisualStats
+                mode="history"
+                fechaHoy={todayStr}
+                sesionesHoy={data?.sesiones || []}
+                suenosHoy={data?.suenos || []}
+                comidasHoy={data?.comidas || []}
+                ejerciciosHoy={data?.ejercicios || []}
+                tareasHoy={data?.tareas || []}
+                onTaskUpdated={handleTaskUpdated}
+                onTaskCreated={handleTaskCreated}
+                onTaskDeleted={handleTaskDeleted}
+                onGoToDailyLog={() => setCurrentTab('today')}
+                onGoToTasks={() => setCurrentTab('tasks')}
+              />
+            </div>
+          )}
+
           {currentTab === 'tasks' && (
-            <div className="space-y-6 animate-fade-in">
+            <div className="space-y-6 animate-fade-in min-w-0">
               <TasksManager
                 fechaHoy={todayStr}
                 tareasHoy={data?.tareas || []}
@@ -666,7 +709,7 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
           )}
 
           {currentTab === 'today' && (
-            <div className="space-y-6 animate-fade-in">
+            <div className="space-y-6 animate-fade-in min-w-0">
               <Scoreboard
                 fecha={fechaHoy}
                 totalHorasNetas={totalHoras}
@@ -708,11 +751,15 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
           )}
 
           {currentTab === 'philosophy' && (
-            <PhilosophyView />
+            <div className="min-w-0">
+              <PhilosophyView />
+            </div>
           )}
 
           {currentTab === 'ideal_self' && (
-            <IdealSelfView />
+            <div className="min-w-0">
+              <IdealSelfView />
+            </div>
           )}
         </main>
 

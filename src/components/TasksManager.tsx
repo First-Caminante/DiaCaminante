@@ -410,7 +410,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
             ? 'bg-[#06241a]/50 border-[#10b981]/40'
             : isIncompleto || isNoHecho
             ? 'bg-[#261506]/50 border-[#f59e0b]/40'
-            : 'bg-[#081229]/80 border-[#5b9bd5]/20 hover:border-[#60a5fa]/40'
+            : 'bg-[#080808]/80 border-white/10 hover:border-[#eed59b]/30'
         }`}
       >
         {/* Izquierda: Checkbox y Detalle de la Tarea */}
@@ -426,7 +426,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
                 ? 'bg-amber-500 border-amber-400 text-black shadow-[0_0_8px_rgba(245,158,11,0.5)]'
                 : isNoHecho
                 ? 'bg-rose-500 border-rose-400 text-white'
-                : 'bg-[#0d1a3d] border-[#5b9bd5]/40 text-transparent hover:border-white'
+                : 'bg-[#141414] border-white/15 text-transparent hover:border-white'
             }`}
             title={
               isHecho
@@ -451,7 +451,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
                   <span>{tarea.hora_completada ? `Realizada: ${tarea.hora_completada}` : 'Horario Flexible'}</span>
                 </span>
               ) : (
-                <span className="font-mono text-[11px] font-semibold text-[#eed59b] bg-[#0d1733] px-2 py-0.5 rounded border border-[#5b9bd5]/25">
+                <span className="font-mono text-[11px] font-semibold text-[#eed59b] bg-[#101010] px-2 py-0.5 rounded border border-white/10">
                   {tarea.hora_inicio} — {tarea.hora_fin}
                 </span>
               )}
@@ -460,7 +460,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
               <span
                 className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
                   isProfundo
-                    ? 'bg-[#1e3a8a]/70 text-[#93c5fd] border border-[#60a5fa]/40'
+                    ? 'bg-[#161616] text-zinc-300 border border-[#eed59b]/30'
                     : 'bg-[#334155]/60 text-[#cbd5e1] border border-slate-600/40'
                 }`}
               >
@@ -513,7 +513,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
           <button
             type="button"
             onClick={() => openTimeModal(tarea)}
-            className="px-2.5 py-1.5 rounded-lg bg-[#111f3d] border border-[#38bdf8]/30 text-[#93c5fd] hover:text-white hover:border-[#38bdf8] text-xs transition-all flex items-center gap-1"
+            className="px-2.5 py-1.5 rounded-lg bg-[#111f3d] border border-[#38bdf8]/30 text-zinc-300 hover:text-white hover:border-[#38bdf8] text-xs transition-all flex items-center gap-1"
             title="Registrar o editar el horario en que se realizó esta tarea"
           >
             <span>⏱️</span>
@@ -525,7 +525,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
           <button
             type="button"
             onClick={() => setEditingTask(tarea)}
-            className="px-2.5 py-1.5 rounded-lg bg-[#0d1a3d] border border-[#5b9bd5]/25 text-[#cbd5e1] hover:text-white hover:border-[#60a5fa] text-xs transition-all flex items-center gap-1"
+            className="px-2.5 py-1.5 rounded-lg bg-[#141414] border border-white/10 text-[#cbd5e1] hover:text-white hover:border-[#60a5fa] text-xs transition-all flex items-center gap-1"
             title="Editar descripción, horarios o tipo"
           >
             <span>✏️</span>
@@ -547,7 +547,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
   };
 
   return (
-    <div className="card-midnight p-5 sm:p-7 border border-[#5b9bd5]/25 space-y-5 relative">
+    <div className="card-midnight p-5 sm:p-7 border border-white/10 space-y-5 relative">
       {/* Feedback Toast */}
       {feedbackMsg && (
         <div className="absolute top-4 right-4 z-30 px-3.5 py-1.5 rounded-full bg-[#064e3b] text-emerald-200 border border-[#10b981]/40 text-xs font-medium shadow-lg animate-fade-in">
@@ -556,10 +556,10 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
       )}
 
       {/* Cabecera Principal y Selector de Fecha */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#5b9bd5]/15">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/10">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="tag-formal px-2.5 py-0.5 rounded-full text-[10px] bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30 font-medium">
+            <span className="tag-formal px-2.5 py-0.5 rounded-full text-[10px] bg-[#141414] text-zinc-300 border border-[#eed59b]/30 font-medium">
               Plan de Vuelo
             </span>
             <span className="text-xs text-[#eed59b] font-serif font-medium">
@@ -578,19 +578,19 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
         {/* Botones de Acción Superior */}
         <div className="flex items-center gap-2.5 self-start md:self-auto flex-wrap">
           {/* Selector de Pestañas: Hoy vs Mañana */}
-          <div className="flex items-center p-1 rounded-xl bg-[#050b18] border border-[#5b9bd5]/20 text-xs">
+          <div className="flex items-center p-1 rounded-xl bg-[#0a0a0a] border border-white/10 text-xs">
             <button
               type="button"
               onClick={() => setActiveTabDate('hoy')}
               className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
                 activeTabDate === 'hoy'
-                  ? 'bg-[#1e3a8a] text-white shadow-md border border-[#60a5fa]/50'
+                  ? 'bg-[#161616] text-white shadow-md border border-[#eed59b]/40'
                   : 'text-[#94a3b8] hover:text-white'
               }`}
             >
               <span>☀️</span>
               <span>Hoy</span>
-              <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-black/40 text-[#93c5fd]">
+              <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-black/40 text-zinc-300">
                 {tareasHoy.length}
               </span>
             </button>
@@ -629,7 +629,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
 
       {/* KPI HUD de Cumplimiento */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="p-3 rounded-xl bg-[#070e1e]/80 border border-[#5b9bd5]/20 space-y-0.5">
+        <div className="p-3 rounded-xl bg-[#000000]/80 border border-white/10 space-y-0.5">
           <span className="text-[10px] text-[#94a3b8] uppercase tracking-wider font-medium">Total Programadas</span>
           <div className="flex items-baseline gap-1.5">
             <span className="text-2xl font-serif font-bold text-white tabular-nums">{totalTasks}</span>
@@ -646,7 +646,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
         </div>
 
         <div className="p-3 rounded-xl bg-[#0b1633]/80 border border-[#3b82f6]/30 space-y-0.5">
-          <span className="text-[10px] text-[#93c5fd] uppercase tracking-wider font-medium">Pendientes</span>
+          <span className="text-[10px] text-zinc-300 uppercase tracking-wider font-medium">Pendientes</span>
           <div className="flex items-baseline gap-1.5">
             <span className="text-2xl font-serif font-bold text-white tabular-nums">{pendientes}</span>
             <span className="text-[10px] text-[#94a3b8]">por ejecutar</span>
@@ -664,7 +664,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
 
       {/* Pestañas de Filtrado de Tareas: Todas / Por Cumplir / Cumplidas */}
       {totalTasks > 0 && (
-        <div className="flex items-center gap-2 pt-2 border-t border-[#5b9bd5]/15 flex-wrap">
+        <div className="flex items-center gap-2 pt-2 border-t border-white/10 flex-wrap">
           <span className="text-[11px] font-sans text-[#94a3b8] uppercase tracking-wider font-semibold mr-1">
             Visualizar:
           </span>
@@ -673,8 +673,8 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
             onClick={() => setFiltroEstado('todas')}
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
               filtroEstado === 'todas'
-                ? 'bg-[#1e3a8a] text-white border border-[#60a5fa]/50 shadow-sm'
-                : 'bg-[#0d1733] text-[#94a3b8] border border-[#5b9bd5]/20 hover:text-white'
+                ? 'bg-[#161616] text-white border border-[#eed59b]/40 shadow-sm'
+                : 'bg-[#101010] text-[#94a3b8] border border-white/10 hover:text-white'
             }`}
           >
             <span>📋 Todas</span>
@@ -688,12 +688,12 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
             onClick={() => setFiltroEstado('por_cumplir')}
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
               filtroEstado === 'por_cumplir'
-                ? 'bg-[#1e3a8a] text-white border border-[#3b82f6]/60 shadow-sm ring-1 ring-blue-400/40'
-                : 'bg-[#0d1733] text-[#93c5fd] border border-blue-500/30 hover:bg-[#1e3a8a]/40'
+                ? 'bg-[#161616] text-white border border-[#3b82f6]/60 shadow-sm ring-1 ring-blue-400/40'
+                : 'bg-[#101010] text-zinc-300 border border-blue-500/30 hover:bg-[#141414]'
             }`}
           >
             <span>⏳ Por Cumplir</span>
-            <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-blue-900/50 text-[#93c5fd]">
+            <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-blue-900/50 text-zinc-300">
               {porCumplirList.length}
             </span>
           </button>
@@ -722,7 +722,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
             Cargando tareas planificadas para mañana...
           </div>
         ) : currentList.length === 0 ? (
-          <div className="p-8 sm:p-10 rounded-2xl bg-[#070e1e]/60 border border-dashed border-[#5b9bd5]/25 text-center space-y-3">
+          <div className="p-8 sm:p-10 rounded-2xl bg-[#000000]/60 border border-dashed border-white/10 text-center space-y-3">
             <span className="text-3xl">📋</span>
             <div className="space-y-1">
               <p className="text-sm font-serif font-bold text-white">
@@ -753,13 +753,13 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
             {/* VISTA 1: FILTRO POR CUMPLIR */}
             {filtroEstado === 'por_cumplir' && (
               porCumplirList.length === 0 ? (
-                <div className="p-6 text-center text-xs text-[#94a3b8] bg-[#070e1e]/60 rounded-xl border border-dashed border-[#5b9bd5]/20 space-y-1">
+                <div className="p-6 text-center text-xs text-[#94a3b8] bg-[#000000]/60 rounded-xl border border-dashed border-white/10 space-y-1">
                   <p className="font-serif font-bold text-[#eed59b] text-sm">🎉 ¡Excelente! No tienes tareas pendientes</p>
                   <p>Todos los objetivos programados han sido completados con éxito.</p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <div className="px-1 text-xs font-serif font-bold text-[#93c5fd] uppercase tracking-wider flex items-center gap-1.5">
+                  <div className="px-1 text-xs font-serif font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
                     <span>⏳</span> Tareas Que Debes Cumplir ({porCumplirList.length})
                   </div>
                   {porCumplirList.map((tarea) => renderTaskRow(tarea))}
@@ -770,7 +770,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
             {/* VISTA 2: FILTRO CUMPLIDAS */}
             {filtroEstado === 'cumplidas' && (
               hechasList.length === 0 ? (
-                <div className="p-6 text-center text-xs text-[#94a3b8] bg-[#070e1e]/60 rounded-xl border border-dashed border-[#5b9bd5]/20 space-y-1">
+                <div className="p-6 text-center text-xs text-[#94a3b8] bg-[#000000]/60 rounded-xl border border-dashed border-white/10 space-y-1">
                   <p className="font-serif font-bold text-white text-sm">Aún no hay tareas cumplidas</p>
                   <p>Ejecuta tu primer bloque de foco y márcala como completada.</p>
                 </div>
@@ -804,7 +804,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
 
                 {/* Bloque Cumplidas */}
                 {hechasList.length > 0 && (
-                  <div className={`space-y-2 ${porCumplirList.length > 0 ? 'pt-3 border-t border-[#5b9bd5]/15' : ''}`}>
+                  <div className={`space-y-2 ${porCumplirList.length > 0 ? 'pt-3 border-t border-white/10' : ''}`}>
                     <div className="flex items-center justify-between px-1">
                       <span className="text-xs font-serif font-bold text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
                         <span>✅</span> Tareas Ya Cumplidas ({hechasList.length})
@@ -849,7 +849,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
               value={desvioText}
               onChange={(e) => setDesvioText(e.target.value)}
               placeholder="Ej: Reunión imprevista, fallo técnico, fatiga..."
-              className="w-full p-3 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white text-xs focus:outline-none focus:border-amber-400"
+              className="w-full p-3 rounded-xl bg-[#0a0a0a] border border-white/15 text-white text-xs focus:outline-none focus:border-amber-400"
               autoFocus
             />
             <div className="flex items-center justify-end gap-2 pt-2">
@@ -875,8 +875,8 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
       {/* MODAL CREAR TAREA (INDIVIDUAL O MARKDOWN) */}
       {isCreateOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="card-midnight p-5 sm:p-6 rounded-2xl border border-[#5b9bd5]/40 max-w-lg w-full space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between pb-2 border-b border-[#5b9bd5]/15">
+          <div className="card-midnight p-5 sm:p-6 rounded-2xl border border-white/15 max-w-lg w-full space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between pb-2 border-b border-white/10">
               <div className="space-y-0.5">
                 <h3 className="text-base sm:text-lg font-serif font-bold text-white flex items-center gap-2">
                   <span>➕</span>
@@ -899,7 +899,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
             </div>
 
             {/* Selector de Fecha Objetivo */}
-            <div className="flex items-center justify-between gap-2 p-1.5 rounded-xl bg-[#050b18] border border-[#5b9bd5]/20 text-xs">
+            <div className="flex items-center justify-between gap-2 p-1.5 rounded-xl bg-[#0a0a0a] border border-white/10 text-xs">
               <span className="text-[11px] text-[#94a3b8] pl-2 font-medium">Asignar a:</span>
               <div className="flex gap-1">
                 <button
@@ -907,7 +907,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
                   onClick={() => setNewTargetFecha('hoy')}
                   className={`px-3 py-1 rounded-lg font-medium transition-all ${
                     newTargetFecha === 'hoy'
-                      ? 'bg-[#1e3a8a] text-white border border-[#60a5fa]/50'
+                      ? 'bg-[#161616] text-white border border-[#eed59b]/40'
                       : 'text-[#94a3b8] hover:text-white'
                   }`}
                 >
@@ -928,7 +928,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
             </div>
 
             {/* Alternador de Modo: Individual vs Bloque Markdown */}
-            <div className="flex border-b border-[#5b9bd5]/15 text-xs">
+            <div className="flex border-b border-white/10 text-xs">
               <button
                 type="button"
                 onClick={() => setCreateMode('individual')}
@@ -965,13 +965,13 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
                     value={newDesc}
                     onChange={(e) => setNewDesc(e.target.value)}
                     placeholder="Ej: Implementar arquitectura de microservicios"
-                    className="w-full p-3 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white text-xs focus:outline-none focus:border-[#eed59b]"
+                    className="w-full p-3 rounded-xl bg-[#0a0a0a] border border-white/15 text-white text-xs focus:outline-none focus:border-[#eed59b]"
                   />
                 </div>
 
                 {/* Selector de horario fijo vs flexible */}
                 <div className="p-2.5 rounded-xl bg-[#0d162a]/80 border border-[#38bdf8]/30 flex items-center justify-between">
-                  <label className="flex items-center gap-2 cursor-pointer text-xs text-[#93c5fd] font-medium">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-zinc-300 font-medium">
                     <input
                       type="checkbox"
                       checked={newIsFlexible}
@@ -995,7 +995,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
                         type="time"
                         value={newHoraInicio}
                         onChange={(e) => handleHorasChange(e.target.value, newHoraFin)}
-                        className="w-full p-2.5 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
+                        className="w-full p-2.5 rounded-xl bg-[#0a0a0a] border border-white/15 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
                       />
                     </div>
                     <div>
@@ -1006,7 +1006,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
                         type="time"
                         value={newHoraFin}
                         onChange={(e) => handleHorasChange(newHoraInicio, e.target.value)}
-                        className="w-full p-2.5 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
+                        className="w-full p-2.5 rounded-xl bg-[#0a0a0a] border border-white/15 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
                       />
                     </div>
                   </div>
@@ -1020,7 +1020,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
                     <select
                       value={newTipo}
                       onChange={(e) => setNewTipo(e.target.value as TipoTrabajo)}
-                      className="w-full p-2.5 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white text-xs focus:outline-none focus:border-[#eed59b]"
+                      className="w-full p-2.5 rounded-xl bg-[#0a0a0a] border border-white/15 text-white text-xs focus:outline-none focus:border-[#eed59b]"
                     >
                       <option value="PROFUNDO">🧠 PROFUNDO</option>
                       <option value="SUPERFICIAL">⚡ SUPERFICIAL</option>
@@ -1037,12 +1037,12 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
                       max="12"
                       value={newHorasEstimadas}
                       onChange={(e) => setNewHorasEstimadas(parseFloat(e.target.value) || 1.0)}
-                      className="w-full p-2.5 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
+                      className="w-full p-2.5 rounded-xl bg-[#0a0a0a] border border-white/15 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
                     />
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#5b9bd5]/15">
+                <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/10">
                   <button
                     type="button"
                     onClick={() => setIsCreateOpen(false)}
@@ -1069,7 +1069,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
                     rows={6}
                     value={markdownBlock}
                     onChange={(e) => setMarkdownBlock(e.target.value)}
-                    className="w-full p-3.5 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white font-mono text-xs leading-relaxed focus:outline-none focus:border-[#eed59b]"
+                    className="w-full p-3.5 rounded-xl bg-[#0a0a0a] border border-white/15 text-white font-mono text-xs leading-relaxed focus:outline-none focus:border-[#eed59b]"
                     placeholder="- [ ] [09:00 - 11:00] [PROFUNDO] Tarea clave (2h netas)"
                   />
                 </div>
@@ -1077,7 +1077,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
                   Soporta tanto el formato estricto Cal Newport como listas simples con guión: <code className="text-[#eed59b] font-mono">- Tarea importante</code>.
                 </p>
 
-                <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#5b9bd5]/15">
+                <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/10">
                   <button
                     type="button"
                     onClick={() => setIsCreateOpen(false)}
@@ -1102,8 +1102,8 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
       {/* MODAL EDITAR TAREA EXISTENTE */}
       {editingTask && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="card-midnight p-5 sm:p-6 rounded-2xl border border-[#5b9bd5]/40 max-w-lg w-full space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between pb-2 border-b border-[#5b9bd5]/15">
+          <div className="card-midnight p-5 sm:p-6 rounded-2xl border border-white/15 max-w-lg w-full space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between pb-2 border-b border-white/10">
               <h3 className="text-base sm:text-lg font-serif font-bold text-white flex items-center gap-2">
                 <span>✏️</span>
                 <span>Editar Tarea Planificada</span>
@@ -1127,7 +1127,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
                   required
                   value={editingTask.descripcion}
                   onChange={(e) => setEditingTask({ ...editingTask, descripcion: e.target.value })}
-                  className="w-full p-3 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white text-xs focus:outline-none focus:border-[#eed59b]"
+                  className="w-full p-3 rounded-xl bg-[#0a0a0a] border border-white/15 text-white text-xs focus:outline-none focus:border-[#eed59b]"
                 />
               </div>
 
@@ -1140,7 +1140,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
                     type="time"
                     value={editingTask.hora_inicio || ''}
                     onChange={(e) => setEditingTask({ ...editingTask, hora_inicio: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
+                    className="w-full p-2.5 rounded-xl bg-[#0a0a0a] border border-white/15 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
                   />
                 </div>
                 <div>
@@ -1151,7 +1151,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
                     type="time"
                     value={editingTask.hora_fin || ''}
                     onChange={(e) => setEditingTask({ ...editingTask, hora_fin: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
+                    className="w-full p-2.5 rounded-xl bg-[#0a0a0a] border border-white/15 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
                   />
                 </div>
               </div>
@@ -1164,7 +1164,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
                   <select
                     value={editingTask.tipo_trabajo}
                     onChange={(e) => setEditingTask({ ...editingTask, tipo_trabajo: e.target.value as TipoTrabajo })}
-                    className="w-full p-2 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white text-xs focus:outline-none focus:border-[#eed59b]"
+                    className="w-full p-2 rounded-xl bg-[#0a0a0a] border border-white/15 text-white text-xs focus:outline-none focus:border-[#eed59b]"
                   >
                     <option value="PROFUNDO">PROFUNDO</option>
                     <option value="SUPERFICIAL">SUPERFICIAL</option>
@@ -1181,7 +1181,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
                     min="0.1"
                     value={editingTask.horas_netas_estimadas}
                     onChange={(e) => setEditingTask({ ...editingTask, horas_netas_estimadas: parseFloat(e.target.value) || 1.0 })}
-                    className="w-full p-2 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
+                    className="w-full p-2 rounded-xl bg-[#0a0a0a] border border-white/15 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
                   />
                 </div>
 
@@ -1192,7 +1192,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
                   <select
                     value={editingTask.estado}
                     onChange={(e) => setEditingTask({ ...editingTask, estado: e.target.value as EstadoTarea })}
-                    className="w-full p-2 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white text-xs focus:outline-none focus:border-[#eed59b]"
+                    className="w-full p-2 rounded-xl bg-[#0a0a0a] border border-white/15 text-white text-xs focus:outline-none focus:border-[#eed59b]"
                   >
                     <option value="pendiente">Pendiente</option>
                     <option value="hecho">Hecho</option>
@@ -1212,12 +1212,12 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
                     value={editingTask.motivo_desvio || ''}
                     onChange={(e) => setEditingTask({ ...editingTask, motivo_desvio: e.target.value })}
                     placeholder="Explica qué causó el retraso o desvío"
-                    className="w-full p-2.5 rounded-xl bg-[#050b18] border border-amber-500/40 text-white text-xs focus:outline-none focus:border-amber-400"
+                    className="w-full p-2.5 rounded-xl bg-[#0a0a0a] border border-amber-500/40 text-white text-xs focus:outline-none focus:border-amber-400"
                   />
                 </div>
               )}
 
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#5b9bd5]/15">
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/10">
                 <button
                   type="button"
                   onClick={() => setEditingTask(null)}
@@ -1282,7 +1282,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
                   type="time"
                   value={timeModalIni}
                   onChange={(e) => setTimeModalIni(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
+                  className="w-full px-3 py-2 rounded-xl bg-[#0a0a0a] border border-white/15 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
                 />
               </div>
 
@@ -1297,7 +1297,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
                     setTimeModalFin(e.target.value);
                     if (!timeModalCompletada) setTimeModalCompletada(e.target.value);
                   }}
-                  className="w-full px-3 py-2 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
+                  className="w-full px-3 py-2 rounded-xl bg-[#0a0a0a] border border-white/15 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
                 />
               </div>
             </div>
@@ -1311,7 +1311,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
                 value={timeModalCompletada}
                 onChange={(e) => setTimeModalCompletada(e.target.value)}
                 placeholder="HH:MM"
-                className="w-full px-3 py-2 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
+                className="w-full px-3 py-2 rounded-xl bg-[#0a0a0a] border border-white/15 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
               />
             </div>
 

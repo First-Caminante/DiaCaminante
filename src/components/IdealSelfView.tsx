@@ -205,7 +205,7 @@ export const IdealSelfView: React.FC = () => {
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-5 right-6 z-50">
-          <div className="px-5 py-3 rounded-full bg-[#0a1120]/95 text-[#f8fafc] border border-[#38bdf8]/40 shadow-midnight flex items-center gap-2.5 text-xs font-sans font-medium backdrop-blur-md">
+          <div className="px-5 py-3 rounded-full bg-[#0a0a0a]/95 text-[#f8fafc] border border-white/15 shadow-midnight flex items-center gap-2.5 text-xs font-sans font-medium backdrop-blur-md">
             <span className="text-[#eed59b]">✦</span>
             <span>{toastMessage}</span>
           </div>
@@ -214,33 +214,31 @@ export const IdealSelfView: React.FC = () => {
 
       {/* Alerta Discreta si falta ejecutar migración en Supabase */}
       {needsMigration && (
-        <div className="p-4 rounded-2xl bg-[#0a1426]/80 border border-[#38bdf8]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2.5 text-[#93c5fd]">
+        <div className="p-4 rounded-2xl bg-[#0a0a0a] border border-[#eed59b]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs w-full min-w-0">
+          <div className="flex items-center gap-2.5 text-slate-300">
             <span className="text-base">ℹ️</span>
             <span>
-              <strong>Base de datos lista para sincronizar:</strong> Los cambios se están guardando en sesión. Para persistirlos de forma permanente en tu base de datos de Supabase, ejecuta el script SQL.
+              <strong className="text-[#eed59b]">Base de datos lista para sincronizar:</strong> Los cambios se están guardando en sesión. Para persistirlos permanentemente en tu Supabase, ejecuta el script SQL.
             </span>
           </div>
           <button
             type="button"
             onClick={() => setShowSqlModal(true)}
-            className="shrink-0 px-3.5 py-1.5 rounded-xl bg-[#1e293b] text-white hover:bg-[#334155] border border-slate-600 transition-all font-medium text-[11px]"
+            className="shrink-0 px-3.5 py-1.5 rounded-xl bg-[#141414] text-[#eed59b] hover:text-white hover:bg-[#202020] border border-white/15 transition-all font-medium text-[11px]"
           >
             Copiar Script SQL
           </button>
         </div>
       )}
 
-      {/* CABECERA PRINCIPAL CON ENSŌ Y ARQUETIPO */}
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#060b14] via-[#081224] to-[#03060c] border border-white/10 p-6 sm:p-8 shadow-2xl">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-[#1e3a8a]/10 blur-[130px] rounded-full pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+      {/* CABECERA PRINCIPAL CON ENSŌ Y ARQUETIPO (Sin desborde de ventana) */}
+      <section className="relative overflow-hidden rounded-3xl bg-[#060606] border border-white/10 p-5 sm:p-7 shadow-2xl w-full min-w-0">
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6 min-w-0">
           {/* Lado Izquierdo: Avatar / Imagen & Datos Clave */}
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 flex-1 min-w-0 w-full">
             {/* Contenedor Avatar */}
             <div className="relative group shrink-0">
-              <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden bg-[#0a1120] border-2 border-[#eed59b]/50 shadow-[0_0_25px_rgba(238,213,155,0.15)] flex items-center justify-center relative">
+              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden bg-[#0d0d0d] border-2 border-[#eed59b]/50 shadow-[0_0_20px_rgba(238,213,155,0.12)] flex items-center justify-center relative">
                 {yoIdeal?.avatar_url ? (
                   <img
                     src={yoIdeal.avatar_url}
@@ -249,7 +247,7 @@ export const IdealSelfView: React.FC = () => {
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center text-center p-3 text-[#eed59b]/70">
-                    <EnsoLogo className="w-12 h-12 opacity-80" />
+                    <EnsoLogo className="w-10 h-10 opacity-80" />
                     <span className="text-[10px] mt-1 font-serif">Subir Imagen</span>
                   </div>
                 )}
@@ -266,7 +264,7 @@ export const IdealSelfView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="mt-2 w-full text-center text-[11px] font-sans text-[#eed59b] hover:text-white transition-colors bg-[#0f172a]/80 py-1 px-2 rounded-lg border border-[#eed59b]/30 flex items-center justify-center gap-1.5 shadow-sm"
+                className="mt-2 w-full text-center text-[11px] font-sans text-[#eed59b] hover:text-white transition-colors bg-[#111111] py-1 px-2 rounded-lg border border-white/10 flex items-center justify-center gap-1.5 shadow-sm"
               >
                 <span>📷</span>
                 <span>{yoIdeal?.avatar_url ? 'Cambiar Foto' : 'Añadir Foto'}</span>
@@ -281,13 +279,13 @@ export const IdealSelfView: React.FC = () => {
             </div>
 
             {/* Arquetipo y Lema */}
-            <div className="space-y-3 flex-1 text-center sm:text-left">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#1e293b]/70 border border-[#eed59b]/30 text-[11px] text-[#eed59b] font-serif tracking-wide">
+            <div className="space-y-2.5 flex-1 min-w-0 text-center sm:text-left w-full">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#121212] border border-white/10 text-[11px] text-[#eed59b] font-serif tracking-wide">
                 <span>⛩️</span>
                 <span>Arco del Punto y Aparte • Diseño de Identidad</span>
               </div>
 
-              <div className="space-y-1">
+              <div className="space-y-0.5 min-w-0">
                 <label className="text-[10px] uppercase tracking-wider text-[#94a3b8] font-bold block">
                   Nombre del Arquetipo
                 </label>
@@ -296,11 +294,11 @@ export const IdealSelfView: React.FC = () => {
                   value={yoIdeal?.nombre_arquetipo || ''}
                   onChange={(e) => setYoIdeal(prev => prev ? { ...prev, nombre_arquetipo: e.target.value } : prev)}
                   placeholder="Ej: El Arquitecto Silencioso"
-                  className="w-full bg-transparent font-serif text-2xl sm:text-3xl font-bold text-white border-b border-white/20 focus:border-[#eed59b] focus:outline-none transition-colors pb-1"
+                  className="w-full min-w-0 bg-transparent font-serif text-xl sm:text-2xl lg:text-3xl font-bold text-white border-b border-white/20 focus:border-[#eed59b] focus:outline-none transition-colors pb-1"
                 />
               </div>
 
-              <div className="space-y-1">
+              <div className="space-y-0.5 min-w-0">
                 <label className="text-[10px] uppercase tracking-wider text-[#94a3b8] font-bold block">
                   Lema Personal de Criterio
                 </label>
@@ -309,31 +307,31 @@ export const IdealSelfView: React.FC = () => {
                   value={yoIdeal?.lema_personal || ''}
                   onChange={(e) => setYoIdeal(prev => prev ? { ...prev, lema_personal: e.target.value } : prev)}
                   placeholder="Elijo la incomodidad del esfuerzo antes que el alivio de la postergación."
-                  className="w-full bg-transparent italic font-serif text-sm sm:text-base text-[#eed59b] border-b border-white/10 focus:border-[#eed59b] focus:outline-none transition-colors pb-1"
+                  className="w-full min-w-0 bg-transparent italic font-serif text-xs sm:text-sm text-[#eed59b] border-b border-white/10 focus:border-[#eed59b] focus:outline-none transition-colors pb-1"
                 />
               </div>
             </div>
           </div>
 
           {/* Botón Guardar Cambios */}
-          <div className="shrink-0 flex flex-col items-center lg:items-end gap-2.5">
+          <div className="shrink-0 flex flex-col items-center lg:items-end gap-2 w-full sm:w-auto">
             <button
               type="button"
               onClick={handleSave}
               disabled={saving}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-[#1e3a8a] to-[#2563eb] text-white hover:brightness-110 border border-[#60a5fa]/40 font-semibold text-sm shadow-midnight transition-all active:scale-95 disabled:opacity-50"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-[#161616] hover:bg-[#222222] text-[#eed59b] hover:text-white border border-[#eed59b]/40 font-semibold text-xs sm:text-sm shadow-md transition-all active:scale-95 disabled:opacity-50"
             >
               <span>{saving ? 'Guardando...' : '💾 Guardar Compás de Identidad'}</span>
             </button>
             <span className="text-[10px] text-[#94a3b8] italic">
-              Persistido en el sistema para tu alineación diaria
+              Persistido para tu alineación diaria
             </span>
           </div>
         </div>
       </section>
 
       {/* PESTAÑAS DE LAS 6 DIMENSIONES & LOS 3 FILTROS */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-white/10">
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-white/10 w-full min-w-0">
         {[
           { id: 1, label: '1. Identidad Nuclear', icon: '💎' },
           { id: 2, label: '2. Bajo Fuego (Fricción)', icon: '🛡️' },
@@ -347,10 +345,10 @@ export const IdealSelfView: React.FC = () => {
             key={tab.id}
             type="button"
             onClick={() => setActiveDimensionTab(tab.id)}
-            className={`px-4 py-2.5 rounded-2xl text-xs font-medium whitespace-nowrap transition-all flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-2xl text-xs font-medium whitespace-nowrap transition-all flex items-center gap-2 shrink-0 ${
               activeDimensionTab === tab.id
-                ? 'bg-[#1e293b] text-white border border-[#eed59b]/40 shadow-sm'
-                : 'text-[#94a3b8] hover:text-white hover:bg-[#0a1120]'
+                ? 'bg-[#181818] text-white border border-[#eed59b]/40 shadow-sm'
+                : 'text-[#94a3b8] hover:text-white hover:bg-[#0d0d0d]'
             }`}
           >
             <span>{tab.icon}</span>
@@ -365,7 +363,7 @@ export const IdealSelfView: React.FC = () => {
             DIMENSIÓN 1: IDENTIDAD NUCLEAR Y VALORES
             ========================================================= */}
         {activeDimensionTab === 1 && (
-          <div className="space-y-6 rounded-3xl bg-[#060b14]/90 border border-white/10 p-6 sm:p-8">
+          <div className="space-y-6 rounded-3xl bg-[#050505]/95 border border-white/10 p-6 sm:p-8">
             <div className="space-y-1 pb-4 border-b border-white/10">
               <h2 className="text-lg font-serif font-bold text-white flex items-center gap-2">
                 <span>💎</span> Dimensión 1: Identidad Nuclear y Valores
@@ -385,7 +383,7 @@ export const IdealSelfView: React.FC = () => {
                 {(yoIdeal?.principios_rectores || []).map((principio, idx) => (
                   <div
                     key={idx}
-                    className="p-3.5 rounded-2xl bg-[#0a1120] border border-white/10 flex items-start justify-between gap-3 group hover:border-[#eed59b]/30 transition-all"
+                    className="p-3.5 rounded-2xl bg-[#0a0a0a] border border-white/10 flex items-start justify-between gap-3 group hover:border-[#eed59b]/30 transition-all"
                   >
                     <div className="flex items-start gap-3 flex-1">
                       <span className="font-mono text-xs text-[#eed59b] pt-0.5">
@@ -420,7 +418,7 @@ export const IdealSelfView: React.FC = () => {
                     }
                   }}
                   placeholder="Ej: Hablo con honestidad directa y respeto absoluto..."
-                  className="flex-1 bg-[#0a1120] border border-white/10 rounded-2xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#eed59b]"
+                  className="flex-1 bg-[#0a0a0a] border border-white/10 rounded-2xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#eed59b]"
                 />
                 <button
                   type="button"
@@ -438,7 +436,7 @@ export const IdealSelfView: React.FC = () => {
             DIMENSIÓN 2: RESPUESTA OPERATIVA ANTE LA FRICCIÓN (BAJO FUEGO)
             ========================================================= */}
         {activeDimensionTab === 2 && (
-          <div className="space-y-6 rounded-3xl bg-[#060b14]/90 border border-white/10 p-6 sm:p-8">
+          <div className="space-y-6 rounded-3xl bg-[#050505]/95 border border-white/10 p-6 sm:p-8">
             <div className="space-y-1 pb-4 border-b border-white/10">
               <h2 className="text-lg font-serif font-bold text-white flex items-center gap-2">
                 <span>🛡️</span> Dimensión 2: Respuesta Operativa ante la Fricción (Diseñado Bajo Fuego)
@@ -449,7 +447,7 @@ export const IdealSelfView: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 gap-5">
-              <div className="space-y-1.5 p-4 rounded-2xl bg-[#0a1120] border border-white/10">
+              <div className="space-y-1.5 p-4 rounded-2xl bg-[#0a0a0a] border border-white/10">
                 <label className="text-xs font-bold text-[#eed59b] flex items-center gap-1.5">
                   <span>⚡</span> ¿Cómo reacciona ante el rechazo comercial o la crítica?
                 </label>
@@ -461,7 +459,7 @@ export const IdealSelfView: React.FC = () => {
                 />
               </div>
 
-              <div className="space-y-1.5 p-4 rounded-2xl bg-[#0a1120] border border-white/10">
+              <div className="space-y-1.5 p-4 rounded-2xl bg-[#0a0a0a] border border-white/10">
                 <label className="text-xs font-bold text-[#eed59b] flex items-center gap-1.5">
                   <span>⏱️</span> ¿Qué hace durante los primeros 5 minutos tras cometer un error grave?
                 </label>
@@ -473,7 +471,7 @@ export const IdealSelfView: React.FC = () => {
                 />
               </div>
 
-              <div className="space-y-1.5 p-4 rounded-2xl bg-[#0a1120] border border-white/10">
+              <div className="space-y-1.5 p-4 rounded-2xl bg-[#0a0a0a] border border-white/10">
                 <label className="text-xs font-bold text-[#eed59b] flex items-center gap-1.5">
                   <span>🌊</span> ¿Cómo procesa el aburrimiento y la falta de motivación?
                 </label>
@@ -492,7 +490,7 @@ export const IdealSelfView: React.FC = () => {
             DIMENSIÓN 3: HÁBITOS ATÓMICOS DE SOPORTE
             ========================================================= */}
         {activeDimensionTab === 3 && (
-          <div className="space-y-6 rounded-3xl bg-[#060b14]/90 border border-white/10 p-6 sm:p-8">
+          <div className="space-y-6 rounded-3xl bg-[#050505]/95 border border-white/10 p-6 sm:p-8">
             <div className="space-y-1 pb-4 border-b border-white/10">
               <h2 className="text-lg font-serif font-bold text-white flex items-center gap-2">
                 <span>⏳</span> Dimensión 3: Hábitos Atómicos de Soporte (Evidencia Empírica Diaria)
@@ -503,7 +501,7 @@ export const IdealSelfView: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 gap-5">
-              <div className="space-y-1.5 p-4 rounded-2xl bg-[#0a1120] border border-white/10">
+              <div className="space-y-1.5 p-4 rounded-2xl bg-[#0a0a0a] border border-white/10">
                 <label className="text-xs font-bold text-[#eed59b] flex items-center gap-1.5">
                   <span>🌅</span> Rutina de Inicio del Día (Hora de despertar y primera acción consciente)
                 </label>
@@ -515,7 +513,7 @@ export const IdealSelfView: React.FC = () => {
                 />
               </div>
 
-              <div className="space-y-1.5 p-4 rounded-2xl bg-[#0a1120] border border-white/10">
+              <div className="space-y-1.5 p-4 rounded-2xl bg-[#0a0a0a] border border-white/10">
                 <label className="text-xs font-bold text-[#eed59b] flex items-center gap-1.5">
                   <span>🧠</span> Bloque de Trabajo Profundo (Duración, eliminación de estímulos y enfoque)
                 </label>
@@ -527,7 +525,7 @@ export const IdealSelfView: React.FC = () => {
                 />
               </div>
 
-              <div className="space-y-1.5 p-4 rounded-2xl bg-[#0a1120] border border-white/10">
+              <div className="space-y-1.5 p-4 rounded-2xl bg-[#0a0a0a] border border-white/10">
                 <label className="text-xs font-bold text-[#eed59b] flex items-center gap-1.5">
                   <span>🌙</span> Cierre y Desconexión (Límite exacto e innegociable de la jornada)
                 </label>
@@ -546,7 +544,7 @@ export const IdealSelfView: React.FC = () => {
             DIMENSIÓN 4: ESTÁNDAR DE COMPETENCIA PROFESIONAL
             ========================================================= */}
         {activeDimensionTab === 4 && (
-          <div className="space-y-6 rounded-3xl bg-[#060b14]/90 border border-white/10 p-6 sm:p-8">
+          <div className="space-y-6 rounded-3xl bg-[#050505]/95 border border-white/10 p-6 sm:p-8">
             <div className="space-y-1 pb-4 border-b border-white/10">
               <h2 className="text-lg font-serif font-bold text-white flex items-center gap-2">
                 <span>📐</span> Dimensión 4: Estándar de Competencia Profesional
@@ -557,7 +555,7 @@ export const IdealSelfView: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 gap-5">
-              <div className="space-y-1.5 p-4 rounded-2xl bg-[#0a1120] border border-white/10">
+              <div className="space-y-1.5 p-4 rounded-2xl bg-[#0a0a0a] border border-white/10">
                 <label className="text-xs font-bold text-[#eed59b] flex items-center gap-1.5">
                   <span>🛠️</span> Habilidades que domina con maestría técnica y profundidad
                 </label>
@@ -569,7 +567,7 @@ export const IdealSelfView: React.FC = () => {
                 />
               </div>
 
-              <div className="space-y-1.5 p-4 rounded-2xl bg-[#0a1120] border border-white/10">
+              <div className="space-y-1.5 p-4 rounded-2xl bg-[#0a0a0a] border border-white/10">
                 <label className="text-xs font-bold text-[#eed59b] flex items-center gap-1.5">
                   <span>📊</span> Cómo documenta, mide y evalúa su propio progreso sin supervisión externa
                 </label>
@@ -581,7 +579,7 @@ export const IdealSelfView: React.FC = () => {
                 />
               </div>
 
-              <div className="space-y-1.5 p-4 rounded-2xl bg-[#0a1120] border border-white/10">
+              <div className="space-y-1.5 p-4 rounded-2xl bg-[#0a0a0a] border border-white/10">
                 <label className="text-xs font-bold text-[#eed59b] flex items-center gap-1.5">
                   <span>🎁</span> Qué valor concreto aporta a su comunidad, clientes o proyectos
                 </label>
@@ -600,7 +598,7 @@ export const IdealSelfView: React.FC = () => {
             DIMENSIÓN 5: DISCIPLINA FISIOLÓGICA
             ========================================================= */}
         {activeDimensionTab === 5 && (
-          <div className="space-y-6 rounded-3xl bg-[#060b14]/90 border border-white/10 p-6 sm:p-8">
+          <div className="space-y-6 rounded-3xl bg-[#050505]/95 border border-white/10 p-6 sm:p-8">
             <div className="space-y-1 pb-4 border-b border-white/10">
               <h2 className="text-lg font-serif font-bold text-white flex items-center gap-2">
                 <span>⚡</span> Dimensión 5: Disciplina Fisiológica (Sustrato Biológico)
@@ -611,7 +609,7 @@ export const IdealSelfView: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 gap-5">
-              <div className="space-y-1.5 p-4 rounded-2xl bg-[#0a1120] border border-white/10">
+              <div className="space-y-1.5 p-4 rounded-2xl bg-[#0a0a0a] border border-white/10">
                 <label className="text-xs font-bold text-[#eed59b] flex items-center gap-1.5">
                   <span>🥗</span> Estándar de Alimentación y Combustible Diario
                 </label>
@@ -623,7 +621,7 @@ export const IdealSelfView: React.FC = () => {
                 />
               </div>
 
-              <div className="space-y-1.5 p-4 rounded-2xl bg-[#0a1120] border border-white/10">
+              <div className="space-y-1.5 p-4 rounded-2xl bg-[#0a0a0a] border border-white/10">
                 <label className="text-xs font-bold text-[#eed59b] flex items-center gap-1.5">
                   <span>🏃</span> Entrenamiento Físico (Fuerza, resistencia muscular y movilidad)
                 </label>
@@ -635,7 +633,7 @@ export const IdealSelfView: React.FC = () => {
                 />
               </div>
 
-              <div className="space-y-1.5 p-4 rounded-2xl bg-[#0a1120] border border-white/10">
+              <div className="space-y-1.5 p-4 rounded-2xl bg-[#0a0a0a] border border-white/10">
                 <label className="text-xs font-bold text-[#eed59b] flex items-center gap-1.5">
                   <span>🌙</span> Higiene del Sueño y Recuperación Nerviosa
                 </label>
@@ -654,7 +652,7 @@ export const IdealSelfView: React.FC = () => {
             DIMENSIÓN 6: FRONTERAS Y DINÁMICA RELACIONAL
             ========================================================= */}
         {activeDimensionTab === 6 && (
-          <div className="space-y-6 rounded-3xl bg-[#060b14]/90 border border-white/10 p-6 sm:p-8">
+          <div className="space-y-6 rounded-3xl bg-[#050505]/95 border border-white/10 p-6 sm:p-8">
             <div className="space-y-1 pb-4 border-b border-white/10">
               <h2 className="text-lg font-serif font-bold text-white flex items-center gap-2">
                 <span>🏛️</span> Dimensión 6: Fronteras y Dinámica Relacional
@@ -665,7 +663,7 @@ export const IdealSelfView: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 gap-5">
-              <div className="space-y-1.5 p-4 rounded-2xl bg-[#0a1120] border border-white/10">
+              <div className="space-y-1.5 p-4 rounded-2xl bg-[#0a0a0a] border border-white/10">
                 <label className="text-xs font-bold text-[#eed59b] flex items-center gap-1.5">
                   <span>🛡️</span> ¿Quiénes tienen acceso a su tiempo y energía?
                 </label>
@@ -677,7 +675,7 @@ export const IdealSelfView: React.FC = () => {
                 />
               </div>
 
-              <div className="space-y-1.5 p-4 rounded-2xl bg-[#0a1120] border border-white/10">
+              <div className="space-y-1.5 p-4 rounded-2xl bg-[#0a0a0a] border border-white/10">
                 <label className="text-xs font-bold text-[#eed59b] flex items-center gap-1.5">
                   <span>🚫</span> ¿Cómo dice "no" a peticiones que desvían su propósito?
                 </label>
@@ -689,7 +687,7 @@ export const IdealSelfView: React.FC = () => {
                 />
               </div>
 
-              <div className="space-y-1.5 p-4 rounded-2xl bg-[#0a1120] border border-white/10">
+              <div className="space-y-1.5 p-4 rounded-2xl bg-[#0a0a0a] border border-white/10">
                 <label className="text-xs font-bold text-[#eed59b] flex items-center gap-1.5">
                   <span>🤝</span> ¿Cómo trata a sus colaboradores, socios y personas cercanas?
                 </label>
@@ -708,7 +706,7 @@ export const IdealSelfView: React.FC = () => {
             PESTAÑA 7: LOS 3 FILTROS DE VALIDACIÓN
             ========================================================= */}
         {activeDimensionTab === 7 && (
-          <div className="space-y-6 rounded-3xl bg-[#060b14]/90 border border-white/10 p-6 sm:p-8">
+          <div className="space-y-6 rounded-3xl bg-[#050505]/95 border border-white/10 p-6 sm:p-8">
             <div className="space-y-1 pb-4 border-b border-white/10">
               <h2 className="text-lg font-serif font-bold text-white flex items-center gap-2">
                 <span>⚖️</span> Los 3 Filtros de Validación (Auditoría Anti-Autoengaño)
@@ -720,7 +718,7 @@ export const IdealSelfView: React.FC = () => {
 
             <div className="space-y-5">
               {/* Filtro 1: Higgins */}
-              <div className="p-4 rounded-2xl bg-[#0a1120] border border-white/10 space-y-3">
+              <div className="p-4 rounded-2xl bg-[#0a0a0a] border border-white/10 space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h3 className="text-sm font-serif font-bold text-[#eed59b] flex items-center gap-2">
@@ -750,7 +748,7 @@ export const IdealSelfView: React.FC = () => {
               </div>
 
               {/* Filtro 2: Boyatzis */}
-              <div className="p-4 rounded-2xl bg-[#0a1120] border border-white/10 space-y-3">
+              <div className="p-4 rounded-2xl bg-[#0a0a0a] border border-white/10 space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h3 className="text-sm font-serif font-bold text-[#eed59b] flex items-center gap-2">
@@ -780,7 +778,7 @@ export const IdealSelfView: React.FC = () => {
               </div>
 
               {/* Filtro 3: Principio de Aproximación Sucesiva */}
-              <div className="p-4 rounded-2xl bg-[#0a1120] border border-white/10 space-y-3">
+              <div className="p-4 rounded-2xl bg-[#0a0a0a] border border-white/10 space-y-3">
                 <div>
                   <h3 className="text-sm font-serif font-bold text-[#eed59b] flex items-center gap-2">
                     <span>3.</span> El Principio de Aproximación Sucesiva (Compás de Calibración)
@@ -805,7 +803,7 @@ export const IdealSelfView: React.FC = () => {
       {/* MODAL DE SCRIPT SQL */}
       {showSqlModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#0b1324] border border-[#38bdf8]/30 rounded-3xl max-w-2xl w-full p-6 space-y-4 shadow-2xl">
+          <div className="bg-[#080808] border border-white/15 rounded-3xl max-w-2xl w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <h3 className="font-serif font-bold text-white text-base flex items-center gap-2">
                 <span>📜</span> Script SQL para Supabase (Tabla Yo Ideal y Horarios Flexibles)
@@ -823,7 +821,7 @@ export const IdealSelfView: React.FC = () => {
               Copia y pega este código en tu <strong>Supabase SQL Editor</strong> para crear la tabla <code className="text-[#eed59b]">mi_yo_ideal</code> y desbloquear la flexibilidad de horarios sin restricciones.
             </p>
 
-            <pre className="bg-[#03060c] p-4 rounded-xl text-[11px] font-mono text-slate-300 max-h-64 overflow-y-auto border border-white/10">
+            <pre className="bg-[#030303] p-4 rounded-xl text-[11px] font-mono text-slate-300 max-h-64 overflow-y-auto border border-white/10">
               {SQL_MIGRATION_SCRIPT}
             </pre>
 

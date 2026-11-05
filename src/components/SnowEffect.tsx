@@ -32,19 +32,40 @@ export const SnowEffect: React.FC = () => {
 
     window.addEventListener('resize', handleResize);
 
-    // Cantidad equilibrada de copos de nieve (sutil, etérea, sin sobrecargar)
-    const flakeCount = Math.min(85, Math.floor((width * height) / 16000));
+    // Nieve abundante y serena (capas múltiples para profundidad estética zen)
+    const flakeCount = Math.min(220, Math.max(120, Math.floor((width * height) / 6000)));
     const flakes: Snowflake[] = [];
 
     for (let i = 0; i < flakeCount; i++) {
+      const isForeground = i % 8 === 0;
+      const isMidground = i % 3 === 0;
+      
+      const radius = isForeground
+        ? Math.random() * 1.8 + 2.2
+        : isMidground
+        ? Math.random() * 1.2 + 1.2
+        : Math.random() * 0.9 + 0.6;
+
+      const speed = isForeground
+        ? Math.random() * 0.9 + 0.65
+        : isMidground
+        ? Math.random() * 0.6 + 0.4
+        : Math.random() * 0.35 + 0.2;
+
+      const opacity = isForeground
+        ? Math.random() * 0.4 + 0.6
+        : isMidground
+        ? Math.random() * 0.4 + 0.35
+        : Math.random() * 0.3 + 0.2;
+
       flakes.push({
         x: Math.random() * width,
         y: Math.random() * height,
-        radius: Math.random() * 2.2 + 0.8,
-        speed: Math.random() * 0.7 + 0.35,
-        swaySpeed: Math.random() * 0.02 + 0.008,
+        radius,
+        speed,
+        swaySpeed: Math.random() * 0.02 + 0.006,
         swayAngle: Math.random() * Math.PI * 2,
-        opacity: Math.random() * 0.55 + 0.25,
+        opacity,
       });
     }
 
@@ -56,11 +77,11 @@ export const SnowEffect: React.FC = () => {
 
         flake.y += flake.speed;
         flake.swayAngle += flake.swaySpeed;
-        flake.x += Math.sin(flake.swayAngle) * 0.45;
+        flake.x += Math.sin(flake.swayAngle) * 0.5;
 
         // Si sale por el fondo, volver a la parte superior
         if (flake.y > height) {
-          flake.y = -5;
+          flake.y = -6;
           flake.x = Math.random() * width;
         }
 
@@ -70,9 +91,13 @@ export const SnowEffect: React.FC = () => {
 
         ctx.beginPath();
         ctx.arc(flake.x, flake.y, flake.radius, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(225, 238, 255, ${flake.opacity})`;
-        ctx.shadowBlur = 4;
-        ctx.shadowColor = 'rgba(255, 255, 255, 0.4)';
+        ctx.fillStyle = `rgba(240, 245, 255, ${flake.opacity})`;
+        if (flake.radius > 2.0) {
+          ctx.shadowBlur = 6;
+          ctx.shadowColor = 'rgba(255, 255, 255, 0.6)';
+        } else {
+          ctx.shadowBlur = 0;
+        }
         ctx.fill();
       }
 
@@ -90,7 +115,7 @@ export const SnowEffect: React.FC = () => {
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 pointer-events-none z-0 opacity-70"
+      className="fixed inset-0 pointer-events-none z-0 opacity-90"
       aria-hidden="true"
     />
   );

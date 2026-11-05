@@ -22,16 +22,16 @@ const { title = "Arco del Punto y Aparte", description = "Arco del Punto y Apart
     />
     <title>{title}</title>
   </head>
-  <body class="bg-[#020408] text-[#f8fafc] min-h-screen selection:bg-[#38bdf8]/20 selection:text-[#ffffff] antialiased relative overflow-x-hidden font-sans">
-    <!-- Resplandor ambiental etéreo zen medianoche profundo -->
+  <body class="bg-[#000000] text-[#f8fafc] min-h-screen selection:bg-white/20 selection:text-white antialiased relative overflow-x-hidden font-sans">
+    <!-- Resplandor ambiental etéreo zen obsidiana puro -->
     <div class="fixed inset-0 pointer-events-none overflow-hidden z-0">
-      <div class="absolute -top-32 left-1/3 w-[800px] h-[500px] bg-[#0c1322]/40 blur-[180px] rounded-full"></div>
-      <div class="absolute top-[35%] -left-40 w-[600px] h-[600px] bg-[#050b16]/60 blur-[200px] rounded-full"></div>
-      <div class="absolute bottom-10 -right-40 w-[650px] h-[650px] bg-[#172033]/25 blur-[220px] rounded-full"></div>
+      <div class="absolute -top-32 left-1/3 w-[800px] h-[500px] bg-white/[0.012] blur-[180px] rounded-full"></div>
+      <div class="absolute top-[35%] -left-40 w-[600px] h-[600px] bg-white/[0.008] blur-[200px] rounded-full"></div>
+      <div class="absolute bottom-10 -right-40 w-[650px] h-[650px] bg-[#eed59b]/[0.025] blur-[220px] rounded-full"></div>
     </div>
 
-    <!-- Main Application Container -->
-    <div class="relative z-10 flex min-h-screen">
+    <!-- Main Application Container (Width constrained to prevent window overflow) -->
+    <div class="relative z-10 w-full min-w-0 min-h-screen">
       <slot />
     </div>
   </body>

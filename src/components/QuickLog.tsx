@@ -404,10 +404,10 @@ export const QuickLog: React.FC<QuickLogProps> = ({
       subtitulo: `${parseFloat(String(s.horas_netas)).toFixed(2)}h de Foco`,
       detalle: s.calidad,
       badges: [
-        { text: `Intensidad: ${s.intensidad}`, color: 'bg-[#1e3a8a] text-[#93c5fd] border-[#60a5fa]/30' },
+        { text: `Intensidad: ${s.intensidad}`, color: 'bg-[#1e3a8a] text-zinc-300 border-[#eed59b]/30' },
         {
           text: `Incomodidad: ${s.incomodidad}`,
-          color: s.incomodidad === 'Alta' ? 'bg-[#78350f] text-[#fde68a] border-[#f59e0b]/50 shadow-sm' : 'bg-[#0d1733] text-[#eed59b] border-[#eed59b]/30',
+          color: s.incomodidad === 'Alta' ? 'bg-[#78350f] text-[#fde68a] border-[#f59e0b]/50 shadow-sm' : 'bg-[#101010] text-[#eed59b] border-[#eed59b]/30',
         },
       ],
       original: s,
@@ -468,10 +468,10 @@ export const QuickLog: React.FC<QuickLogProps> = ({
   return (
     <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
       {/* Columna Izquierda (col-span-5): Panel de Registro Especializado */}
-      <div className="lg:col-span-5 card-midnight p-5 sm:p-6 border border-[#5b9bd5]/25 space-y-5">
-        <div className="flex items-center justify-between pb-3 border-b border-[#5b9bd5]/15">
+      <div className="lg:col-span-5 min-w-0 card-midnight p-5 sm:p-6 border border-white/10 space-y-5">
+        <div className="flex items-center justify-between pb-3 border-b border-white/10">
           <div className="flex items-center gap-2">
-            <span className="tag-formal px-2.5 py-0.5 rounded-full text-[10px] bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30 font-medium">
+            <span className="tag-formal px-2.5 py-0.5 rounded-full text-[10px] bg-[#141414] text-zinc-300 border border-[#eed59b]/30 font-medium">
               Bitácora Diaria
             </span>
             <h3 className="text-base sm:text-lg font-serif font-bold text-white tracking-wide">
@@ -487,7 +487,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
         </div>
 
         {/* PESTAÑAS DE CATEGORÍA: Trabajo | Sueño | Alimentación | Ejercicio */}
-        <div className="grid grid-cols-4 gap-1 p-1 rounded-2xl bg-[#081229] border border-[#5b9bd5]/20 text-xs">
+        <div className="grid grid-cols-4 gap-1 p-1 rounded-2xl bg-[#080808] border border-white/10 text-xs">
           <button
             type="button"
             onClick={() => setActiveTab('trabajo')}
@@ -565,7 +565,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                       className={`px-2.5 py-1 rounded-xl text-xs flex items-center gap-1 transition-all ${
                         isActive
                           ? 'bg-[#2563eb] text-white font-medium shadow-sm'
-                          : 'bg-[#0d1733] text-[#94a3b8] hover:text-white border border-[#5b9bd5]/20'
+                          : 'bg-[#101010] text-[#94a3b8] hover:text-white border border-white/10'
                       }`}
                     >
                       <span>{item.icon}</span>
@@ -579,7 +579,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                   className={`px-2.5 py-1 rounded-xl text-xs transition-all ${
                     isCustomTipo
                       ? 'bg-[#2563eb] text-white'
-                      : 'bg-[#0d1733] text-[#94a3b8] hover:text-white border border-[#5b9bd5]/20'
+                      : 'bg-[#101010] text-[#94a3b8] hover:text-white border border-white/10'
                   }`}
                 >
                   + Otro
@@ -591,14 +591,14 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                   placeholder="Especificar nombre..."
                   value={customTipo}
                   onChange={(e) => setCustomTipo(e.target.value)}
-                  className="w-full mt-2 px-3 py-1.5 rounded-xl text-xs bg-[#070e1e] border border-[#5b9bd5]/30 text-white"
+                  className="w-full mt-2 px-3 py-1.5 rounded-xl text-xs bg-[#000000] border border-white/15 text-white"
                   autoFocus
                 />
               )}
             </div>
 
             {/* Horario de Trabajo */}
-            <div className="p-3 rounded-2xl bg-[#081229] border border-[#5b9bd5]/20 space-y-2">
+            <div className="p-3 rounded-2xl bg-[#080808] border border-white/10 space-y-2">
               <div className="flex items-center justify-between text-[11px]">
                 <span className="text-[#eed59b] font-medium">🕒 Horario de Trabajo</span>
                 <div className="flex items-center gap-1.5">
@@ -628,7 +628,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                     type="time"
                     value={horaInicioTrabajo}
                     onChange={(e) => handleHoraInicioTrabajo(e.target.value)}
-                    className="w-full px-2.5 py-1.5 rounded-xl text-xs font-mono bg-[#0d1733] border border-[#5b9bd5]/30 text-white"
+                    className="w-full px-2.5 py-1.5 rounded-xl text-xs font-mono bg-[#101010] border border-white/15 text-white"
                   />
                 </div>
                 <div>
@@ -637,7 +637,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                     type="time"
                     value={horaFinTrabajo}
                     onChange={(e) => handleHoraFinTrabajo(e.target.value)}
-                    className="w-full px-2.5 py-1.5 rounded-xl text-xs font-mono bg-[#0d1733] border border-[#5b9bd5]/30 text-white"
+                    className="w-full px-2.5 py-1.5 rounded-xl text-xs font-mono bg-[#101010] border border-white/15 text-white"
                   />
                 </div>
               </div>
@@ -647,7 +647,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-[#94a3b8] mb-1">Intensidad</label>
-                <div className="flex rounded-xl bg-[#081229] p-1 border border-[#5b9bd5]/20 text-xs">
+                <div className="flex rounded-xl bg-[#080808] p-1 border border-white/10 text-xs">
                   {(['Baja', 'Media', 'Alta'] as Intensidad[]).map((level) => (
                     <button
                       key={level}
@@ -667,7 +667,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                 <label className="block text-xs font-medium text-[#94a3b8] mb-1">
                   Incomodidad <span className="text-[#eed59b] text-[10px]">(Fricción)</span>
                 </label>
-                <div className="flex rounded-xl bg-[#081229] p-1 border border-[#5b9bd5]/20 text-xs">
+                <div className="flex rounded-xl bg-[#080808] p-1 border border-white/10 text-xs">
                   {(['Baja', 'Media', 'Alta'] as Incomodidad[]).map((level) => (
                     <button
                       key={level}
@@ -698,7 +698,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                 placeholder="Ej: Análisis capítulo 3, módulo de pagos implementado..."
                 value={calidad}
                 onChange={(e) => setCalidad(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl text-xs bg-[#081229] border border-[#5b9bd5]/30 text-white placeholder-[#94a3b8]/40"
+                className="w-full px-3 py-2 rounded-xl text-xs bg-[#080808] border border-white/15 text-white placeholder-[#94a3b8]/40"
               />
             </div>
 
@@ -717,7 +717,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
             ------------------------------------------------------------- */}
         {activeTab === 'sueno' && (
           <form onSubmit={submitSueno} className="space-y-4 animate-fade-in">
-            <div className="p-3.5 rounded-2xl bg-[#081229] border border-[#6366f1]/30 space-y-3">
+            <div className="p-3.5 rounded-2xl bg-[#080808] border border-[#6366f1]/30 space-y-3">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-[#c7d2fe] font-medium flex items-center gap-1.5">
                   <span>🌙</span> Ciclo de Sueño
@@ -732,7 +732,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                     type="time"
                     value={horaDormir}
                     onChange={(e) => handleHoraDormir(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl text-xs font-mono bg-[#0d1733] border border-[#6366f1]/30 text-white"
+                    className="w-full px-3 py-2 rounded-xl text-xs font-mono bg-[#101010] border border-[#6366f1]/30 text-white"
                   />
                 </div>
                 <div>
@@ -741,7 +741,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                     type="time"
                     value={horaDespertar}
                     onChange={(e) => handleHoraDespertar(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl text-xs font-mono bg-[#0d1733] border border-[#6366f1]/30 text-white"
+                    className="w-full px-3 py-2 rounded-xl text-xs font-mono bg-[#101010] border border-[#6366f1]/30 text-white"
                   />
                 </div>
               </div>
@@ -755,7 +755,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                 <select
                   value={calidadSueno}
                   onChange={(e) => setCalidadSueno(e.target.value as CalidadSueno)}
-                  className="w-full px-3 py-2 rounded-xl text-xs bg-[#081229] border border-[#6366f1]/30 text-white"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-[#080808] border border-[#6366f1]/30 text-white"
                 >
                   <option value="Profundo">Profundo</option>
                   <option value="Reparador">Reparador</option>
@@ -771,7 +771,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                 <select
                   value={sensacionSueno}
                   onChange={(e) => setSensacionSueno(e.target.value as SensacionSueno)}
-                  className="w-full px-3 py-2 rounded-xl text-xs bg-[#081229] border border-[#6366f1]/30 text-white"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-[#080808] border border-[#6366f1]/30 text-white"
                 >
                   <option value="Energizado">Energizado</option>
                   <option value="Descansado">Descansado</option>
@@ -790,7 +790,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                 placeholder="Ej: Apagué pantallas 1h antes, desperté a las 4am..."
                 value={notasSueno}
                 onChange={(e) => setNotasSueno(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl text-xs bg-[#081229] border border-[#6366f1]/30 text-white placeholder-[#94a3b8]/40"
+                className="w-full px-3 py-2 rounded-xl text-xs bg-[#080808] border border-[#6366f1]/30 text-white placeholder-[#94a3b8]/40"
               />
             </div>
 
@@ -817,7 +817,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                 <select
                   value={tipoComida}
                   onChange={(e) => setTipoComida(e.target.value as TipoComida)}
-                  className="w-full px-3 py-2 rounded-xl text-xs bg-[#081229] border border-[#10b981]/30 text-white"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-[#080808] border border-[#10b981]/30 text-white"
                 >
                   <option value="Desayuno">Desayuno</option>
                   <option value="Almuerzo">Almuerzo</option>
@@ -836,7 +836,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                   type="time"
                   value={horaComida}
                   onChange={(e) => setHoraComida(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl text-xs font-mono bg-[#0d1733] border border-[#10b981]/30 text-white"
+                  className="w-full px-3 py-2 rounded-xl text-xs font-mono bg-[#101010] border border-[#10b981]/30 text-white"
                 />
               </div>
             </div>
@@ -850,7 +850,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                 placeholder="Ej: 3 huevos revueltos, 80g de avena con manzana, café negro..."
                 value={descripcionComida}
                 onChange={(e) => setDescripcionComida(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl text-xs bg-[#081229] border border-[#10b981]/30 text-white placeholder-[#94a3b8]/40 resize-none"
+                className="w-full px-3 py-2 rounded-xl text-xs bg-[#080808] border border-[#10b981]/30 text-white placeholder-[#94a3b8]/40 resize-none"
               />
             </div>
 
@@ -871,7 +871,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                           : item.includes('Moderado')
                           ? 'bg-[#047857] text-white font-medium'
                           : 'bg-[#b91c1c] text-white font-medium'
-                        : 'bg-[#081229] text-[#94a3b8] border border-[#10b981]/20'
+                        : 'bg-[#080808] text-[#94a3b8] border border-[#10b981]/20'
                     }`}
                   >
                     {item}
@@ -903,7 +903,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                 <select
                   value={tipoEjercicio}
                   onChange={(e) => setTipoEjercicio(e.target.value as TipoEjercicio)}
-                  className="w-full px-3 py-2 rounded-xl text-xs bg-[#081229] border border-[#f59e0b]/30 text-white"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-[#080808] border border-[#f59e0b]/30 text-white"
                 >
                   {PRESETS_EJERCICIO.map((opt) => (
                     <option key={opt} value={opt}>
@@ -917,7 +917,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                 <label className="block text-xs font-medium text-[#94a3b8] mb-1">
                   Intensidad Física
                 </label>
-                <div className="flex rounded-xl bg-[#081229] p-1 border border-[#f59e0b]/20 text-xs">
+                <div className="flex rounded-xl bg-[#080808] p-1 border border-[#f59e0b]/20 text-xs">
                   {(['Baja', 'Media', 'Alta'] as Intensidad[]).map((level) => (
                     <button
                       key={level}
@@ -937,7 +937,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
             </div>
 
             {/* Horario de Ejercicio */}
-            <div className="p-3 rounded-2xl bg-[#081229] border border-[#f59e0b]/20 space-y-2">
+            <div className="p-3 rounded-2xl bg-[#080808] border border-[#f59e0b]/20 space-y-2">
               <div className="flex items-center justify-between text-[11px]">
                 <span className="text-[#fbbf24] font-medium">🕒 Horario de Entrenamiento</span>
                 <span className="font-mono text-[#94a3b8]">{duracionEjercicio.toFixed(2)}h</span>
@@ -949,7 +949,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                     type="time"
                     value={horaInicioEjercicio}
                     onChange={(e) => handleHoraInicioEjercicio(e.target.value)}
-                    className="w-full px-2.5 py-1.5 rounded-xl text-xs font-mono bg-[#0d1733] border border-[#f59e0b]/30 text-white"
+                    className="w-full px-2.5 py-1.5 rounded-xl text-xs font-mono bg-[#101010] border border-[#f59e0b]/30 text-white"
                   />
                 </div>
                 <div>
@@ -958,7 +958,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                     type="time"
                     value={horaFinEjercicio}
                     onChange={(e) => handleHoraFinEjercicio(e.target.value)}
-                    className="w-full px-2.5 py-1.5 rounded-xl text-xs font-mono bg-[#0d1733] border border-[#f59e0b]/30 text-white"
+                    className="w-full px-2.5 py-1.5 rounded-xl text-xs font-mono bg-[#101010] border border-[#f59e0b]/30 text-white"
                   />
                 </div>
               </div>
@@ -973,7 +973,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                 placeholder="Ej: Dominadas 4x10, Fondos 4x15, Sentadillas búlgaras 3x12 por pierna..."
                 value={descripcionEjercicio}
                 onChange={(e) => setDescripcionEjercicio(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl text-xs bg-[#081229] border border-[#f59e0b]/30 text-white placeholder-[#94a3b8]/40 resize-none"
+                className="w-full px-3 py-2 rounded-xl text-xs bg-[#080808] border border-[#f59e0b]/30 text-white placeholder-[#94a3b8]/40 resize-none"
               />
             </div>
 
@@ -989,10 +989,10 @@ export const QuickLog: React.FC<QuickLogProps> = ({
       </div>
 
       {/* Columna Derecha (col-span-7): Bitácora Cronológica Completa */}
-      <div className="lg:col-span-7 card-midnight p-5 sm:p-6 border border-[#5b9bd5]/25 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#5b9bd5]/15">
+      <div className="lg:col-span-7 min-w-0 card-midnight p-5 sm:p-6 border border-white/10 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-white/10">
           <div className="flex items-center gap-2">
-            <span className="tag-formal px-2.5 py-0.5 rounded-full text-[10px] bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30 font-medium">
+            <span className="tag-formal px-2.5 py-0.5 rounded-full text-[10px] bg-[#141414] text-zinc-300 border border-[#eed59b]/30 font-medium">
               Cronograma de Hoy
             </span>
             <h3 className="text-base sm:text-lg font-serif font-bold text-white tracking-wide">
@@ -1001,7 +1001,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
           </div>
 
           {/* Filtros de la bitácora */}
-          <div className="flex items-center gap-1 text-[11px] bg-[#081229] p-1 rounded-xl border border-[#5b9bd5]/20">
+          <div className="flex items-center gap-1 text-[11px] bg-[#080808] p-1 rounded-xl border border-white/10 flex-wrap">
             {(['todo', 'trabajo', 'sueno', 'comida', 'ejercicio'] as FilterBitacora[]).map((f) => (
               <button
                 key={f}
@@ -1020,7 +1020,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
         </div>
 
         {filteredEntries.length === 0 ? (
-          <div className="text-center py-12 px-4 rounded-2xl border border-dashed border-[#5b9bd5]/20 bg-[#081229]/60">
+          <div className="text-center py-12 px-4 rounded-2xl border border-dashed border-white/10 bg-[#080808]/60">
             <p className="text-sm font-serif font-bold text-white">Sin actividades en este filtro</p>
             <p className="text-xs text-[#94a3b8] mt-1">
               Registra bloques de trabajo, horas de sueño, comidas o entrenamientos para ver tu día completo.
@@ -1036,9 +1036,9 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                 return (
                   <div
                     key={item.id}
-                    className="p-4 rounded-2xl bg-[#081229] border border-[#eed59b]/50 shadow-midnight space-y-3 animate-fade-in text-xs"
+                    className="p-4 rounded-2xl bg-[#080808] border border-[#eed59b]/50 shadow-midnight space-y-3 animate-fade-in text-xs"
                   >
-                    <div className="flex items-center justify-between pb-2 border-b border-[#5b9bd5]/15">
+                    <div className="flex items-center justify-between pb-2 border-b border-white/10">
                       <span className="font-serif font-bold text-[#eed59b]">
                         Editar {item.category.toUpperCase()}
                       </span>
@@ -1060,7 +1060,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                                   data: { ...editingItem.data, hora_inicio: e.target.value },
                                 })
                               }
-                              className="w-full px-2 py-1 rounded-lg bg-[#0d1733] border border-[#5b9bd5]/30 text-white"
+                              className="w-full px-2 py-1 rounded-lg bg-[#101010] border border-white/15 text-white"
                             />
                           </div>
                           <div>
@@ -1074,7 +1074,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                                   data: { ...editingItem.data, hora_fin: e.target.value },
                                 })
                               }
-                              className="w-full px-2 py-1 rounded-lg bg-[#0d1733] border border-[#5b9bd5]/30 text-white"
+                              className="w-full px-2 py-1 rounded-lg bg-[#101010] border border-white/15 text-white"
                             />
                           </div>
                         </div>
@@ -1089,7 +1089,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                                 data: { ...editingItem.data, calidad: e.target.value },
                               })
                             }
-                            className="w-full px-2.5 py-1.5 rounded-lg bg-[#0d1733] border border-[#5b9bd5]/30 text-white"
+                            className="w-full px-2.5 py-1.5 rounded-lg bg-[#101010] border border-white/15 text-white"
                           />
                         </div>
                       </div>
@@ -1109,7 +1109,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                                   data: { ...editingItem.data, hora_inicio: e.target.value },
                                 })
                               }
-                              className="w-full px-2 py-1 rounded-lg bg-[#0d1733] border border-[#6366f1]/30 text-white"
+                              className="w-full px-2 py-1 rounded-lg bg-[#101010] border border-[#6366f1]/30 text-white"
                             />
                           </div>
                           <div>
@@ -1123,7 +1123,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                                   data: { ...editingItem.data, hora_fin: e.target.value },
                                 })
                               }
-                              className="w-full px-2 py-1 rounded-lg bg-[#0d1733] border border-[#6366f1]/30 text-white"
+                              className="w-full px-2 py-1 rounded-lg bg-[#101010] border border-[#6366f1]/30 text-white"
                             />
                           </div>
                         </div>
@@ -1137,7 +1137,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                                 data: { ...editingItem.data, calidad_sueno: e.target.value },
                               })
                             }
-                            className="w-full px-2 py-1.5 rounded-lg bg-[#0d1733] border border-[#6366f1]/30 text-white text-xs"
+                            className="w-full px-2 py-1.5 rounded-lg bg-[#101010] border border-[#6366f1]/30 text-white text-xs"
                           >
                             <option value="Profundo">Profundo</option>
                             <option value="Reparador">Reparador</option>
@@ -1162,7 +1162,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                                   data: { ...editingItem.data, hora: e.target.value },
                                 })
                               }
-                              className="w-full px-2 py-1 rounded-lg bg-[#0d1733] border border-[#10b981]/30 text-white"
+                              className="w-full px-2 py-1 rounded-lg bg-[#101010] border border-[#10b981]/30 text-white"
                             />
                           </div>
                           <div>
@@ -1175,7 +1175,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                                   data: { ...editingItem.data, tipo_comida: e.target.value },
                                 })
                               }
-                              className="w-full px-2 py-1 rounded-lg bg-[#0d1733] border border-[#10b981]/30 text-white"
+                              className="w-full px-2 py-1 rounded-lg bg-[#101010] border border-[#10b981]/30 text-white"
                             >
                               <option value="Desayuno">Desayuno</option>
                               <option value="Almuerzo">Almuerzo</option>
@@ -1195,7 +1195,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                                 data: { ...editingItem.data, descripcion: e.target.value },
                               })
                             }
-                            className="w-full px-2.5 py-1.5 rounded-lg bg-[#0d1733] border border-[#10b981]/30 text-white"
+                            className="w-full px-2.5 py-1.5 rounded-lg bg-[#101010] border border-[#10b981]/30 text-white"
                           />
                         </div>
                       </div>
@@ -1215,7 +1215,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                                   data: { ...editingItem.data, hora_inicio: e.target.value },
                                 })
                               }
-                              className="w-full px-2 py-1 rounded-lg bg-[#0d1733] border border-[#f59e0b]/30 text-white"
+                              className="w-full px-2 py-1 rounded-lg bg-[#101010] border border-[#f59e0b]/30 text-white"
                             />
                           </div>
                           <div>
@@ -1229,7 +1229,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                                   data: { ...editingItem.data, hora_fin: e.target.value },
                                 })
                               }
-                              className="w-full px-2 py-1 rounded-lg bg-[#0d1733] border border-[#f59e0b]/30 text-white"
+                              className="w-full px-2 py-1 rounded-lg bg-[#101010] border border-[#f59e0b]/30 text-white"
                             />
                           </div>
                         </div>
@@ -1244,7 +1244,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                                 data: { ...editingItem.data, descripcion: e.target.value },
                               })
                             }
-                            className="w-full px-2.5 py-1.5 rounded-lg bg-[#0d1733] border border-[#f59e0b]/30 text-white"
+                            className="w-full px-2.5 py-1.5 rounded-lg bg-[#101010] border border-[#f59e0b]/30 text-white"
                           />
                         </div>
                       </div>
@@ -1274,12 +1274,12 @@ export const QuickLog: React.FC<QuickLogProps> = ({
               // Estilo de tarjeta según Categoría
               const cardBorder =
                 item.category === 'trabajo'
-                  ? 'border-[#5b9bd5]/30 hover:border-[#5b9bd5]/60'
+                  ? 'border-white/15 hover:border-white/10/60'
                   : item.category === 'sueno'
-                  ? 'border-[#818cf8]/40 hover:border-[#818cf8]/70 bg-[#081229]/90'
+                  ? 'border-[#818cf8]/40 hover:border-[#818cf8]/70 bg-[#080808]/90'
                   : item.category === 'comida'
-                  ? 'border-[#10b981]/40 hover:border-[#10b981]/70 bg-[#081229]/90'
-                  : 'border-[#f59e0b]/40 hover:border-[#f59e0b]/70 bg-[#081229]/90';
+                  ? 'border-[#10b981]/40 hover:border-[#10b981]/70 bg-[#080808]/90'
+                  : 'border-[#f59e0b]/40 hover:border-[#f59e0b]/70 bg-[#080808]/90';
 
               const timeRangeStr = item.horaFin
                 ? `${item.horaInicio} — ${item.horaFin}`
@@ -1288,14 +1288,14 @@ export const QuickLog: React.FC<QuickLogProps> = ({
               return (
                 <div
                   key={`${item.category}-${item.id}`}
-                  className={`p-4 rounded-2xl bg-[#081229]/80 border ${cardBorder} transition-all space-y-2.5`}
+                  className={`p-4 rounded-2xl bg-[#080808]/80 border ${cardBorder} transition-all space-y-2.5`}
                 >
-                  <div className="flex items-center justify-between gap-2 pb-2 border-b border-[#5b9bd5]/15">
+                  <div className="flex items-center justify-between gap-2 pb-2 border-b border-white/10">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-serif font-bold text-white text-base">
                         {item.titulo}
                       </span>
-                      <span className="tag-formal text-[11px] px-2.5 py-0.5 rounded-full bg-[#0d1733] text-[#93c5fd] border border-[#5b9bd5]/30 font-mono">
+                      <span className="tag-formal text-[11px] px-2.5 py-0.5 rounded-full bg-[#101010] text-zinc-300 border border-white/15 font-mono">
                         🕒 {timeRangeStr}
                       </span>
                       <span className="text-xs text-[#eed59b] font-medium">
@@ -1313,7 +1313,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                             data: { ...item.original },
                           })
                         }
-                        className="p-1 rounded-lg text-[#94a3b8] hover:text-[#eed59b] hover:bg-[#0d1733] transition-colors"
+                        className="p-1 rounded-lg text-[#94a3b8] hover:text-[#eed59b] hover:bg-[#101010] transition-colors"
                         title="Editar"
                       >
                         <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1326,7 +1326,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                         type="button"
                         onClick={() => handleDelete(item.category, item.id)}
                         disabled={deletingId === item.id}
-                        className="p-1 rounded-lg text-[#94a3b8] hover:text-rose-400 hover:bg-[#0d1733] transition-colors"
+                        className="p-1 rounded-lg text-[#94a3b8] hover:text-rose-400 hover:bg-[#101010] transition-colors"
                         title="Eliminar"
                       >
                         <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1351,7 +1351,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
 
                   {/* Detalle / Comentarios */}
                   {item.detalle && (
-                    <p className="text-xs text-[#94a3b8] italic bg-[#0d1733]/60 p-2.5 rounded-xl border-l-2 border-[#eed59b] font-serif">
+                    <p className="text-xs text-[#94a3b8] italic bg-[#101010]/60 p-2.5 rounded-xl border-l-2 border-[#eed59b] font-serif">
                       &ldquo;{item.detalle}&rdquo;
                     </p>
                   )}

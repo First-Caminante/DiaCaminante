@@ -73,21 +73,21 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
   };
 
   return (
-    <header className="w-full">
-      <div className="card-midnight p-5 sm:p-7 border border-[#5b9bd5]/25 space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+    <header className="w-full min-w-0">
+      <div className="card-midnight p-5 sm:p-7 border border-white/10 space-y-4">
+        <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-5 min-w-0">
           
           {/* Left: Date & Title */}
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="tag-formal px-3 py-0.5 rounded-full text-[10px] bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30 font-medium">
+          <div className="space-y-1.5 min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="tag-formal px-3 py-0.5 rounded-full text-[10px] bg-[#141414] text-[#eed59b] border border-[#eed59b]/30 font-medium">
                 Jornada Activa
               </span>
               <span className="text-xs text-[#eed59b] font-medium tracking-wide uppercase">
                 Control de Sesiones Diarias
               </span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-serif font-bold tracking-wide text-white">
+            <h2 className="text-2xl sm:text-3xl font-serif font-bold tracking-wide text-white truncate">
               {formattedDate}
             </h2>
             <p className="text-xs sm:text-sm text-[#94a3b8]">
@@ -96,7 +96,7 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
           </div>
 
           {/* Center / Stat: Total Net Hours */}
-          <div className="flex items-center gap-6 sm:gap-8 bg-[#081229]/90 rounded-2xl px-5 py-3.5 border border-[#5b9bd5]/20 shadow-inner">
+          <div className="flex items-center gap-4 sm:gap-6 bg-[#080808] rounded-2xl px-4 sm:px-5 py-3.5 border border-white/10 shadow-inner flex-wrap sm:flex-nowrap min-w-0">
             <div>
               <div className="text-[11px] font-sans font-medium text-[#94a3b8] uppercase tracking-wider">
                 Horas Netas de Hoy
@@ -111,7 +111,7 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
               </div>
             </div>
 
-            <div className="h-10 w-px bg-[#5b9bd5]/20"></div>
+            <div className="h-10 w-px bg-white/10 hidden sm:block"></div>
 
             {/* Status indicator: Shutdown Ritual */}
             <div>
@@ -134,7 +134,7 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
             {/* Task summary indicator */}
             {totalTareas > 0 && (
               <>
-                <div className="h-10 w-px bg-[#5b9bd5]/20 hidden sm:block"></div>
+                <div className="h-10 w-px bg-white/10 hidden sm:block"></div>
                 <div className="hidden sm:block">
                   <div className="text-[11px] font-sans font-medium text-[#94a3b8] uppercase tracking-wider mb-1">
                     Plan de Tareas
@@ -146,7 +146,7 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
                     <span className={`tag-formal text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold ${
                       pctTareasCumplidas === 100
                         ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                        : 'bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30'
+                        : 'bg-[#141414] text-[#eed59b] border border-[#eed59b]/30'
                     }`}>
                       {pctTareasCumplidas}% hecho
                     </span>
@@ -160,7 +160,7 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
           </div>
 
           {/* Right: Actions */}
-          <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+          <div className="flex items-center gap-2.5 flex-wrap flex-shrink-0">
             {/* Refresh Button */}
             {onRefresh && (
               <button
@@ -182,7 +182,7 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
               className="btn-formal-outline relative inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-medium"
               title="Descargar copia de seguridad en formato JSON"
             >
-              <svg className="w-4 h-4 text-[#93c5fd]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg className="w-4 h-4 text-[#eed59b]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
               <span>{exporting ? 'Exportando...' : 'Exportar Datos'}</span>
