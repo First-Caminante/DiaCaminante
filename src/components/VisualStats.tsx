@@ -388,6 +388,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
   // Modal rápido para agregar tarea en el panel diario
   const [isQuickCreateTaskOpen, setIsQuickCreateTaskOpen] = useState<boolean>(false);
   const [quickTaskDesc, setQuickTaskDesc] = useState<string>('');
+  const [quickTaskIsFlexible, setQuickTaskIsFlexible] = useState<boolean>(true);
   const [quickTaskInicio, setQuickTaskInicio] = useState<string>('09:00');
   const [quickTaskFin, setQuickTaskFin] = useState<string>('10:30');
   const [quickTaskTipo, setQuickTaskTipo] = useState<TipoTrabajo>('PROFUNDO');
@@ -395,9 +396,70 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
   const [creatingQuickTask, setCreatingQuickTask] = useState<boolean>(false);
   const [visualTaskFeedback, setVisualTaskFeedback] = useState<string | null>(null);
 
+  // Modal para asignar horario retrospectivo a la tarea
+  const [visualTimeModalTask, setVisualTimeModalTask] = useState<TareaPlanificada | null>(null);
+  const [visualTimeModalIni, setVisualTimeModalIni] = useState<string>('09:00');
+  const [visualTimeModalFin, setVisualTimeModalFin] = useState<string>('10:30');
+  const [visualTimeModalCompletada, setVisualTimeModalCompletada] = useState<string>('');
+  const [savingVisualTimeModal, setSavingVisualTimeModal] = useState<boolean>(false);
+
   const showVisualTaskToast = (msg: string) => {
     setVisualTaskFeedback(msg);
     setTimeout(() => setVisualTaskFeedback(null), 3500);
+  };
+
+  const openVisualTimeModal = (task: TareaPlanificada) => {
+    setVisualTimeModalTask(task);
+    const now = new Date();
+    const currentH = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const [h, m] = currentH.split(':').map(Number);
+    const startH = `${String(Math.max(0, h - 1)).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+
+    const isFlexible = !task.hora_inicio || !task.hora_fin || (task.hora_inicio === '00:00' && task.hora_fin === '00:01');
+    setVisualTimeModalIni(!isFlexible && task.hora_inicio && task.hora_inicio !== '00:00' ? task.hora_inicio : startH);
+    setVisualTimeModalFin(!isFlexible && task.hora_fin && task.hora_fin !== '00:01' ? task.hora_fin : currentH);
+    setVisualTimeModalCompletada(task.hora_completada || currentH);
+  };
+
+  const handleSaveVisualTimeModal = async (markAsDone: boolean) => {
+    if (!visualTimeModalTask) return;
+    try {
+      setSavingVisualTimeModal(true);
+      const [h1, m1] = visualTimeModalIni.split(':').map(Number);
+      const [h2, m2] = visualTimeModalFin.split(':').map(Number);
+      let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+      if (diff < 0) diff += 24 * 60;
+      const hoursEst = Math.max(0.5, Math.round((diff / 60) * 10) / 10);
+
+      const payload: Record<string, any> = {
+        hora_inicio: visualTimeModalIni,
+        hora_fin: visualTimeModalFin,
+        horas_netas_estimadas: hoursEst,
+        hora_completada: visualTimeModalCompletada || visualTimeModalFin,
+      };
+      if (markAsDone) {
+        payload.estado = 'hecho';
+      }
+
+      const res = await fetch(`/api/tareas/${visualTimeModalTask.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error('Error al registrar horario');
+      const data = await res.json();
+      if (onTaskUpdated) {
+        onTaskUpdated(data.tarea);
+      }
+      setVisualTimeModalTask(null);
+      showVisualTaskToast(markAsDone ? '✓ Tarea cumplida con horario asignado' : '✓ Horario registrado');
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || 'No se pudo guardar el horario');
+    } finally {
+      setSavingVisualTimeModal(false);
+    }
   };
 
   const handleHorasQuickTask = (ini: string, fin: string) => {
@@ -416,6 +478,12 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
   };
 
   const handleToggleTareaRapida = async (tarea: TareaPlanificada) => {
+    const isFlexible = !tarea.hora_inicio || !tarea.hora_fin || (tarea.hora_inicio === '00:00' && tarea.hora_fin === '00:01');
+    if (tarea.estado === 'pendiente' && isFlexible && !tarea.hora_completada) {
+      openVisualTimeModal(tarea);
+      return;
+    }
+
     const nextStatus: EstadoTarea = tarea.estado === 'hecho' ? 'pendiente' : 'hecho';
     try {
       const res = await fetch(`/api/tareas/${tarea.id}`, {
@@ -449,10 +517,11 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
         body: JSON.stringify({
           fecha_objetivo: targetFechaStr,
           descripcion: quickTaskDesc.trim(),
-          hora_inicio: quickTaskInicio,
-          hora_fin: quickTaskFin,
+          hora_inicio: quickTaskIsFlexible ? '00:00' : quickTaskInicio,
+          hora_fin: quickTaskIsFlexible ? '00:01' : quickTaskFin,
+          sin_hora: quickTaskIsFlexible,
           tipo_trabajo: quickTaskTipo,
-          horas_netas_estimadas: quickTaskHoras,
+          horas_netas_estimadas: quickTaskIsFlexible ? 1.0 : quickTaskHoras,
         }),
       });
       if (!res.ok) throw new Error('Error al registrar tarea');
@@ -1020,6 +1089,7 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
   const renderVisualTaskCard = (tarea: TareaPlanificada) => {
     const isDone = tarea.estado === 'hecho';
     const isProfundo = tarea.tipo_trabajo === 'PROFUNDO';
+    const isFlexible = !tarea.hora_inicio || !tarea.hora_fin || (tarea.hora_inicio === '00:00' && tarea.hora_fin === '00:01');
 
     return (
       <div
@@ -1048,9 +1118,17 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
           {/* Información de la Tarea */}
           <div className="space-y-1 min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-mono text-[11px] font-semibold text-[#eed59b] bg-[#0d1733] px-2 py-0.5 rounded border border-[#5b9bd5]/25">
-                {tarea.hora_inicio} — {tarea.hora_fin}
-              </span>
+              {/* Franja horaria */}
+              {isFlexible ? (
+                <span className="font-mono text-[11px] font-semibold text-[#c084fc] bg-[#1a102f] px-2 py-0.5 rounded border border-[#a855f7]/30 flex items-center gap-1">
+                  <span>⏱️</span>
+                  <span>{tarea.hora_completada ? `Realizada: ${tarea.hora_completada}` : 'Horario Flexible'}</span>
+                </span>
+              ) : (
+                <span className="font-mono text-[11px] font-semibold text-[#eed59b] bg-[#0d1733] px-2 py-0.5 rounded border border-[#5b9bd5]/25">
+                  {tarea.hora_inicio} — {tarea.hora_fin}
+                </span>
+              )}
 
               <span
                 className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
@@ -1093,8 +1171,20 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
           </div>
         </div>
 
-        {/* Botón de Acción Rápida a la Derecha */}
-        <div className="self-end sm:self-center shrink-0">
+        {/* Botones de Acción a la Derecha */}
+        <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0">
+          <button
+            type="button"
+            onClick={() => openVisualTimeModal(tarea)}
+            className="px-2.5 py-1.5 rounded-lg bg-[#111f3d] border border-[#38bdf8]/30 text-[#93c5fd] hover:text-white hover:border-[#38bdf8] text-xs transition-all flex items-center gap-1"
+            title="Registrar o editar el horario en que se realizó esta tarea"
+          >
+            <span>⏱️</span>
+            <span className="hidden sm:inline">
+              {isFlexible && !tarea.hora_completada ? 'Registrar Hora' : 'Horario'}
+            </span>
+          </button>
+
           <button
             type="button"
             onClick={() => handleToggleTareaRapida(tarea)}
@@ -3299,29 +3389,45 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[#94a3b8] font-medium block">Hora Inicio</label>
+              {/* Opción de horario flexible */}
+              <div className="p-2.5 rounded-xl bg-[#0d162a]/80 border border-[#38bdf8]/30 flex items-center justify-between">
+                <label className="flex items-center gap-2 cursor-pointer text-xs text-[#93c5fd] font-medium">
                   <input
-                    type="time"
-                    required
-                    value={quickTaskInicio}
-                    onChange={(e) => handleHorasQuickTask(e.target.value, quickTaskFin)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#070e1e] text-[#eed59b] border border-[#5b9bd5]/30 font-mono"
+                    type="checkbox"
+                    checked={quickTaskIsFlexible}
+                    onChange={(e) => setQuickTaskIsFlexible(e.target.checked)}
+                    className="w-4 h-4 rounded border-white/20 bg-black/40 text-[#2563eb]"
                   />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[#94a3b8] font-medium block">Hora Fin</label>
-                  <input
-                    type="time"
-                    required
-                    value={quickTaskFin}
-                    onChange={(e) => handleHorasQuickTask(quickTaskInicio, e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#070e1e] text-[#eed59b] border border-[#5b9bd5]/30 font-mono"
-                  />
-                </div>
+                  <span>⏱️ Sin horario fijo (definir horas después o al cumplir)</span>
+                </label>
+                {quickTaskIsFlexible && (
+                  <span className="text-[10px] text-[#eed59b] font-serif">Flexible</span>
+                )}
               </div>
+
+              {!quickTaskIsFlexible && (
+                <div className="grid grid-cols-2 gap-3 animate-fade-in">
+                  <div className="space-y-1">
+                    <label className="text-[#94a3b8] font-medium block">Hora Inicio</label>
+                    <input
+                      type="time"
+                      value={quickTaskInicio}
+                      onChange={(e) => handleHorasQuickTask(e.target.value, quickTaskFin)}
+                      className="w-full px-3 py-2 rounded-xl bg-[#070e1e] text-[#eed59b] border border-[#5b9bd5]/30 font-mono"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[#94a3b8] font-medium block">Hora Fin</label>
+                    <input
+                      type="time"
+                      value={quickTaskFin}
+                      onChange={(e) => handleHorasQuickTask(quickTaskInicio, e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-[#070e1e] text-[#eed59b] border border-[#5b9bd5]/30 font-mono"
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
@@ -3384,6 +3490,116 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL PARA ASIGNAR HORARIO O CUMPLIR CON HORA DESDE EL PANEL DIARIO */}
+      {visualTimeModalTask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#0b1324] border border-[#38bdf8]/30 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl animate-fade-in font-sans">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">⏱️</span>
+                <div>
+                  <h3 className="font-serif font-bold text-white text-base">
+                    Registrar Horario de Realización
+                  </h3>
+                  <p className="text-[11px] text-[#94a3b8]">
+                    ¿A qué hora realizaste esta tarea?
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setVisualTimeModalTask(null)}
+                className="text-[#94a3b8] hover:text-white text-sm p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Resumen de la tarea */}
+            <div className="p-3.5 rounded-2xl bg-[#03060c] border border-white/10">
+              <span className="text-[10px] text-[#eed59b] font-bold uppercase tracking-wider block mb-1">
+                Tarea
+              </span>
+              <p className="text-xs text-slate-100 font-medium">
+                {visualTimeModalTask.descripcion}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[11px] text-[#94a3b8] font-medium block">
+                  Hora Inicio
+                </label>
+                <input
+                  type="time"
+                  value={visualTimeModalIni}
+                  onChange={(e) => setVisualTimeModalIni(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] text-[#94a3b8] font-medium block">
+                  Hora Fin (o término)
+                </label>
+                <input
+                  type="time"
+                  value={visualTimeModalFin}
+                  onChange={(e) => {
+                    setVisualTimeModalFin(e.target.value);
+                    if (!visualTimeModalCompletada) setVisualTimeModalCompletada(e.target.value);
+                  }}
+                  className="w-full px-3 py-2 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[11px] text-[#eed59b] font-medium block">
+                Hora Exacta Completada (Opcional)
+              </label>
+              <input
+                type="time"
+                value={visualTimeModalCompletada}
+                onChange={(e) => setVisualTimeModalCompletada(e.target.value)}
+                placeholder="HH:MM"
+                className="w-full px-3 py-2 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
+              />
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-3 border-t border-white/10">
+              <button
+                type="button"
+                disabled={savingVisualTimeModal}
+                onClick={() => handleSaveVisualTimeModal(true)}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold text-xs shadow-md hover:brightness-110 transition-all flex items-center justify-center gap-1.5"
+              >
+                <span>✓ Guardar y Marcar Cumplida</span>
+              </button>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button
+                  type="button"
+                  disabled={savingVisualTimeModal}
+                  onClick={() => handleSaveVisualTimeModal(false)}
+                  className="px-3.5 py-2 rounded-xl bg-[#1e293b] text-slate-200 hover:text-white border border-slate-600 text-xs transition-colors"
+                  title="Solo guardar el horario sin cambiar el estado"
+                >
+                  Solo Horario
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVisualTimeModalTask(null)}
+                  className="px-3 py-2 rounded-xl text-slate-400 hover:text-white text-xs transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

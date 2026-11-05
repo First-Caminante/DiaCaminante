@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { getSupabaseAdmin } from '../lib/supabase';
-import type { MatrizCalidad } from '../types/database';
+import type { MatrizCalidad, MiYoIdeal } from '../types/database';
 
 export const app = new Hono().basePath('/api');
 
@@ -944,17 +944,17 @@ app.post('/tareas', async (c) => {
             creado_a: new Date().toISOString(),
           });
         } else if (trimmed.startsWith('-')) {
-          // Línea simple de lista con guión
+          // Línea simple de lista con guión (flexible sin horario fijo)
           const cleanDesc = trimmed.replace(/^-\s*(\[[ x~]\])?\s*/i, '').trim();
           if (cleanDesc) {
             tareasToInsert.push({
               dia_origen_id: diaId,
               fecha_objetivo: fechaObjetivo,
-              hora_inicio: '09:00',
-              hora_fin: '10:30',
+              hora_inicio: '00:00',
+              hora_fin: '00:01',
               tipo_trabajo: 'PROFUNDO',
               descripcion: cleanDesc,
-              horas_netas_estimadas: 1.5,
+              horas_netas_estimadas: 1.0,
               estado: 'pendiente',
               motivo_desvio: null,
               creado_a: new Date().toISOString(),
@@ -966,11 +966,12 @@ app.post('/tareas', async (c) => {
       // Opción B: Array de tareas
       for (const t of batchTareas) {
         if (!t.descripcion) continue;
-        const hIni = t.hora_inicio || '09:00';
-        const hFin = t.hora_fin || '10:30';
+        const isFlexible = t.sin_hora === true || !t.hora_inicio || !t.hora_fin || (t.hora_inicio === '00:00' && t.hora_fin === '00:01');
+        const hIni = isFlexible ? '00:00' : (t.hora_inicio || '09:00');
+        const hFin = isFlexible ? '00:01' : (t.hora_fin || '10:30');
         const horasEst = typeof t.horas_netas_estimadas === 'number'
           ? t.horas_netas_estimadas
-          : calculateTimeDiffHours(hIni, hFin);
+          : (isFlexible ? 1.0 : calculateTimeDiffHours(hIni, hFin));
 
         tareasToInsert.push({
           dia_origen_id: diaId,
@@ -982,16 +983,18 @@ app.post('/tareas', async (c) => {
           horas_netas_estimadas: isNaN(horasEst) || horasEst <= 0 ? 1.0 : horasEst,
           estado: t.estado || 'pendiente',
           motivo_desvio: t.motivo_desvio || null,
+          hora_completada: t.hora_completada || null,
           creado_a: new Date().toISOString(),
         });
       }
     } else if (descripcion) {
       // Opción C: Tarea individual
-      const hIni = hora_inicio || '09:00';
-      const hFin = hora_fin || '10:30';
+      const isFlexible = body.sin_hora === true || !hora_inicio || !hora_fin || (hora_inicio === '00:00' && hora_fin === '00:01');
+      const hIni = isFlexible ? '00:00' : hora_inicio;
+      const hFin = isFlexible ? '00:01' : hora_fin;
       const horasEst = typeof horas_netas_estimadas === 'number'
         ? horas_netas_estimadas
-        : calculateTimeDiffHours(hIni, hFin);
+        : (isFlexible ? 1.0 : calculateTimeDiffHours(hIni, hFin));
 
       tareasToInsert.push({
         dia_origen_id: diaId,
@@ -1003,6 +1006,7 @@ app.post('/tareas', async (c) => {
         horas_netas_estimadas: isNaN(horasEst) || horasEst <= 0 ? 1.0 : horasEst,
         estado: 'pendiente',
         motivo_desvio: null,
+        hora_completada: body.hora_completada || null,
         creado_a: new Date().toISOString(),
       });
     }
@@ -1047,6 +1051,8 @@ app.put('/tareas/:id', async (c) => {
       descripcion,
       hora_inicio,
       hora_fin,
+      hora_completada,
+      sin_hora,
       tipo_trabajo,
       horas_netas_estimadas,
       fecha_objetivo,
@@ -1072,12 +1078,20 @@ app.put('/tareas/:id', async (c) => {
       updatePayload.descripcion = String(descripcion).trim();
     }
 
-    if (hora_inicio !== undefined) {
-      updatePayload.hora_inicio = hora_inicio;
+    if (sin_hora === true) {
+      updatePayload.hora_inicio = '00:00';
+      updatePayload.hora_fin = '00:01';
+    } else {
+      if (hora_inicio !== undefined) {
+        updatePayload.hora_inicio = hora_inicio;
+      }
+      if (hora_fin !== undefined) {
+        updatePayload.hora_fin = hora_fin;
+      }
     }
 
-    if (hora_fin !== undefined) {
-      updatePayload.hora_fin = hora_fin;
+    if (hora_completada !== undefined) {
+      updatePayload.hora_completada = hora_completada;
     }
 
     if (tipo_trabajo !== undefined) {
@@ -1086,18 +1100,38 @@ app.put('/tareas/:id', async (c) => {
 
     if (horas_netas_estimadas !== undefined) {
       updatePayload.horas_netas_estimadas = parseFloat(String(horas_netas_estimadas)) || 1.0;
+    } else if (updatePayload.hora_inicio && updatePayload.hora_fin && updatePayload.hora_inicio !== '00:00') {
+      updatePayload.horas_netas_estimadas = calculateTimeDiffHours(updatePayload.hora_inicio, updatePayload.hora_fin);
     }
 
     if (fecha_objetivo !== undefined) {
       updatePayload.fecha_objetivo = getFormattedDate(fecha_objetivo);
     }
 
-    const { data: tarea, error: updateErr } = await supabase
+    // Try update with all fields
+    let { data: tarea, error: updateErr } = await supabase
       .from('tareas_planificadas')
       .update(updatePayload)
       .eq('id', id)
       .select('*')
       .single();
+
+    // Si la columna hora_completada aún no ha sido creada en la base de datos (código 42703), reintentar sin ella
+    if (updateErr && (updateErr.code === '42703' || String(updateErr.message).includes('hora_completada'))) {
+      const fallbackPayload = { ...updatePayload };
+      delete fallbackPayload.hora_completada;
+      const retry = await supabase
+        .from('tareas_planificadas')
+        .update(fallbackPayload)
+        .eq('id', id)
+        .select('*')
+        .single();
+      tarea = retry.data;
+      updateErr = retry.error;
+      if (tarea && hora_completada) {
+        tarea.hora_completada = hora_completada;
+      }
+    }
 
     if (updateErr) {
       return c.json({ error: updateErr.message || 'Error al actualizar tarea' }, 500);
@@ -1737,6 +1771,241 @@ app.get('/estadisticas', async (c) => {
   } catch (err: any) {
     console.error('Error in GET /api/estadisticas:', err);
     return c.json({ error: err.message || 'Error al calcular estadísticas' }, 500);
+  }
+});
+
+// =========================================================================
+// MÓDULO: MI YO IDEAL (6 DIMENSIONES & 3 FILTROS DE VALIDACIÓN)
+// =========================================================================
+
+const DEFAULT_YO_IDEAL: MiYoIdeal = {
+  id: 'a0000000-0000-0000-0000-000000000001',
+  nombre_arquetipo: 'El Arquitecto Silencioso',
+  lema_personal: 'Elijo la incomodidad del esfuerzo antes que el alivio de la postergación.',
+  avatar_url: '',
+  principios_rectores: [
+    'Elijo la incomodidad del esfuerzo antes que el alivio de la postergación.',
+    'Hablo con honestidad directa y respeto absoluto.',
+    'Construyo maestría en silencio; dejo que los entregables hablen.',
+    'Trato mi cuerpo y mi descanso como instrumentos sagrados de mi propósito.',
+  ],
+  reaccion_rechazo_critica: 'Desvinculo mi ego del resultado. Analizo la crítica como datos objetivos de retroalimentación en 60 segundos y retomo el rumbo.',
+  primeros_5min_error_grave: 'Detengo cualquier reactividad o justificación. Respiro profundo, asumo responsabilidad total y formulo un plan de contención de 3 pasos.',
+  gestion_aburrimiento_desmotivacion: 'No negocio con mi estado de ánimo. El foco no depende del entusiasmo, sino del compromiso con el estándar elegido.',
+  rutina_inicio: '06:00 AM: Luz natural, hidratación inmediata, 10 min de silencio y apertura del Plan de Vuelo sin pantallas.',
+  bloque_trabajo_profundo: '08:00 AM a 11:30 AM: 3 horas netas sin notificaciones, teléfono en otra habitación, inmersión en la frontera del problema más complejo.',
+  cierre_desconexion: '21:30 PM: Protocolo de Cierre formal, revisión de métricas, apagado de pantallas y confinar pensamientos hasta el alba.',
+  habilidades_maestria: 'Arquitectura de software de alto impacto, pensamiento estructurado de primer orden y capacidad de concentración prolongada.',
+  metodo_evaluacion_progreso: 'Auditoría diaria en el Arco del Punto y Aparte: registro de horas netas, ratio de incomodidad y cumplimiento de compromisos.',
+  valor_concreto_aportado: 'Sistemas confiables, claridad operativa para mis proyectos y liderazgo sereno para mi entorno.',
+  estandar_alimentacion: 'Comida limpia y nutritiva como combustible cognitivo. Hidratación constante y evitar picos de glucosa que nublen la lucidez mental.',
+  entrenamiento_fisico: '4 a 5 sesiones semanales de fuerza y resistencia cardiovascular. El esfuerzo muscular templa la resiliencia mental.',
+  higiene_sueno: '8 horas no negociables en oscuridad y frescura total. Sin pantallas 60 minutos antes de dormir.',
+  acceso_tiempo_energia: 'Acceso selectivo y deliberado. Mi tiempo productivo está blindado contra urgencias ajenas y distracciones.',
+  como_dice_no: 'Digo no de forma sobria, rápida y cortés, sin excusas elaboradas ni culpa: "En este momento mi foco está asignado a otra prioridad."',
+  trato_colaboradores_cercanos: 'Generosidad en la escucha, exigencia con los estándares compartidos y empatía profunda con su desarrollo humano.',
+  filtro_higgins_aprobado: true,
+  filtro_higgins_notas: 'Auditado: Cada principio expande mi potencial real y no proviene de la necesidad de aprobación social.',
+  filtro_boyatzis_aprobado: true,
+  filtro_boyatzis_notas: 'Auditado: Al leer este compás siento dirección, calma y convicción de tracción; no asfixia por autoexigencia tóxica.',
+  principio_aproximacion_notas: 'Calibración activa: Busco al menos un 70% de congruencia diaria entre mis decisiones y este diseño.',
+};
+
+let cachedYoIdeal: MiYoIdeal = { ...DEFAULT_YO_IDEAL };
+
+/**
+ * GET /api/yo-ideal
+ * Recupera la identidad ideal configurada, las 6 dimensiones y los 3 filtros.
+ */
+app.get('/yo-ideal', async (c) => {
+  try {
+    const supabase = getSupabaseAdmin(c.env);
+    const { data, error } = await supabase
+      .from('mi_yo_ideal')
+      .select('*')
+      .order('actualizado_a', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data) {
+      return c.json({
+        success: true,
+        yoIdeal: cachedYoIdeal,
+        needsMigration: Boolean(error),
+      });
+    }
+
+    cachedYoIdeal = { ...DEFAULT_YO_IDEAL, ...data };
+    return c.json({
+      success: true,
+      yoIdeal: cachedYoIdeal,
+      needsMigration: false,
+    });
+  } catch (err: any) {
+    console.error('Error in GET /api/yo-ideal:', err);
+    return c.json({
+      success: true,
+      yoIdeal: cachedYoIdeal,
+      needsMigration: true,
+    });
+  }
+});
+
+/**
+ * PUT /api/yo-ideal
+ * Actualiza la identidad nuclear, valores, respuestas ante fricción, hábitos y filtros.
+ */
+app.put('/yo-ideal', async (c) => {
+  try {
+    const supabase = getSupabaseAdmin(c.env);
+    const body = await c.req.json();
+    const updatePayload: Record<string, any> = { ...body, actualizado_a: new Date().toISOString() };
+    delete updatePayload.needsMigration;
+    delete updatePayload.creado_a;
+
+    // Actualizar cache en memoria
+    cachedYoIdeal = { ...cachedYoIdeal, ...updatePayload };
+
+    let dbUpdated = false;
+    try {
+      const { data: existing } = await supabase
+        .from('mi_yo_ideal')
+        .select('id')
+        .limit(1)
+        .maybeSingle();
+
+      if (existing?.id) {
+        const { data: updated, error: updateErr } = await supabase
+          .from('mi_yo_ideal')
+          .update(updatePayload)
+          .eq('id', existing.id)
+          .select('*')
+          .single();
+        if (!updateErr && updated) {
+          cachedYoIdeal = { ...DEFAULT_YO_IDEAL, ...updated };
+          dbUpdated = true;
+        }
+      } else {
+        const { data: inserted, error: insertErr } = await supabase
+          .from('mi_yo_ideal')
+          .insert(updatePayload)
+          .select('*')
+          .single();
+        if (!insertErr && inserted) {
+          cachedYoIdeal = { ...DEFAULT_YO_IDEAL, ...inserted };
+          dbUpdated = true;
+        }
+      }
+    } catch (dbErr) {
+      console.warn('DB update for yo_ideal deferred (migration needed):', dbErr);
+    }
+
+    return c.json({
+      success: true,
+      yoIdeal: cachedYoIdeal,
+      needsMigration: !dbUpdated,
+    });
+  } catch (err: any) {
+    console.error('Error in PUT /api/yo-ideal:', err);
+    return c.json({ error: err.message || 'Error al actualizar Yo Ideal' }, 500);
+  }
+});
+
+/**
+ * POST /api/yo-ideal/upload-image
+ * Sube la imagen del avatar / arquetipo al storage de Supabase o la persiste como Data URL.
+ */
+app.post('/yo-ideal/upload-image', async (c) => {
+  try {
+    const supabase = getSupabaseAdmin(c.env);
+    let imageUrl = '';
+    let fileBuffer: Uint8Array | null = null;
+    let contentType = 'image/png';
+    let fileExt = 'png';
+
+    const contentTypeHeader = c.req.header('content-type') || '';
+
+    if (contentTypeHeader.includes('application/json')) {
+      const body = await c.req.json();
+      const { image_base64, image_url } = body;
+      if (image_url) {
+        imageUrl = image_url;
+      } else if (image_base64) {
+        const match = image_base64.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
+        if (match) {
+          contentType = match[1];
+          fileExt = contentType.split('/')[1] || 'png';
+          const binaryStr = atob(match[2]);
+          const len = binaryStr.length;
+          const bytes = new Uint8Array(len);
+          for (let i = 0; i < len; i++) {
+            bytes[i] = binaryStr.charCodeAt(i);
+          }
+          fileBuffer = bytes;
+          // Guardar fallback data URL en caso de que el bucket de storage no exista
+          imageUrl = image_base64;
+        }
+      }
+    } else {
+      const formData = await c.req.formData();
+      const file = formData.get('file') as File | null;
+      if (file) {
+        contentType = file.type || 'image/jpeg';
+        fileExt = contentType.split('/')[1] || 'jpeg';
+        const arrayBuf = await file.arrayBuffer();
+        fileBuffer = new Uint8Array(arrayBuf);
+      }
+    }
+
+    // Si tenemos buffer, intentar subir al bucket 'yo-ideal' de Supabase Storage
+    if (fileBuffer) {
+      try {
+        const fileName = `arquetipo_${Date.now()}.${fileExt}`;
+        const { error: uploadErr } = await supabase.storage
+          .from('yo-ideal')
+          .upload(fileName, fileBuffer, {
+            contentType,
+            upsert: true,
+          });
+
+        if (!uploadErr) {
+          const { data: publicUrlData } = supabase.storage
+            .from('yo-ideal')
+            .getPublicUrl(fileName);
+          if (publicUrlData?.publicUrl) {
+            imageUrl = publicUrlData.publicUrl;
+          }
+        } else {
+          console.warn('Supabase storage upload notice:', uploadErr.message);
+        }
+      } catch (storageErr) {
+        console.warn('Storage bucket upload notice:', storageErr);
+      }
+    }
+
+    if (!imageUrl) {
+      return c.json({ error: 'No se recibió ninguna imagen válida' }, 400);
+    }
+
+    // Actualizar avatar en memoria y en BD si existe
+    cachedYoIdeal.avatar_url = imageUrl;
+    try {
+      await supabase
+        .from('mi_yo_ideal')
+        .update({ avatar_url: imageUrl, actualizado_a: new Date().toISOString() })
+        .eq('id', cachedYoIdeal.id);
+    } catch {
+      // Ignorar si la tabla no está creada
+    }
+
+    return c.json({
+      success: true,
+      url: imageUrl,
+      avatar_url: imageUrl,
+    });
+  } catch (err: any) {
+    console.error('Error in POST /api/yo-ideal/upload-image:', err);
+    return c.json({ error: err.message || 'Error al procesar imagen' }, 500);
   }
 });
 

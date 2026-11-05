@@ -5,12 +5,14 @@ import { ShutdownModal } from './ShutdownModal';
 import { VisualStats } from './VisualStats';
 import { TasksManager } from './TasksManager';
 import { PhilosophyView } from './PhilosophyView';
+import { IdealSelfView } from './IdealSelfView';
 import { DailyReflectionModal } from './DailyReflectionModal';
 import { SnowEffect } from './SnowEffect';
+import { EnsoLogo } from './EnsoLogo';
 import { getReflexionDeHoy, getDiaDelCiclo, type ReflexionDiaria } from '../data/reflections';
 import type { DiaHoyResponse, SesionFlujo, TareaPlanificada } from '../types/database';
 
-type NavigationTab = 'stats' | 'tasks' | 'today' | 'philosophy';
+type NavigationTab = 'stats' | 'tasks' | 'today' | 'philosophy' | 'ideal_self';
 
 interface DeepWorkAppProps {
   initialData?: DiaHoyResponse | null;
@@ -278,12 +280,10 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
 
   if (loading && !data) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen space-y-4 bg-[#070e1e] text-[#f8fafc]">
-        <div className="w-12 h-12 rounded-2xl bg-[#0d1733] border border-[#5b9bd5]/30 shadow-midnight flex items-center justify-center text-[#e5c179] font-serif text-2xl animate-pulse">
-          ✦
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-screen space-y-4 bg-[#020408] text-[#f8fafc]">
+        <EnsoLogo className="w-16 h-16 animate-pulse text-[#eed59b]" />
         <p className="text-sm font-serif italic tracking-wide text-[#94a3b8]">
-          Cargando biblioteca y jornada...
+          Arco del Punto y Aparte • Cargando biblioteca y jornada...
         </p>
       </div>
     );
@@ -294,14 +294,14 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
   const cierreRealizado = Boolean(data?.cierreRealizado);
 
   return (
-    <div className="relative min-h-screen w-full flex bg-[#070e1e] text-[#f8fafc] overflow-x-hidden">
+    <div className="relative min-h-screen w-full flex bg-[#020408] text-[#f8fafc] overflow-x-hidden">
       {/* Fondo de Nieve Suave */}
       <SnowEffect />
 
       {/* Toast Notification Banner */}
       {notification && (
         <div className="fixed top-5 right-6 z-50 animate-fade-in">
-          <div className="px-5 py-3 rounded-full bg-[#0d1a3d]/90 text-[#f8fafc] border border-[#5b9bd5]/40 shadow-midnight-glow flex items-center gap-2.5 text-xs font-sans font-medium backdrop-blur-md">
+          <div className="px-5 py-3 rounded-full bg-[#081122]/95 text-[#f8fafc] border border-[#5b9bd5]/40 shadow-midnight-glow flex items-center gap-2.5 text-xs font-sans font-medium backdrop-blur-md">
             <span className="text-[#eed59b]">✓</span>
             <span>{notification}</span>
           </div>
@@ -312,16 +312,16 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
       {isMobileSidebarOpen && (
         <div
           onClick={() => setIsMobileSidebarOpen(false)}
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden transition-opacity"
+          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm md:hidden transition-opacity"
           aria-hidden="true"
         />
       )}
 
       {/* =========================================================================
-          SIDEBAR DESPLEGABLE / RETRÁCTIL (INSPIRADO EN BIBLIOTECA ENCANTADA)
+          SIDEBAR DESPLEGABLE / RETRÁCTIL (INSPIRADO EN BIBLIOTECA ZEN)
           ========================================================================= */}
       <aside
-        className={`fixed md:sticky top-0 left-0 z-50 h-screen flex flex-col justify-between bg-[#081229]/95 backdrop-blur-xl border-r border-[#5b9bd5]/20 shadow-2xl transition-all duration-300 ease-in-out ${
+        className={`fixed md:sticky top-0 left-0 z-50 h-screen flex flex-col justify-between bg-[#050a14]/95 backdrop-blur-xl border-r border-[#5b9bd5]/20 shadow-2xl transition-all duration-300 ease-in-out ${
           isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         } ${isSidebarCollapsed ? 'w-20' : 'w-72'}`}
         aria-label="Barra lateral de navegación"
@@ -330,27 +330,23 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
         <div className="p-4 border-b border-[#5b9bd5]/15 flex items-center justify-between">
           {!isSidebarCollapsed ? (
             <div className="flex items-center gap-3">
-              {/* Icono de Libro Dorado */}
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#1a336e] to-[#0d1a3d] border border-[#e5c179]/40 flex items-center justify-center text-[#e5c179] shadow-midnight">
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
+              {/* Logo Zen Ensō */}
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#0e172a] to-[#020408] border border-[#eed59b]/40 flex items-center justify-center text-white shadow-midnight p-1">
+                <EnsoLogo className="w-7 h-7" />
               </div>
               <div className="flex flex-col">
-                <span className="font-serif text-lg font-bold tracking-wide text-white leading-tight">
-                  Día Caminante
+                <span className="font-serif text-base sm:text-lg font-bold tracking-wide text-white leading-tight">
+                  Arco del Punto y Aparte
                 </span>
-                <span className="text-[11px] font-sans text-[#e5c179] tracking-wider uppercase">
-                  Sistema de Foco
+                <span className="text-[10px] font-sans text-[#eed59b] tracking-wider uppercase">
+                  Sistema Zen de Foco
                 </span>
               </div>
             </div>
           ) : (
             <div className="mx-auto">
-              <div className="w-10 h-10 rounded-2xl bg-[#0d1a3d] border border-[#e5c179]/40 flex items-center justify-center text-[#e5c179]">
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
+              <div className="w-10 h-10 rounded-2xl bg-[#081122] border border-[#eed59b]/40 flex items-center justify-center p-1">
+                <EnsoLogo className="w-7 h-7" />
               </div>
             </div>
           )}
@@ -359,7 +355,7 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
           <button
             type="button"
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            className="hidden md:flex p-1.5 rounded-xl text-[#94a3b8] hover:text-[#f8fafc] hover:bg-[#132247] transition-colors"
+            className="hidden md:flex p-1.5 rounded-xl text-[#94a3b8] hover:text-[#f8fafc] hover:bg-[#0c162b] transition-colors"
             title={isSidebarCollapsed ? 'Expandir barra lateral' : 'Contraer barra lateral'}
           >
             <svg
@@ -504,7 +500,7 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
             className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-sm font-medium transition-all ${
               currentTab === 'philosophy'
                 ? 'bg-gradient-to-r from-[#2563eb] to-[#3b82f6] text-white shadow-midnight-glow'
-                : 'text-[#94a3b8] hover:text-white hover:bg-[#0d1a3d]'
+                : 'text-[#94a3b8] hover:text-white hover:bg-[#081122]'
             }`}
             title="Biblioteca de Pensamiento (365 Días)"
           >
@@ -513,6 +509,26 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
             </svg>
             {!isSidebarCollapsed && (
               <span className="truncate">Biblioteca 365</span>
+            )}
+          </button>
+
+          {/* Tab 5: Mi Yo Ideal */}
+          <button
+            type="button"
+            onClick={() => {
+              setCurrentTab('ideal_self');
+              setIsMobileSidebarOpen(false);
+            }}
+            className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-sm font-medium transition-all ${
+              currentTab === 'ideal_self'
+                ? 'bg-gradient-to-r from-[#1e3a8a] to-[#2563eb] text-white shadow-midnight-glow'
+                : 'text-[#94a3b8] hover:text-white hover:bg-[#081122]'
+            }`}
+            title="Mi Yo Ideal — 6 Dimensiones y 3 Filtros de Validación"
+          >
+            <span className="text-base flex-shrink-0">⛩️</span>
+            {!isSidebarCollapsed && (
+              <span className="truncate">Mi Yo Ideal</span>
             )}
           </button>
         </div>
@@ -526,7 +542,7 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
               setIsDailyReflectionOpen(true);
               setIsMobileSidebarOpen(false);
             }}
-            className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all text-[#eed59b] bg-[#0d1a3d] hover:bg-[#132247] border border-[#e5c179]/30 ${
+            className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all text-[#eed59b] bg-[#081122] hover:bg-[#0c162b] border border-[#e5c179]/30 ${
               isSidebarCollapsed ? 'justify-center' : ''
             }`}
             title="Leer reflexión del día"
@@ -566,13 +582,13 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
           ========================================================================= */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen relative z-10">
         {/* Cabecera Móvil y Barra Superior Sutil */}
-        <header className="sticky top-0 z-30 flex items-center justify-between px-4 sm:px-8 py-3.5 bg-[#070e1e]/80 backdrop-blur-md border-b border-[#5b9bd5]/15">
+        <header className="sticky top-0 z-30 flex items-center justify-between px-4 sm:px-8 py-3.5 bg-[#020408]/85 backdrop-blur-md border-b border-[#5b9bd5]/15">
           <div className="flex items-center gap-3">
             {/* Botón Menú Móvil */}
             <button
               type="button"
               onClick={() => setIsMobileSidebarOpen(true)}
-              className="md:hidden p-2 rounded-xl bg-[#0d1a3d] border border-[#5b9bd5]/30 text-[#f8fafc]"
+              className="md:hidden p-2 rounded-xl bg-[#081122] border border-[#5b9bd5]/30 text-[#f8fafc]"
               aria-label="Abrir menú de navegación"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -586,12 +602,14 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
                 {currentTab === 'tasks' && 'Plan de Vuelo & Tareas'}
                 {currentTab === 'today' && 'Registro de Sesiones de Foco'}
                 {currentTab === 'philosophy' && 'Biblioteca de Pensamiento'}
+                {currentTab === 'ideal_self' && 'Mi Yo Ideal — Compás de Identidad Nuclear'}
               </h1>
               <p className="text-xs text-[#94a3b8] font-sans">
                 {currentTab === 'stats' && 'Visualización circadiana, intensidad y auditoría retrospectiva.'}
                 {currentTab === 'tasks' && 'Gestión y checklist de objetivos para hoy y mañana.'}
                 {currentTab === 'today' && 'Control cronológico de horas netas e incomodidad cognitiva.'}
                 {currentTab === 'philosophy' && 'Compendio de reflexiones para la excelencia y la disciplina.'}
+                {currentTab === 'ideal_self' && 'Estructura formal de autogobierno bajo las 6 dimensiones y los 3 filtros de validación.'}
               </p>
             </div>
           </div>
@@ -600,7 +618,7 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
           <div className="flex items-center gap-2.5">
             <button
               onClick={() => setIsDailyReflectionOpen(true)}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium text-[#eed59b] bg-[#0d1a3d] border border-[#e5c179]/30 hover:bg-[#132247] transition-all shadow-sm"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium text-[#eed59b] bg-[#081122] border border-[#e5c179]/30 hover:bg-[#0c162b] transition-all shadow-sm"
             >
               <span>✦</span>
               <span>Reflexión del Día</span>
@@ -692,11 +710,15 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
           {currentTab === 'philosophy' && (
             <PhilosophyView />
           )}
+
+          {currentTab === 'ideal_self' && (
+            <IdealSelfView />
+          )}
         </main>
 
         {/* Footer Formal */}
         <footer className="w-full px-6 py-6 border-t border-[#5b9bd5]/10 text-center text-xs text-[#94a3b8]/70 font-sans">
-          <p>Día Caminante • Sistema Formal de Trabajo Profundo &amp; Reflexión Cotidiana</p>
+          <p>Arco del Punto y Aparte • Sistema Zen de Trabajo Profundo, Identidad Nuclear &amp; Reflexión Cotidiana</p>
         </footer>
       </div>
 

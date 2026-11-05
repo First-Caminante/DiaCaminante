@@ -51,6 +51,14 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
   const [newTipo, setNewTipo] = useState<TipoTrabajo>('PROFUNDO');
   const [newHorasEstimadas, setNewHorasEstimadas] = useState<number>(1.5);
   const [newTargetFecha, setNewTargetFecha] = useState<'hoy' | 'manana'>('hoy');
+  const [newIsFlexible, setNewIsFlexible] = useState<boolean>(true);
+
+  // Estado para modal de asignación retrospectiva de horario
+  const [timeModalTask, setTimeModalTask] = useState<TareaPlanificada | null>(null);
+  const [timeModalIni, setTimeModalIni] = useState<string>('09:00');
+  const [timeModalFin, setTimeModalFin] = useState<string>('10:30');
+  const [timeModalCompletada, setTimeModalCompletada] = useState<string>('');
+  const [savingTimeModal, setSavingTimeModal] = useState<boolean>(false);
 
   // Campos para crear por bloque Markdown
   const [markdownBlock, setMarkdownBlock] = useState<string>(
@@ -155,10 +163,11 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
         ? {
             fecha_objetivo: targetFechaReal,
             descripcion: newDesc.trim(),
-            hora_inicio: newHoraInicio,
-            hora_fin: newHoraFin,
+            hora_inicio: newIsFlexible ? '00:00' : newHoraInicio,
+            hora_fin: newIsFlexible ? '00:01' : newHoraFin,
+            sin_hora: newIsFlexible,
             tipo_trabajo: newTipo,
-            horas_netas_estimadas: newHorasEstimadas,
+            horas_netas_estimadas: newIsFlexible ? 1.0 : newHorasEstimadas,
           }
         : {
             fecha_objetivo: targetFechaReal,
@@ -197,8 +206,76 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
     }
   };
 
+  // Apertura y guardado de modal para horario retrospectivo
+  const openTimeModal = (task: TareaPlanificada) => {
+    setTimeModalTask(task);
+    const now = new Date();
+    const currentH = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const [h, m] = currentH.split(':').map(Number);
+    const startH = `${String(Math.max(0, h - 1)).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    
+    const isFlexible = !task.hora_inicio || !task.hora_fin || (task.hora_inicio === '00:00' && task.hora_fin === '00:01');
+    setTimeModalIni(!isFlexible && task.hora_inicio && task.hora_inicio !== '00:00' ? task.hora_inicio : startH);
+    setTimeModalFin(!isFlexible && task.hora_fin && task.hora_fin !== '00:01' ? task.hora_fin : currentH);
+    setTimeModalCompletada(task.hora_completada || currentH);
+  };
+
+  const handleSaveTimeModal = async (markAsDone: boolean) => {
+    if (!timeModalTask) return;
+    try {
+      setSavingTimeModal(true);
+      const [h1, m1] = timeModalIni.split(':').map(Number);
+      const [h2, m2] = timeModalFin.split(':').map(Number);
+      let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+      if (diff < 0) diff += 24 * 60;
+      const hoursEst = Math.max(0.5, Math.round((diff / 60) * 10) / 10);
+
+      const payload: Record<string, any> = {
+        hora_inicio: timeModalIni,
+        hora_fin: timeModalFin,
+        horas_netas_estimadas: hoursEst,
+        hora_completada: timeModalCompletada || timeModalFin,
+      };
+      if (markAsDone) {
+        payload.estado = 'hecho';
+      }
+
+      const res = await fetch(`/api/tareas/${timeModalTask.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error('Error al registrar horario');
+      const data = await res.json();
+      const actualizada: TareaPlanificada = data.tarea;
+
+      if (actualizada.fecha_objetivo === fechaHoy) {
+        onTaskUpdated(actualizada);
+      } else {
+        setTareasManana((prev) => prev.map((t) => (t.id === timeModalTask.id ? actualizada : t)));
+      }
+
+      setTimeModalTask(null);
+      showNotification(markAsDone ? '✓ Tarea cumplida con horario asignado' : '✓ Horario asignado a la tarea');
+      if (onRefresh) onRefresh();
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || 'No se pudo guardar el horario');
+    } finally {
+      setSavingTimeModal(false);
+    }
+  };
+
   // 2. Alternar Estado Rápido de Tarea (Checkbox)
   const handleToggleStatus = async (tarea: TareaPlanificada) => {
+    // Si la tarea está pendiente y es de horario flexible sin hora completada, dar la opción de registrar la hora
+    const isFlexible = !tarea.hora_inicio || !tarea.hora_fin || (tarea.hora_inicio === '00:00' && tarea.hora_fin === '00:01');
+    if (tarea.estado === 'pendiente' && isFlexible && !tarea.hora_completada) {
+      openTimeModal(tarea);
+      return;
+    }
+
     // Ciclo: pendiente -> hecho -> incompleto -> pendiente
     let nextStatus: EstadoTarea = 'hecho';
     if (tarea.estado === 'pendiente') nextStatus = 'hecho';
@@ -368,9 +445,16 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
           <div className="space-y-1 min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
               {/* Franja horaria */}
-              <span className="font-mono text-[11px] font-semibold text-[#eed59b] bg-[#0d1733] px-2 py-0.5 rounded border border-[#5b9bd5]/25">
-                {tarea.hora_inicio} — {tarea.hora_fin}
-              </span>
+              {(!tarea.hora_inicio || !tarea.hora_fin || (tarea.hora_inicio === '00:00' && tarea.hora_fin === '00:01')) ? (
+                <span className="font-mono text-[11px] font-semibold text-[#c084fc] bg-[#1a102f] px-2 py-0.5 rounded border border-[#a855f7]/30 flex items-center gap-1">
+                  <span>⏱️</span>
+                  <span>{tarea.hora_completada ? `Realizada: ${tarea.hora_completada}` : 'Horario Flexible'}</span>
+                </span>
+              ) : (
+                <span className="font-mono text-[11px] font-semibold text-[#eed59b] bg-[#0d1733] px-2 py-0.5 rounded border border-[#5b9bd5]/25">
+                  {tarea.hora_inicio} — {tarea.hora_fin}
+                </span>
+              )}
 
               {/* Tipo de trabajo */}
               <span
@@ -426,6 +510,18 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
 
         {/* Derecha: Botones de Acción (Editar, Motivo, Eliminar) */}
         <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0">
+          <button
+            type="button"
+            onClick={() => openTimeModal(tarea)}
+            className="px-2.5 py-1.5 rounded-lg bg-[#111f3d] border border-[#38bdf8]/30 text-[#93c5fd] hover:text-white hover:border-[#38bdf8] text-xs transition-all flex items-center gap-1"
+            title="Registrar o editar el horario en que se realizó esta tarea"
+          >
+            <span>⏱️</span>
+            <span className="hidden sm:inline">
+              {(!tarea.hora_inicio || (tarea.hora_inicio === '00:00' && tarea.hora_fin === '00:01')) ? 'Registrar Hora' : 'Horario'}
+            </span>
+          </button>
+
           <button
             type="button"
             onClick={() => setEditingTask(tarea)}
@@ -873,30 +969,48 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-medium text-[#94a3b8] mb-1">
-                      Hora Inicio
-                    </label>
+                {/* Selector de horario fijo vs flexible */}
+                <div className="p-2.5 rounded-xl bg-[#0d162a]/80 border border-[#38bdf8]/30 flex items-center justify-between">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-[#93c5fd] font-medium">
                     <input
-                      type="time"
-                      value={newHoraInicio}
-                      onChange={(e) => handleHorasChange(e.target.value, newHoraFin)}
-                      className="w-full p-2.5 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
+                      type="checkbox"
+                      checked={newIsFlexible}
+                      onChange={(e) => setNewIsFlexible(e.target.checked)}
+                      className="w-4 h-4 rounded border-white/20 bg-black/40 text-[#2563eb]"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-medium text-[#94a3b8] mb-1">
-                      Hora Fin
-                    </label>
-                    <input
-                      type="time"
-                      value={newHoraFin}
-                      onChange={(e) => handleHorasChange(newHoraInicio, e.target.value)}
-                      className="w-full p-2.5 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
-                    />
-                  </div>
+                    <span>⏱️ Sin horario fijo (definir horas después o al cumplir)</span>
+                  </label>
+                  {newIsFlexible && (
+                    <span className="text-[10px] text-[#eed59b] font-serif">Flexible</span>
+                  )}
                 </div>
+
+                {!newIsFlexible && (
+                  <div className="grid grid-cols-2 gap-3 animate-fade-in">
+                    <div>
+                      <label className="block text-[11px] font-medium text-[#94a3b8] mb-1">
+                        Hora Inicio
+                      </label>
+                      <input
+                        type="time"
+                        value={newHoraInicio}
+                        onChange={(e) => handleHorasChange(e.target.value, newHoraFin)}
+                        className="w-full p-2.5 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-medium text-[#94a3b8] mb-1">
+                        Hora Fin
+                      </label>
+                      <input
+                        type="time"
+                        value={newHoraFin}
+                        onChange={(e) => handleHorasChange(newHoraInicio, e.target.value)}
+                        className="w-full p-2.5 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -1024,7 +1138,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
                   </label>
                   <input
                     type="time"
-                    value={editingTask.hora_inicio}
+                    value={editingTask.hora_inicio || ''}
                     onChange={(e) => setEditingTask({ ...editingTask, hora_inicio: e.target.value })}
                     className="w-full p-2.5 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
                   />
@@ -1035,7 +1149,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
                   </label>
                   <input
                     type="time"
-                    value={editingTask.hora_fin}
+                    value={editingTask.hora_fin || ''}
                     onChange={(e) => setEditingTask({ ...editingTask, hora_fin: e.target.value })}
                     className="w-full p-2.5 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
                   />
@@ -1120,6 +1234,116 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL PARA ASIGNAR HORARIO A LA TAREA O CUMPLIR CON HORA */}
+      {timeModalTask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#0b1324] border border-[#38bdf8]/30 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl animate-fade-in">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">⏱️</span>
+                <div>
+                  <h3 className="font-serif font-bold text-white text-base">
+                    Registrar Horario de Realización
+                  </h3>
+                  <p className="text-[11px] text-[#94a3b8]">
+                    ¿A qué hora realizaste esta tarea?
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTimeModalTask(null)}
+                className="text-[#94a3b8] hover:text-white text-sm p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Resumen de la tarea */}
+            <div className="p-3.5 rounded-2xl bg-[#03060c] border border-white/10">
+              <span className="text-[10px] text-[#eed59b] font-bold uppercase tracking-wider block mb-1">
+                Tarea Seleccionada
+              </span>
+              <p className="text-xs text-slate-100 font-medium">
+                {timeModalTask.descripcion}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[11px] text-[#94a3b8] font-medium block">
+                  Hora Inicio
+                </label>
+                <input
+                  type="time"
+                  value={timeModalIni}
+                  onChange={(e) => setTimeModalIni(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] text-[#94a3b8] font-medium block">
+                  Hora Fin (o término)
+                </label>
+                <input
+                  type="time"
+                  value={timeModalFin}
+                  onChange={(e) => {
+                    setTimeModalFin(e.target.value);
+                    if (!timeModalCompletada) setTimeModalCompletada(e.target.value);
+                  }}
+                  className="w-full px-3 py-2 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[11px] text-[#eed59b] font-medium block">
+                Hora Exacta Completada (Opcional)
+              </label>
+              <input
+                type="time"
+                value={timeModalCompletada}
+                onChange={(e) => setTimeModalCompletada(e.target.value)}
+                placeholder="HH:MM"
+                className="w-full px-3 py-2 rounded-xl bg-[#050b18] border border-[#5b9bd5]/30 text-white font-mono text-xs focus:outline-none focus:border-[#eed59b]"
+              />
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-3 border-t border-white/10">
+              <button
+                type="button"
+                disabled={savingTimeModal}
+                onClick={() => handleSaveTimeModal(true)}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold text-xs shadow-md hover:brightness-110 transition-all flex items-center justify-center gap-1.5"
+              >
+                <span>✓ Guardar y Marcar Cumplida</span>
+              </button>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button
+                  type="button"
+                  disabled={savingTimeModal}
+                  onClick={() => handleSaveTimeModal(false)}
+                  className="px-3.5 py-2 rounded-xl bg-[#1e293b] text-slate-200 hover:text-white border border-slate-600 text-xs transition-colors"
+                  title="Solo guardar el horario sin cambiar el estado"
+                >
+                  Solo Horario
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimeModalTask(null)}
+                  className="px-3 py-2 rounded-xl text-slate-400 hover:text-white text-xs transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

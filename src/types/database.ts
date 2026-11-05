@@ -81,14 +81,60 @@ export interface TareaPlanificada {
   id: string;
   dia_origen_id: string;
   fecha_objetivo: string; // YYYY-MM-DD
-  hora_inicio: string; // HH:MM
-  hora_fin: string; // HH:MM
+  hora_inicio?: string | null; // HH:MM (null o '00:00' para flexible)
+  hora_fin?: string | null; // HH:MM (null o '00:01' para flexible)
   tipo_trabajo: TipoTrabajo;
   descripcion: string;
   horas_netas_estimadas: number;
   estado: EstadoTarea;
   motivo_desvio?: string | null;
+  hora_completada?: string | null; // HH:MM de finalización o realización
   creado_a?: string;
+}
+
+export interface MiYoIdeal {
+  id?: string;
+  nombre_arquetipo: string;
+  lema_personal: string;
+  avatar_url?: string;
+  
+  // Dimensión 1: Identidad Nuclear y Valores
+  principios_rectores: string[];
+
+  // Dimensión 2: Respuesta Operativa ante la Fricción (Bajo Fuego)
+  reaccion_rechazo_critica: string;
+  primeros_5min_error_grave: string;
+  gestion_aburrimiento_desmotivacion: string;
+
+  // Dimensión 3: Hábitos Atómicos de Soporte
+  rutina_inicio: string;
+  bloque_trabajo_profundo: string;
+  cierre_desconexion: string;
+
+  // Dimensión 4: Estándar de Competencia Profesional
+  habilidades_maestria: string;
+  metodo_evaluacion_progreso: string;
+  valor_concreto_aportado: string;
+
+  // Dimensión 5: Disciplina Fisiológica
+  estandar_alimentacion: string;
+  entrenamiento_fisico: string;
+  higiene_sueno: string;
+
+  // Dimensión 6: Fronteras y Dinámica Relacional
+  acceso_tiempo_energia: string;
+  como_dice_no: string;
+  trato_colaboradores_cercanos: string;
+
+  // Los 3 Filtros de Validación
+  filtro_higgins_aprobado: boolean;
+  filtro_higgins_notas: string;
+  filtro_boyatzis_aprobado: boolean;
+  filtro_boyatzis_notas: string;
+  principio_aproximacion_notas: string;
+
+  creado_a?: string;
+  actualizado_a?: string;
 }
 
 export interface VistaResumenDiario {
