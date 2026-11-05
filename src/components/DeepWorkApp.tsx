@@ -625,7 +625,12 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
               suenosHoy={data?.suenos || []}
               comidasHoy={data?.comidas || []}
               ejerciciosHoy={data?.ejercicios || []}
+              tareasHoy={data?.tareas || []}
+              onTaskUpdated={handleTaskUpdated}
+              onTaskCreated={handleTaskCreated}
+              onTaskDeleted={handleTaskDeleted}
               onGoToDailyLog={() => setCurrentTab('today')}
+              onGoToTasks={() => setCurrentTab('tasks')}
             />
           )}
 
@@ -650,6 +655,7 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
                 cierreRealizado={cierreRealizado}
                 onOpenShutdown={() => setIsShutdownOpen(true)}
                 onRefresh={fetchHoy}
+                tareas={data?.tareas || []}
               />
 
               <TasksManager

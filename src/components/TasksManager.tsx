@@ -20,6 +20,8 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
 }) => {
   // Pestaña de visualización de tareas: 'hoy' o 'manana'
   const [activeTabDate, setActiveTabDate] = useState<'hoy' | 'manana'>('hoy');
+  // Filtro de estado: 'todas', 'por_cumplir' o 'cumplidas'
+  const [filtroEstado, setFiltroEstado] = useState<'todas' | 'por_cumplir' | 'cumplidas'>('todas');
 
   // Cálculo de la fecha de mañana (YYYY-MM-DD)
   const fechaManana = (() => {
@@ -102,7 +104,11 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
 
   // Estadísticas del listado activo
   const totalTasks = currentList.length;
-  const hechas = currentList.filter((t) => t.estado === 'hecho').length;
+  const hechasList = currentList.filter((t) => t.estado === 'hecho');
+  const porCumplirList = currentList.filter(
+    (t) => t.estado === 'pendiente' || t.estado === 'incompleto' || t.estado === 'no_hecho'
+  );
+  const hechas = hechasList.length;
   const pendientes = currentList.filter((t) => t.estado === 'pendiente').length;
   const incompletas = currentList.filter((t) => t.estado === 'incompleto' || t.estado === 'no_hecho').length;
   const pctCumplimiento = totalTasks > 0 ? Math.round((hechas / totalTasks) * 100) : 0;
@@ -313,6 +319,137 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
     }
   };
 
+  const renderTaskRow = (tarea: TareaPlanificada) => {
+    const isHecho = tarea.estado === 'hecho';
+    const isIncompleto = tarea.estado === 'incompleto';
+    const isNoHecho = tarea.estado === 'no_hecho';
+    const isProfundo = tarea.tipo_trabajo === 'PROFUNDO';
+
+    return (
+      <div
+        key={tarea.id}
+        className={`p-3.5 sm:p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+          isHecho
+            ? 'bg-[#06241a]/50 border-[#10b981]/40'
+            : isIncompleto || isNoHecho
+            ? 'bg-[#261506]/50 border-[#f59e0b]/40'
+            : 'bg-[#081229]/80 border-[#5b9bd5]/20 hover:border-[#60a5fa]/40'
+        }`}
+      >
+        {/* Izquierda: Checkbox y Detalle de la Tarea */}
+        <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
+          {/* Botón Checkbox Interactivo */}
+          <button
+            type="button"
+            onClick={() => handleToggleStatus(tarea)}
+            className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-all border ${
+              isHecho
+                ? 'bg-emerald-500 border-emerald-400 text-black shadow-[0_0_8px_rgba(16,185,129,0.5)]'
+                : isIncompleto
+                ? 'bg-amber-500 border-amber-400 text-black shadow-[0_0_8px_rgba(245,158,11,0.5)]'
+                : isNoHecho
+                ? 'bg-rose-500 border-rose-400 text-white'
+                : 'bg-[#0d1a3d] border-[#5b9bd5]/40 text-transparent hover:border-white'
+            }`}
+            title={
+              isHecho
+                ? 'Completada (Clic para cambiar)'
+                : isIncompleto
+                ? 'Incompleta (Clic para cambiar)'
+                : 'Pendiente (Clic para marcar hecha)'
+            }
+          >
+            {isHecho && <span className="font-bold text-xs">✓</span>}
+            {isIncompleto && <span className="font-bold text-xs">~</span>}
+            {isNoHecho && <span className="font-bold text-xs">✗</span>}
+          </button>
+
+          {/* Texto y Badges */}
+          <div className="space-y-1 min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Franja horaria */}
+              <span className="font-mono text-[11px] font-semibold text-[#eed59b] bg-[#0d1733] px-2 py-0.5 rounded border border-[#5b9bd5]/25">
+                {tarea.hora_inicio} — {tarea.hora_fin}
+              </span>
+
+              {/* Tipo de trabajo */}
+              <span
+                className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                  isProfundo
+                    ? 'bg-[#1e3a8a]/70 text-[#93c5fd] border border-[#60a5fa]/40'
+                    : 'bg-[#334155]/60 text-[#cbd5e1] border border-slate-600/40'
+                }`}
+              >
+                {isProfundo ? '🧠 PROFUNDO' : '⚡ SUPERFICIAL'}
+              </span>
+
+              {/* Horas estimadas */}
+              <span className="text-[10px] text-[#94a3b8] font-mono">
+                {tarea.horas_netas_estimadas}h netas
+              </span>
+
+              {/* Badge de Estado */}
+              <span
+                className={`text-[9px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wider ${
+                  isHecho
+                    ? 'bg-emerald-500/20 text-emerald-300'
+                    : isIncompleto
+                    ? 'bg-amber-500/20 text-amber-300'
+                    : isNoHecho
+                    ? 'bg-rose-500/20 text-rose-300'
+                    : 'bg-blue-500/10 text-blue-300'
+                }`}
+              >
+                {tarea.estado === 'hecho' ? '✓ CUMPLIDA' : tarea.estado === 'pendiente' ? '⏳ POR CUMPLIR' : tarea.estado}
+              </span>
+            </div>
+
+            {/* Descripción */}
+            <p
+              className={`text-sm font-medium transition-all ${
+                isHecho
+                  ? 'line-through text-[#94a3b8]'
+                  : 'text-white'
+              }`}
+            >
+              {tarea.descripcion}
+            </p>
+
+            {/* Motivo de Desvío si existe */}
+            {tarea.motivo_desvio && (
+              <div className="text-[11px] text-amber-300/90 italic bg-amber-950/30 px-2 py-1 rounded border border-amber-500/20">
+                Motivo desvío: {tarea.motivo_desvio}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Derecha: Botones de Acción (Editar, Motivo, Eliminar) */}
+        <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0">
+          <button
+            type="button"
+            onClick={() => setEditingTask(tarea)}
+            className="px-2.5 py-1.5 rounded-lg bg-[#0d1a3d] border border-[#5b9bd5]/25 text-[#cbd5e1] hover:text-white hover:border-[#60a5fa] text-xs transition-all flex items-center gap-1"
+            title="Editar descripción, horarios o tipo"
+          >
+            <span>✏️</span>
+            <span className="hidden sm:inline">Editar</span>
+          </button>
+
+          <button
+            type="button"
+            disabled={deletingId === tarea.id}
+            onClick={() => handleDeleteTask(tarea.id, tarea.fecha_objetivo)}
+            className="px-2 py-1.5 rounded-lg bg-rose-950/30 border border-rose-500/30 text-rose-300 hover:bg-rose-900/40 text-xs transition-all disabled:opacity-50"
+            title="Eliminar tarea"
+          >
+            <span>🗑️</span>
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="card-midnight p-5 sm:p-7 border border-[#5b9bd5]/25 space-y-5 relative">
       {/* Feedback Toast */}
@@ -429,6 +566,59 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
         </div>
       </div>
 
+      {/* Pestañas de Filtrado de Tareas: Todas / Por Cumplir / Cumplidas */}
+      {totalTasks > 0 && (
+        <div className="flex items-center gap-2 pt-2 border-t border-[#5b9bd5]/15 flex-wrap">
+          <span className="text-[11px] font-sans text-[#94a3b8] uppercase tracking-wider font-semibold mr-1">
+            Visualizar:
+          </span>
+          <button
+            type="button"
+            onClick={() => setFiltroEstado('todas')}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
+              filtroEstado === 'todas'
+                ? 'bg-[#1e3a8a] text-white border border-[#60a5fa]/50 shadow-sm'
+                : 'bg-[#0d1733] text-[#94a3b8] border border-[#5b9bd5]/20 hover:text-white'
+            }`}
+          >
+            <span>📋 Todas</span>
+            <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-black/40 text-white">
+              {totalTasks}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFiltroEstado('por_cumplir')}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
+              filtroEstado === 'por_cumplir'
+                ? 'bg-[#1e3a8a] text-white border border-[#3b82f6]/60 shadow-sm ring-1 ring-blue-400/40'
+                : 'bg-[#0d1733] text-[#93c5fd] border border-blue-500/30 hover:bg-[#1e3a8a]/40'
+            }`}
+          >
+            <span>⏳ Por Cumplir</span>
+            <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-blue-900/50 text-[#93c5fd]">
+              {porCumplirList.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFiltroEstado('cumplidas')}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
+              filtroEstado === 'cumplidas'
+                ? 'bg-[#064e3b] text-emerald-100 border border-emerald-400 shadow-sm ring-1 ring-emerald-400/40'
+                : 'bg-[#06241a] text-emerald-300 border border-emerald-500/30 hover:bg-[#064e3b]/40'
+            }`}
+          >
+            <span>✅ Ya Cumplidas</span>
+            <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-emerald-950/60 text-emerald-300">
+              {hechasList.length}
+            </span>
+          </button>
+        </div>
+      )}
+
       {/* Lista de Tareas */}
       <div className="space-y-2.5 pt-1">
         {loadingManana && activeTabDate === 'manana' ? (
@@ -463,137 +653,77 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
             </button>
           </div>
         ) : (
-          <div className="space-y-2">
-            {currentList.map((tarea) => {
-              const isHecho = tarea.estado === 'hecho';
-              const isIncompleto = tarea.estado === 'incompleto';
-              const isNoHecho = tarea.estado === 'no_hecho';
-              const isProfundo = tarea.tipo_trabajo === 'PROFUNDO';
+          <div className="space-y-4">
+            {/* VISTA 1: FILTRO POR CUMPLIR */}
+            {filtroEstado === 'por_cumplir' && (
+              porCumplirList.length === 0 ? (
+                <div className="p-6 text-center text-xs text-[#94a3b8] bg-[#070e1e]/60 rounded-xl border border-dashed border-[#5b9bd5]/20 space-y-1">
+                  <p className="font-serif font-bold text-[#eed59b] text-sm">🎉 ¡Excelente! No tienes tareas pendientes</p>
+                  <p>Todos los objetivos programados han sido completados con éxito.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="px-1 text-xs font-serif font-bold text-[#93c5fd] uppercase tracking-wider flex items-center gap-1.5">
+                    <span>⏳</span> Tareas Que Debes Cumplir ({porCumplirList.length})
+                  </div>
+                  {porCumplirList.map((tarea) => renderTaskRow(tarea))}
+                </div>
+              )
+            )}
 
-              return (
-                <div
-                  key={tarea.id}
-                  className={`p-3.5 sm:p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                    isHecho
-                      ? 'bg-[#06241a]/50 border-[#10b981]/40'
-                      : isIncompleto || isNoHecho
-                      ? 'bg-[#261506]/50 border-[#f59e0b]/40'
-                      : 'bg-[#081229]/80 border-[#5b9bd5]/20 hover:border-[#60a5fa]/40'
-                  }`}
-                >
-                  {/* Izquierda: Checkbox y Detalle de la Tarea */}
-                  <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
-                    {/* Botón Checkbox Interactivo */}
-                    <button
-                      type="button"
-                      onClick={() => handleToggleStatus(tarea)}
-                      className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-all border ${
-                        isHecho
-                          ? 'bg-emerald-500 border-emerald-400 text-black shadow-[0_0_8px_rgba(16,185,129,0.5)]'
-                          : isIncompleto
-                          ? 'bg-amber-500 border-amber-400 text-black shadow-[0_0_8px_rgba(245,158,11,0.5)]'
-                          : isNoHecho
-                          ? 'bg-rose-500 border-rose-400 text-white'
-                          : 'bg-[#0d1a3d] border-[#5b9bd5]/40 text-transparent hover:border-white'
-                      }`}
-                      title={
-                        isHecho
-                          ? 'Completada (Clic para cambiar)'
-                          : isIncompleto
-                          ? 'Incompleta (Clic para cambiar)'
-                          : 'Pendiente (Clic para marcar hecha)'
-                      }
-                    >
-                      {isHecho && <span className="font-bold text-xs">✓</span>}
-                      {isIncompleto && <span className="font-bold text-xs">~</span>}
-                      {isNoHecho && <span className="font-bold text-xs">✗</span>}
-                    </button>
+            {/* VISTA 2: FILTRO CUMPLIDAS */}
+            {filtroEstado === 'cumplidas' && (
+              hechasList.length === 0 ? (
+                <div className="p-6 text-center text-xs text-[#94a3b8] bg-[#070e1e]/60 rounded-xl border border-dashed border-[#5b9bd5]/20 space-y-1">
+                  <p className="font-serif font-bold text-white text-sm">Aún no hay tareas cumplidas</p>
+                  <p>Ejecuta tu primer bloque de foco y márcala como completada.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="px-1 text-xs font-serif font-bold text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>✅</span> Tareas Ya Cumplidas ({hechasList.length})
+                  </div>
+                  {hechasList.map((tarea) => renderTaskRow(tarea))}
+                </div>
+              )
+            )}
 
-                    {/* Texto y Badges */}
-                    <div className="space-y-1 min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {/* Franja horaria */}
-                        <span className="font-mono text-[11px] font-semibold text-[#eed59b] bg-[#0d1733] px-2 py-0.5 rounded border border-[#5b9bd5]/25">
-                          {tarea.hora_inicio} — {tarea.hora_fin}
-                        </span>
-
-                        {/* Tipo de trabajo */}
-                        <span
-                          className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                            isProfundo
-                              ? 'bg-[#1e3a8a]/70 text-[#93c5fd] border border-[#60a5fa]/40'
-                              : 'bg-[#334155]/60 text-[#cbd5e1] border border-slate-600/40'
-                          }`}
-                        >
-                          {isProfundo ? '🧠 PROFUNDO' : '⚡ SUPERFICIAL'}
-                        </span>
-
-                        {/* Horas estimadas */}
-                        <span className="text-[10px] text-[#94a3b8] font-mono">
-                          {tarea.horas_netas_estimadas}h netas
-                        </span>
-
-                        {/* Badge de Estado */}
-                        <span
-                          className={`text-[9px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wider ${
-                            isHecho
-                              ? 'bg-emerald-500/20 text-emerald-300'
-                              : isIncompleto
-                              ? 'bg-amber-500/20 text-amber-300'
-                              : isNoHecho
-                              ? 'bg-rose-500/20 text-rose-300'
-                              : 'bg-blue-500/10 text-blue-300'
-                          }`}
-                        >
-                          {tarea.estado}
-                        </span>
-                      </div>
-
-                      {/* Descripción */}
-                      <p
-                        className={`text-sm font-medium transition-all ${
-                          isHecho
-                            ? 'line-through text-[#94a3b8]'
-                            : 'text-white'
-                        }`}
-                      >
-                        {tarea.descripcion}
-                      </p>
-
-                      {/* Motivo de Desvío si existe */}
-                      {tarea.motivo_desvio && (
-                        <div className="text-[11px] text-amber-300/90 italic bg-amber-950/30 px-2 py-1 rounded border border-amber-500/20">
-                          Motivo desvío: {tarea.motivo_desvio}
-                        </div>
-                      )}
+            {/* VISTA 3: TODAS (AGRUPACIÓN CLARA) */}
+            {filtroEstado === 'todas' && (
+              <div className="space-y-4">
+                {/* Bloque Por Cumplir */}
+                {porCumplirList.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-xs font-serif font-bold text-[#eed59b] uppercase tracking-wider flex items-center gap-1.5">
+                        <span>⏳</span> Tareas Que Debes Cumplir ({porCumplirList.length})
+                      </span>
+                      <span className="text-[11px] text-[#94a3b8]">Pendientes de ejecución</span>
+                    </div>
+                    <div className="space-y-2">
+                      {porCumplirList.map((tarea) => renderTaskRow(tarea))}
                     </div>
                   </div>
+                )}
 
-                  {/* Derecha: Botones de Acción (Editar, Motivo, Eliminar) */}
-                  <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setEditingTask(tarea)}
-                      className="px-2.5 py-1.5 rounded-lg bg-[#0d1a3d] border border-[#5b9bd5]/25 text-[#cbd5e1] hover:text-white hover:border-[#60a5fa] text-xs transition-all flex items-center gap-1"
-                      title="Editar descripción, horarios o tipo"
-                    >
-                      <span>✏️</span>
-                      <span className="hidden sm:inline">Editar</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      disabled={deletingId === tarea.id}
-                      onClick={() => handleDeleteTask(tarea.id, tarea.fecha_objetivo)}
-                      className="px-2 py-1.5 rounded-lg bg-rose-950/30 border border-rose-500/30 text-rose-300 hover:bg-rose-900/40 text-xs transition-all disabled:opacity-50"
-                      title="Eliminar tarea"
-                    >
-                      <span>🗑️</span>
-                    </button>
+                {/* Bloque Cumplidas */}
+                {hechasList.length > 0 && (
+                  <div className={`space-y-2 ${porCumplirList.length > 0 ? 'pt-3 border-t border-[#5b9bd5]/15' : ''}`}>
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-xs font-serif font-bold text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <span>✅</span> Tareas Ya Cumplidas ({hechasList.length})
+                      </span>
+                      <span className="text-[11px] text-emerald-400 font-mono">
+                        {pctCumplimiento}% completado
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      {hechasList.map((tarea) => renderTaskRow(tarea))}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

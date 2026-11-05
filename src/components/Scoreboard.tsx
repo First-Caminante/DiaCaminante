@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import type { TareaPlanificada } from '../types/database';
 
 interface ScoreboardProps {
   fecha: string;
@@ -6,6 +7,7 @@ interface ScoreboardProps {
   cierreRealizado: boolean;
   onOpenShutdown: () => void;
   onRefresh?: () => void;
+  tareas?: TareaPlanificada[];
 }
 
 export const Scoreboard: React.FC<ScoreboardProps> = ({
@@ -14,9 +16,15 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
   cierreRealizado,
   onOpenShutdown,
   onRefresh,
+  tareas = [],
 }) => {
   const [exporting, setExporting] = useState(false);
   const [copiedToast, setCopiedToast] = useState(false);
+
+  const totalTareas = tareas.length;
+  const tareasCumplidas = tareas.filter((t) => t.estado === 'hecho').length;
+  const tareasPendientes = tareas.filter((t) => t.estado === 'pendiente' || t.estado === 'incompleto').length;
+  const pctTareasCumplidas = totalTareas > 0 ? Math.round((tareasCumplidas / totalTareas) * 100) : 0;
 
   const formattedDate = (() => {
     try {
@@ -122,6 +130,33 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
                 </div>
               )}
             </div>
+
+            {/* Task summary indicator */}
+            {totalTareas > 0 && (
+              <>
+                <div className="h-10 w-px bg-[#5b9bd5]/20 hidden sm:block"></div>
+                <div className="hidden sm:block">
+                  <div className="text-[11px] font-sans font-medium text-[#94a3b8] uppercase tracking-wider mb-1">
+                    Plan de Tareas
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-base font-serif font-bold text-white tabular-nums">
+                      {tareasCumplidas}/{totalTareas}
+                    </span>
+                    <span className={`tag-formal text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold ${
+                      pctTareasCumplidas === 100
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                        : 'bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30'
+                    }`}>
+                      {pctTareasCumplidas}% hecho
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-[#94a3b8]">
+                    {tareasPendientes > 0 ? `${tareasPendientes} por cumplir` : '✓ Todas cumplidas'}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Right: Actions */}

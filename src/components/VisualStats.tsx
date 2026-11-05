@@ -9,6 +9,9 @@ import type {
   RegistroSueno,
   RegistroComida,
   RegistroEjercicio,
+  TareaPlanificada,
+  TipoTrabajo,
+  EstadoTarea,
 } from '../types/database';
 import { getDiaDelCiclo, FECHA_INICIO_CICLO } from '../data/reflections';
 
@@ -18,7 +21,12 @@ interface VisualStatsProps {
   suenosHoy?: RegistroSueno[];
   comidasHoy?: RegistroComida[];
   ejerciciosHoy?: RegistroEjercicio[];
+  tareasHoy?: TareaPlanificada[];
+  onTaskUpdated?: (tarea: TareaPlanificada) => void;
+  onTaskCreated?: (nuevasTareas: TareaPlanificada[]) => void;
+  onTaskDeleted?: (id: string) => void;
   onGoToDailyLog?: () => void;
+  onGoToTasks?: () => void;
 }
 
 export interface HoraSlot24 {
@@ -34,6 +42,7 @@ export interface HoraSlot24 {
   suenos: { sueno: RegistroSueno; minutos: number }[];
   comidas: RegistroComida[];
   ejercicios: { ejercicio: RegistroEjercicio; minutos: number }[];
+  tareas: TareaPlanificada[];
   intensidadPredominante: Intensidad | null;
   incomodidadPredominante: Incomodidad | null;
   esHoraActual: boolean;
@@ -179,7 +188,8 @@ function compute24hSlots(
   suenos: RegistroSueno[] = [],
   comidas: RegistroComida[] = [],
   ejercicios: RegistroEjercicio[] = [],
-  currentLiveHour?: number | null
+  currentLiveHour?: number | null,
+  tareas: TareaPlanificada[] = []
 ): HoraSlot24[] {
   const [year, month, day] = targetDate.split('-').map(Number);
   const slots: HoraSlot24[] = [];
@@ -316,6 +326,12 @@ function compute24hSlots(
       }
     }
 
+    // 5. Tareas Planificadas en este slot
+    const tareasEnSlot: TareaPlanificada[] = (tareas || []).filter((t) => {
+      if (!t.hora_inicio || !t.hora_fin) return false;
+      return calculateSlotOverlap(h, t.hora_inicio, t.hora_fin) > 0;
+    });
+
     const isCurrent = currentLiveHour != null && currentLiveHour === h;
     const isPast = currentLiveHour != null ? h < currentLiveHour : true;
     const isFuture = currentLiveHour != null ? h > currentLiveHour : false;
@@ -333,6 +349,7 @@ function compute24hSlots(
       suenos: suenosEnSlot,
       comidas: comidasEnSlot,
       ejercicios: ejerciciosEnSlot,
+      tareas: tareasEnSlot,
       intensidadPredominante,
       incomodidadPredominante,
       esHoraActual: isCurrent,
@@ -350,7 +367,12 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
   suenosHoy = [],
   comidasHoy = [],
   ejerciciosHoy = [],
+  tareasHoy = [],
+  onTaskUpdated,
+  onTaskCreated,
+  onTaskDeleted,
   onGoToDailyLog,
+  onGoToTasks,
 }) => {
   const [stats, setStats] = useState<EstadisticasResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -360,6 +382,94 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
   const [hoveredDay, setHoveredDay] = useState<TendenciaDia | null>(null);
   const [mostrarModalHistorico, setMostrarModalHistorico] = useState<boolean>(false);
   const [selectedHora, setSelectedHora] = useState<number | null>(null);
+
+  // Filtro de tareas en el panel diario ('todas' | 'por_cumplir' | 'cumplidas')
+  const [filtroTareasVisual, setFiltroTareasVisual] = useState<'todas' | 'por_cumplir' | 'cumplidas'>('todas');
+  // Modal rápido para agregar tarea en el panel diario
+  const [isQuickCreateTaskOpen, setIsQuickCreateTaskOpen] = useState<boolean>(false);
+  const [quickTaskDesc, setQuickTaskDesc] = useState<string>('');
+  const [quickTaskInicio, setQuickTaskInicio] = useState<string>('09:00');
+  const [quickTaskFin, setQuickTaskFin] = useState<string>('10:30');
+  const [quickTaskTipo, setQuickTaskTipo] = useState<TipoTrabajo>('PROFUNDO');
+  const [quickTaskHoras, setQuickTaskHoras] = useState<number>(1.5);
+  const [creatingQuickTask, setCreatingQuickTask] = useState<boolean>(false);
+  const [visualTaskFeedback, setVisualTaskFeedback] = useState<string | null>(null);
+
+  const showVisualTaskToast = (msg: string) => {
+    setVisualTaskFeedback(msg);
+    setTimeout(() => setVisualTaskFeedback(null), 3500);
+  };
+
+  const handleHorasQuickTask = (ini: string, fin: string) => {
+    setQuickTaskInicio(ini);
+    setQuickTaskFin(fin);
+    try {
+      const [h1, m1] = ini.split(':').map(Number);
+      const [h2, m2] = fin.split(':').map(Number);
+      let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+      if (diff < 0) diff += 24 * 60;
+      const hours = Math.round((diff / 60) * 10) / 10;
+      if (hours > 0) setQuickTaskHoras(hours);
+    } catch {
+      // Ignorar
+    }
+  };
+
+  const handleToggleTareaRapida = async (tarea: TareaPlanificada) => {
+    const nextStatus: EstadoTarea = tarea.estado === 'hecho' ? 'pendiente' : 'hecho';
+    try {
+      const res = await fetch(`/api/tareas/${tarea.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          estado: nextStatus,
+          motivo_desvio: null,
+        }),
+      });
+      if (!res.ok) throw new Error('Error al actualizar tarea');
+      const data = await res.json();
+      if (onTaskUpdated) {
+        onTaskUpdated(data.tarea);
+      }
+      showVisualTaskToast(nextStatus === 'hecho' ? '✓ Tarea marcada como cumplida' : 'Tarea devuelta a pendientes');
+    } catch (err) {
+      console.error(err);
+      alert('No se pudo actualizar la tarea');
+    }
+  };
+
+  const handleCreateQuickTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickTaskDesc.trim()) return;
+    try {
+      setCreatingQuickTask(true);
+      const res = await fetch('/api/tareas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fecha_objetivo: targetFechaStr,
+          descripcion: quickTaskDesc.trim(),
+          hora_inicio: quickTaskInicio,
+          hora_fin: quickTaskFin,
+          tipo_trabajo: quickTaskTipo,
+          horas_netas_estimadas: quickTaskHoras,
+        }),
+      });
+      if (!res.ok) throw new Error('Error al registrar tarea');
+      const data = await res.json();
+      if (onTaskCreated) {
+        onTaskCreated(data.tareas || [data.tarea]);
+      }
+      setQuickTaskDesc('');
+      setIsQuickCreateTaskOpen(false);
+      showVisualTaskToast('✓ Tarea agregada al plan de hoy');
+    } catch (err) {
+      console.error(err);
+      alert('No se pudo crear la tarea');
+    } finally {
+      setCreatingQuickTask(false);
+    }
+  };
 
   // Selector de aspecto circadiano (Trabajo, Sueño, Alimentación, Ejercicio, Comparativa)
   const [aspectoCircadiano, setAspectoCircadiano] = useState<
@@ -503,10 +613,32 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
     return stats?.hoy?.sesiones || [];
   }, [sesionesHoy, stats?.hoy?.sesiones]);
 
+  // Tareas de Hoy y métricas para el Panel Diario
+  const tareasList = useMemo(() => tareasHoy || [], [tareasHoy]);
+  const porCumplirList = useMemo(
+    () => tareasList.filter((t) => t.estado === 'pendiente' || t.estado === 'incompleto' || t.estado === 'no_hecho'),
+    [tareasList]
+  );
+  const cumplidasList = useMemo(() => tareasList.filter((t) => t.estado === 'hecho'), [tareasList]);
+  const totalTareasCount = tareasList.length;
+  const pctTareasCumplidas = totalTareasCount > 0 ? Math.round((cumplidasList.length / totalTareasCount) * 100) : 0;
+  const horasTareasPlanificadas = useMemo(
+    () => tareasList.reduce((acc, t) => acc + (parseFloat(String(t.horas_netas_estimadas)) || 0), 0),
+    [tareasList]
+  );
+  const horasTareasCumplidas = useMemo(
+    () => cumplidasList.reduce((acc, t) => acc + (parseFloat(String(t.horas_netas_estimadas)) || 0), 0),
+    [cumplidasList]
+  );
+  const horasTareasPorCumplir = useMemo(
+    () => porCumplirList.reduce((acc, t) => acc + (parseFloat(String(t.horas_netas_estimadas)) || 0), 0),
+    [porCumplirList]
+  );
+
   // Cronograma de 24 Horas de HOY
   const horasSlotsHoy: HoraSlot24[] = useMemo(() => {
-    return compute24hSlots(targetFechaStr, activeSesionesHoy, suenosHoy, comidasHoy, ejerciciosHoy, horaActual);
-  }, [activeSesionesHoy, suenosHoy, comidasHoy, ejerciciosHoy, targetFechaStr, horaActual]);
+    return compute24hSlots(targetFechaStr, activeSesionesHoy, suenosHoy, comidasHoy, ejerciciosHoy, horaActual, tareasHoy);
+  }, [activeSesionesHoy, suenosHoy, comidasHoy, ejerciciosHoy, targetFechaStr, horaActual, tareasHoy]);
 
   const horasConFocoCount = horasSlotsHoy.filter((s) => s.minutosFoco > 0).length;
   const picoSlotHoy = useMemo(() => {
@@ -570,9 +702,10 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
       detalleDiaHist?.suenos || [],
       detalleDiaHist?.comidas || [],
       detalleDiaHist?.ejercicios || [],
-      isSelectedToday ? horaActual : null
+      isSelectedToday ? horaActual : null,
+      detalleDiaHist?.tareas || []
     );
-  }, [fechaSeleccionadaHist, sesionesDiaHist, detalleDiaHist?.suenos, detalleDiaHist?.comidas, detalleDiaHist?.ejercicios, isSelectedToday, horaActual]);
+  }, [fechaSeleccionadaHist, sesionesDiaHist, detalleDiaHist?.suenos, detalleDiaHist?.comidas, detalleDiaHist?.ejercicios, detalleDiaHist?.tareas, isSelectedToday, horaActual]);
 
   const slotActivoHist = useMemo(() => {
     if (!horasSlotsHist.length) return null;
@@ -882,6 +1015,100 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
     const pct = Math.max(0, Math.min(1, mouseX / rect.width));
     const h = Math.min(23, Math.max(0, Math.round(pct * 23)));
     setHoveredSlotHora(h);
+  };
+
+  const renderVisualTaskCard = (tarea: TareaPlanificada) => {
+    const isDone = tarea.estado === 'hecho';
+    const isProfundo = tarea.tipo_trabajo === 'PROFUNDO';
+
+    return (
+      <div
+        key={tarea.id}
+        className={`p-3.5 sm:p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+          isDone
+            ? 'bg-[#06241a]/50 border-[#10b981]/40'
+            : 'bg-[#081229]/80 border-[#5b9bd5]/20 hover:border-[#60a5fa]/40'
+        }`}
+      >
+        <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
+          {/* Checkbox Interactivo de 1 Clic */}
+          <button
+            type="button"
+            onClick={() => handleToggleTareaRapida(tarea)}
+            className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-all border ${
+              isDone
+                ? 'bg-emerald-500 border-emerald-400 text-black shadow-[0_0_8px_rgba(16,185,129,0.5)]'
+                : 'bg-[#0d1a3d] border-[#5b9bd5]/40 text-transparent hover:border-emerald-400 hover:text-emerald-400'
+            }`}
+            title={isDone ? 'Tarea cumplida (Clic para desmarcar)' : 'Marcar como cumplida'}
+          >
+            <span className="font-bold text-xs">✓</span>
+          </button>
+
+          {/* Información de la Tarea */}
+          <div className="space-y-1 min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-mono text-[11px] font-semibold text-[#eed59b] bg-[#0d1733] px-2 py-0.5 rounded border border-[#5b9bd5]/25">
+                {tarea.hora_inicio} — {tarea.hora_fin}
+              </span>
+
+              <span
+                className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                  isProfundo
+                    ? 'bg-[#1e3a8a]/70 text-[#93c5fd] border border-[#60a5fa]/40'
+                    : 'bg-[#334155]/60 text-[#cbd5e1] border border-slate-600/40'
+                }`}
+              >
+                {isProfundo ? '🧠 PROFUNDO' : '⚡ SUPERFICIAL'}
+              </span>
+
+              <span className="text-[10px] text-[#94a3b8] font-mono">
+                {tarea.horas_netas_estimadas}h netas
+              </span>
+
+              <span
+                className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                  isDone
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                    : 'bg-blue-500/15 text-blue-300 border border-blue-500/30'
+                }`}
+              >
+                {isDone ? '✓ CUMPLIDA' : '⏳ POR CUMPLIR'}
+              </span>
+            </div>
+
+            <p
+              className={`text-sm font-medium transition-all ${
+                isDone ? 'line-through text-[#94a3b8]' : 'text-white'
+              }`}
+            >
+              {tarea.descripcion}
+            </p>
+
+            {tarea.motivo_desvio && (
+              <div className="text-[11px] text-amber-300/90 italic bg-amber-950/30 px-2 py-0.5 rounded border border-amber-500/20">
+                Motivo desvío: {tarea.motivo_desvio}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Botón de Acción Rápida a la Derecha */}
+        <div className="self-end sm:self-center shrink-0">
+          <button
+            type="button"
+            onClick={() => handleToggleTareaRapida(tarea)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+              isDone
+                ? 'bg-[#0d1733] text-[#94a3b8] hover:text-white border border-[#5b9bd5]/20'
+                : 'bg-gradient-to-r from-[#1e3a8a] to-[#2563eb] text-white hover:brightness-110 border border-[#60a5fa]/40 shadow-sm'
+            }`}
+          >
+            <span>{isDone ? '↩ Desmarcar' : '✓ Cumplir'}</span>
+          </button>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -1660,6 +1887,282 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
       </section>
 
       {/* ========================================================= */}
+      {/* SECCIÓN FORMAL: PLAN DE VUELO & TAREAS DE LA JORNADA     */}
+      {/* (Tareas que tengo, las que debo cumplir y las ya cumplidas) */}
+      {/* ========================================================= */}
+      <section className="card-midnight p-5 sm:p-7 border border-[#5b9bd5]/25 shadow-midnight space-y-5 rounded-2xl relative">
+        {/* Toast Local de Tareas */}
+        {visualTaskFeedback && (
+          <div className="absolute top-4 right-4 z-30 px-3.5 py-1.5 rounded-full bg-[#064e3b] text-emerald-200 border border-[#10b981]/40 text-xs font-medium shadow-lg animate-fade-in flex items-center gap-1.5">
+            <span>✓</span>
+            <span>{visualTaskFeedback}</span>
+          </div>
+        )}
+
+        {/* Cabecera y Resumen */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#5b9bd5]/15">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="tag-formal px-2.5 py-0.5 rounded-full text-[10px] bg-[#1e3a8a]/40 text-[#93c5fd] border border-[#60a5fa]/30 font-medium">
+                Plan de Vuelo • Jornada Activa
+              </span>
+              <span className="text-xs text-[#eed59b] font-serif font-medium">
+                Control de Tareas y Objetivos
+              </span>
+            </div>
+            <h3 className="text-xl sm:text-2xl font-serif font-bold text-white tracking-wide flex items-center gap-2">
+              <span>📋</span>
+              <span>Tareas de Hoy: Por Cumplir y Cumplidas</span>
+            </h3>
+            <p className="text-xs text-[#94a3b8] max-w-2xl">
+              Revisa los compromisos de tu jornada. Marca tus tareas con un clic para registrar su cumplimiento en tiempo real.
+            </p>
+          </div>
+
+          {/* Acciones de Cabecera */}
+          <div className="flex items-center gap-2.5 self-start md:self-auto flex-wrap">
+            {onGoToTasks && (
+              <button
+                type="button"
+                onClick={onGoToTasks}
+                className="btn-formal-outline px-3.5 py-2 rounded-full text-xs font-medium flex items-center gap-1.5"
+                title="Ver módulo completo de tareas para hoy y mañana"
+              >
+                <span>📋</span>
+                <span className="hidden sm:inline">Gestionar Plan</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setIsQuickCreateTaskOpen(true)}
+              className="btn-formal px-4 py-2 rounded-full text-xs font-semibold flex items-center gap-1.5 shadow-md"
+            >
+              <span>+</span>
+              <span>Agregar Tarea</span>
+            </button>
+          </div>
+        </div>
+
+        {/* HUD de Cumplimiento de Tareas */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="p-3.5 rounded-xl bg-[#070e1e]/80 border border-[#5b9bd5]/20 space-y-0.5">
+            <span className="text-[10px] text-[#94a3b8] uppercase tracking-wider font-medium">Total Programadas</span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-serif font-bold text-white tabular-nums">{totalTareasCount}</span>
+              <span className="text-[10px] text-[#94a3b8]">bloques</span>
+            </div>
+            <span className="text-[10px] text-[#eed59b] font-mono block">
+              {horasTareasPlanificadas.toFixed(1)}h estimadas
+            </span>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-[#06241a]/80 border border-[#10b981]/30 space-y-0.5">
+            <span className="text-[10px] text-emerald-300 uppercase tracking-wider font-medium">Ya Cumplidas</span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-serif font-bold text-emerald-200 tabular-nums">{cumplidasList.length}</span>
+              <span className="text-[10px] text-emerald-400 font-mono">({pctTareasCumplidas}%)</span>
+            </div>
+            <span className="text-[10px] text-emerald-400/80 font-mono block">
+              {horasTareasCumplidas.toFixed(1)}h logradas
+            </span>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-[#0b1633]/80 border border-[#3b82f6]/30 space-y-0.5">
+            <span className="text-[10px] text-[#93c5fd] uppercase tracking-wider font-medium">Por Cumplir</span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-serif font-bold text-[#93c5fd] tabular-nums">{porCumplirList.length}</span>
+              <span className="text-[10px] text-[#94a3b8]">pendientes</span>
+            </div>
+            <span className="text-[10px] text-[#93c5fd]/80 font-mono block">
+              {horasTareasPorCumplir.toFixed(1)}h restantes
+            </span>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-[#0d1733]/80 border border-[#e5c179]/30 space-y-1.5 flex flex-col justify-between">
+            <div className="flex justify-between items-center text-[10px] uppercase tracking-wider text-[#eed59b] font-medium">
+              <span>Cumplimiento</span>
+              <span className="font-mono font-bold">{pctTareasCumplidas}%</span>
+            </div>
+            <div className="w-full h-2.5 rounded-full bg-[#070e1e] overflow-hidden border border-[#5b9bd5]/20 p-0.5">
+              <div
+                style={{ width: `${pctTareasCumplidas}%` }}
+                className="h-full bg-gradient-to-r from-[#2563eb] to-[#10b981] rounded-full transition-all duration-500"
+              ></div>
+            </div>
+            <span className="text-[9px] text-[#94a3b8] italic">
+              {pctTareasCumplidas === 100
+                ? '✓ 100% de la agenda conquistada'
+                : porCumplirList.length > 0
+                ? `${porCumplirList.length} objetivos por concretar`
+                : 'Sin tareas pendientes'}
+            </span>
+          </div>
+        </div>
+
+        {/* Selector de Pestañas de Visualización */}
+        {totalTareasCount > 0 && (
+          <div className="flex items-center gap-2 pt-2 border-t border-[#5b9bd5]/15 flex-wrap">
+            <span className="text-[11px] font-sans text-[#94a3b8] uppercase tracking-wider font-semibold mr-1">
+              Mostrar:
+            </span>
+            <button
+              type="button"
+              onClick={() => setFiltroTareasVisual('todas')}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
+                filtroTareasVisual === 'todas'
+                  ? 'bg-[#1e3a8a] text-white border border-[#60a5fa]/50 shadow-sm'
+                  : 'bg-[#0d1733] text-[#94a3b8] border border-[#5b9bd5]/20 hover:text-white'
+              }`}
+            >
+              <span>📋 Todas las Tareas</span>
+              <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-black/40 text-white">
+                {totalTareasCount}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setFiltroTareasVisual('por_cumplir')}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
+                filtroTareasVisual === 'por_cumplir'
+                  ? 'bg-[#1e3a8a] text-white border border-[#3b82f6]/60 shadow-sm ring-1 ring-blue-400/40'
+                  : 'bg-[#0d1733] text-[#93c5fd] border border-blue-500/30 hover:bg-[#1e3a8a]/40'
+              }`}
+            >
+              <span>⏳ Por Cumplir</span>
+              <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-blue-900/50 text-[#93c5fd]">
+                {porCumplirList.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setFiltroTareasVisual('cumplidas')}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 ${
+                filtroTareasVisual === 'cumplidas'
+                  ? 'bg-[#064e3b] text-emerald-100 border border-emerald-400 shadow-sm ring-1 ring-emerald-400/40'
+                  : 'bg-[#06241a] text-emerald-300 border border-emerald-500/30 hover:bg-[#064e3b]/40'
+              }`}
+            >
+              <span>✅ Ya Cumplidas</span>
+              <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-emerald-950/60 text-emerald-300">
+                {cumplidasList.length}
+              </span>
+            </button>
+          </div>
+        )}
+
+        {/* Listado de Tareas */}
+        <div className="space-y-3 pt-1">
+          {totalTareasCount === 0 ? (
+            <div className="p-8 sm:p-10 rounded-2xl bg-[#070e1e]/60 border border-dashed border-[#5b9bd5]/25 text-center space-y-3">
+              <span className="text-3xl">📋</span>
+              <div className="space-y-1">
+                <p className="text-sm font-serif font-bold text-white">
+                  No hay tareas programadas para la jornada de hoy
+                </p>
+                <p className="text-xs text-[#94a3b8] max-w-md mx-auto">
+                  Si no alcanzaste a registrar tu plan en el ritual nocturno de ayer, puedes definir ahora mismo tus tareas clave para enfocar tu trabajo.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsQuickCreateTaskOpen(true)}
+                className="btn-formal px-5 py-2.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 shadow-md"
+              >
+                <span>+</span>
+                <span>Programar Primera Tarea de Hoy</span>
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* VISTA 1: SOLO POR CUMPLIR */}
+              {filtroTareasVisual === 'por_cumplir' && (
+                porCumplirList.length === 0 ? (
+                  <div className="p-6 text-center text-xs text-[#94a3b8] bg-[#070e1e]/60 rounded-xl border border-dashed border-emerald-500/30 space-y-1">
+                    <p className="font-serif font-bold text-emerald-300 text-sm">🎉 ¡Extraordinario! No tienes tareas pendientes</p>
+                    <p>Has cumplido todos los objetivos planificados para la jornada de hoy.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="px-1 text-xs font-serif font-bold text-[#93c5fd] uppercase tracking-wider flex items-center gap-1.5">
+                      <span>⏳</span> Tareas Que Debes Cumplir ({porCumplirList.length})
+                    </div>
+                    {porCumplirList.map((tarea) => renderVisualTaskCard(tarea))}
+                  </div>
+                )
+              )}
+
+              {/* VISTA 2: SOLO YA CUMPLIDAS */}
+              {filtroTareasVisual === 'cumplidas' && (
+                cumplidasList.length === 0 ? (
+                  <div className="p-6 text-center text-xs text-[#94a3b8] bg-[#070e1e]/60 rounded-xl border border-dashed border-[#5b9bd5]/20 space-y-1">
+                    <p className="font-serif font-bold text-white text-sm">Aún no has marcado tareas como cumplidas hoy</p>
+                    <p>Ejecuta tu bloque de trabajo y pulsa el recuadro para marcarla completada.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="px-1 text-xs font-serif font-bold text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <span>✅</span> Tareas Ya Cumplidas ({cumplidasList.length})
+                    </div>
+                    {cumplidasList.map((tarea) => renderVisualTaskCard(tarea))}
+                  </div>
+                )
+              )}
+
+              {/* VISTA 3: TODAS (DIVISIÓN LIMPIA DE POR CUMPLIR VS YA CUMPLIDAS) */}
+              {filtroTareasVisual === 'todas' && (
+                <div className="space-y-5">
+                  {/* Bloque: Las que debo cumplir */}
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-xs font-serif font-bold text-[#eed59b] uppercase tracking-wider flex items-center gap-1.5">
+                        <span>⏳</span> Tareas Que Debes Cumplir ({porCumplirList.length})
+                      </span>
+                      <span className="text-[11px] text-[#94a3b8]">
+                        {horasTareasPorCumplir.toFixed(1)}h netas pendientes
+                      </span>
+                    </div>
+                    {porCumplirList.length === 0 ? (
+                      <div className="p-4 text-center text-xs text-emerald-300 bg-[#06241a]/40 rounded-xl border border-emerald-500/25">
+                        ✓ Todas las tareas de hoy han sido completadas.
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {porCumplirList.map((tarea) => renderVisualTaskCard(tarea))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Bloque: Las ya cumplidas */}
+                  <div className="space-y-2.5 pt-3 border-t border-[#5b9bd5]/15">
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-xs font-serif font-bold text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <span>✅</span> Tareas Ya Cumplidas ({cumplidasList.length})
+                      </span>
+                      <span className="text-[11px] text-emerald-400 font-mono">
+                        {horasTareasCumplidas.toFixed(1)}h logradas ({pctTareasCumplidas}%)
+                      </span>
+                    </div>
+                    {cumplidasList.length === 0 ? (
+                      <div className="p-4 text-center text-xs text-[#94a3b8] bg-[#070e1e]/40 rounded-xl border border-dashed border-[#5b9bd5]/20">
+                        Aún no has marcado tareas completadas hoy.
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {cumplidasList.map((tarea) => renderVisualTaskCard(tarea))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ========================================================= */}
       {/* 2. GRID ASIMÉTRICO: COLUMNA CRONOGRAMA 24H (65%) + COLUMNA EXIGENCIA (35%) */}
       {/* ========================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -1886,7 +2389,8 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
               {slotActivoHoy.sesiones.length > 0 ||
               (slotActivoHoy.ejercicios && slotActivoHoy.ejercicios.length > 0) ||
               (slotActivoHoy.comidas && slotActivoHoy.comidas.length > 0) ||
-              (slotActivoHoy.suenos && slotActivoHoy.suenos.length > 0) ? (
+              (slotActivoHoy.suenos && slotActivoHoy.suenos.length > 0) ||
+              (slotActivoHoy.tareas && slotActivoHoy.tareas.length > 0) ? (
                 <div className="space-y-2.5">
                   {/* 1. Sesiones de Foco */}
                   {slotActivoHoy.sesiones.map((item, idx) => {
@@ -2016,6 +2520,58 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                         )}
                       </div>
                     ))}
+
+                  {/* 5. Tareas Planificadas en esta Franja */}
+                  {slotActivoHoy.tareas && slotActivoHoy.tareas.length > 0 && (
+                    <div className="space-y-2 pt-2 border-t border-[#5b9bd5]/15">
+                      <div className="flex items-center justify-between text-[11px] font-sans font-bold uppercase tracking-wider text-[#eed59b]">
+                        <span>📋 Tareas Programadas en este Horario ({slotActivoHoy.tareas.length})</span>
+                      </div>
+                      {slotActivoHoy.tareas.map((t, idx) => {
+                        const isDone = t.estado === 'hecho';
+                        return (
+                          <div
+                            key={t.id || idx}
+                            className={`p-3 rounded-xl border flex items-center justify-between gap-3 text-xs ${
+                              isDone
+                                ? 'bg-[#06241a]/60 border-[#10b981]/40'
+                                : 'bg-[#0d1733]/90 border-[#3b82f6]/40'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleTareaRapida(t)}
+                                className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 text-xs border ${
+                                  isDone
+                                    ? 'bg-emerald-500 border-emerald-400 text-black font-bold'
+                                    : 'bg-[#070e1e] border-[#5b9bd5]/40 text-transparent hover:border-emerald-400'
+                                }`}
+                                title={isDone ? 'Cumplida (Clic para desmarcar)' : 'Pendiente (Clic para marcar cumplida)'}
+                              >
+                                {isDone ? '✓' : ''}
+                              </button>
+                              <div className="min-w-0">
+                                <span className={`block truncate ${isDone ? 'line-through text-[#94a3b8]' : 'text-white font-medium'}`}>
+                                  📋 {t.descripcion}
+                                </span>
+                                <span className="text-[10px] text-[#94a3b8] font-mono">
+                                  {t.hora_inicio} — {t.hora_fin} • {t.tipo_trabajo} ({t.horas_netas_estimadas}h)
+                                </span>
+                              </div>
+                            </div>
+                            <span
+                              className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 ${
+                                isDone ? 'bg-emerald-500/20 text-emerald-300' : 'bg-blue-500/20 text-blue-300'
+                              }`}
+                            >
+                              {isDone ? '✓ Cumplida' : '⏳ Por Cumplir'}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-2 text-xs text-[#94a3b8]">
@@ -2693,6 +3249,141 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                 Cerrar Ventana
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* 4. MODAL RÁPIDO PARA AGREGAR TAREA EN EL PANEL DIARIO     */}
+      {/* ========================================================= */}
+      {isQuickCreateTaskOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsQuickCreateTaskOpen(false);
+          }}
+        >
+          <div className="card-midnight p-5 sm:p-6 rounded-2xl border border-[#5b9bd5]/30 max-w-lg w-full space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-[#5b9bd5]/15">
+              <div className="space-y-0.5">
+                <span className="text-[10px] font-sans font-bold uppercase tracking-widest text-[#eed59b]">
+                  Plan de Vuelo
+                </span>
+                <h4 className="text-base font-serif font-bold text-white">
+                  Programar Tarea para Hoy
+                </h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsQuickCreateTaskOpen(false)}
+                className="p-1 rounded-lg text-[#94a3b8] hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateQuickTask} className="space-y-4 font-sans text-xs">
+              <div className="space-y-1">
+                <label className="text-[#94a3b8] font-medium block">
+                  Descripción del Objetivo / Tarea
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej: Implementar arquitectura del nuevo módulo"
+                  value={quickTaskDesc}
+                  onChange={(e) => setQuickTaskDesc(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#070e1e] text-white border border-[#5b9bd5]/30 focus:outline-none focus:border-[#eed59b]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[#94a3b8] font-medium block">Hora Inicio</label>
+                  <input
+                    type="time"
+                    required
+                    value={quickTaskInicio}
+                    onChange={(e) => handleHorasQuickTask(e.target.value, quickTaskFin)}
+                    className="w-full px-3 py-2 rounded-xl bg-[#070e1e] text-[#eed59b] border border-[#5b9bd5]/30 font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[#94a3b8] font-medium block">Hora Fin</label>
+                  <input
+                    type="time"
+                    required
+                    value={quickTaskFin}
+                    onChange={(e) => handleHorasQuickTask(quickTaskInicio, e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-[#070e1e] text-[#eed59b] border border-[#5b9bd5]/30 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[#94a3b8] font-medium block">Tipo de Trabajo</label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setQuickTaskTipo('PROFUNDO')}
+                      className={`py-2 px-2 rounded-xl text-center font-bold text-[11px] transition-all border ${
+                        quickTaskTipo === 'PROFUNDO'
+                          ? 'bg-[#1e3a8a] text-white border-[#60a5fa]'
+                          : 'bg-[#070e1e] text-[#94a3b8] border-[#5b9bd5]/20'
+                      }`}
+                    >
+                      🧠 Profundo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setQuickTaskTipo('SUPERFICIAL')}
+                      className={`py-2 px-2 rounded-xl text-center font-bold text-[11px] transition-all border ${
+                        quickTaskTipo === 'SUPERFICIAL'
+                          ? 'bg-[#334155] text-white border-slate-500'
+                          : 'bg-[#070e1e] text-[#94a3b8] border-[#5b9bd5]/20'
+                      }`}
+                    >
+                      ⚡ Superficial
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[#94a3b8] font-medium block">Horas Estimadas</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0.1"
+                    max="24"
+                    required
+                    value={quickTaskHoras}
+                    onChange={(e) => setQuickTaskHoras(parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 rounded-xl bg-[#070e1e] text-white border border-[#5b9bd5]/30 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2.5 pt-2 border-t border-[#5b9bd5]/15">
+                <button
+                  type="button"
+                  onClick={() => setIsQuickCreateTaskOpen(false)}
+                  className="btn-formal-outline px-4 py-2 rounded-full text-xs"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingQuickTask}
+                  className="btn-formal px-5 py-2 rounded-full text-xs font-semibold"
+                >
+                  {creatingQuickTask ? 'Guardando...' : 'Guardar Tarea'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
