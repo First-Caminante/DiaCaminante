@@ -195,8 +195,13 @@ export interface TendenciaDia {
 export interface DiaHistoricoResumen {
   fecha: string;
   horasNetas: number;
+  horasProfundo?: number;
+  horasSuperficial?: number;
   sesionesCount: number;
   sesiones: SesionFlujo[];
+  tareasTotal?: number;
+  tareasCumplidas?: number;
+  tasaCumplimiento?: number;
   cierreRealizado: boolean;
   cierreTimestamp?: string | null;
   alimento?: number | null;
@@ -209,7 +214,13 @@ export interface DetalleDiaHistorico {
   fecha: string;
   dia?: DiaSalud | null;
   totalHorasNetas: number;
+  horasProfundo?: number;
+  horasSuperficial?: number;
   sesionesCount: number;
+  tareasTotal?: number;
+  tareasCumplidas?: number;
+  tareasPendientes?: number;
+  tasaCumplimiento?: number;
   cierreRealizado: boolean;
   cierreTimestamp?: string | null;
   alimento?: number | null;

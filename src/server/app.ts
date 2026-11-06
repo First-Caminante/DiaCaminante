@@ -310,6 +310,19 @@ app.get('/dia/historico', async (c) => {
       0
     );
 
+    const horasProfundo = sesiones
+      .filter((s) => s.tipo_trabajo !== 'SUPERFICIAL')
+      .reduce((sum, s) => sum + (parseFloat(String(s.horas_netas)) || 0), 0);
+    const horasSuperficial = sesiones
+      .filter((s) => s.tipo_trabajo === 'SUPERFICIAL')
+      .reduce((sum, s) => sum + (parseFloat(String(s.horas_netas)) || 0), 0);
+
+    const tarList = tareas || [];
+    const tareasTotal = tarList.length;
+    const tareasCumplidas = tarList.filter((t) => t.estado === 'hecho').length;
+    const tareasPendientes = tarList.filter((t) => t.estado !== 'hecho').length;
+    const tasaCumplimiento = tareasTotal > 0 ? Math.round((tareasCumplidas / tareasTotal) * 100) : 0;
+
     // Consultas resilientes de Sueño, Alimentación y Ejercicio Histórico
     let suenos: any[] = [];
     let comidas: any[] = [];
@@ -348,7 +361,13 @@ app.get('/dia/historico', async (c) => {
       fecha,
       dia: dia || null,
       totalHorasNetas: Number(totalHorasNetas.toFixed(2)),
+      horasProfundo: Number(horasProfundo.toFixed(2)),
+      horasSuperficial: Number(horasSuperficial.toFixed(2)),
       sesionesCount: sesiones.length,
+      tareasTotal,
+      tareasCumplidas,
+      tareasPendientes,
+      tasaCumplimiento,
       cierreRealizado: Boolean(dia?.cierre_realizado),
       cierreTimestamp: dia?.cierre_timestamp || null,
       alimento: dia?.alimento || null,
@@ -356,7 +375,7 @@ app.get('/dia/historico', async (c) => {
       ejercicioIntensidad: dia?.ejercicio_intensidad || null,
       frioMental: dia?.frio_mental || null,
       sesiones,
-      tareas: tareas || [],
+      tareas: tarList,
       suenos,
       comidas,
       ejercicios,
@@ -1610,6 +1629,18 @@ app.get('/estadisticas', async (c) => {
       fechaToDia.set(d.fecha, d);
     });
 
+    // Agrupar tareas planificadas por fecha_objetivo
+    const fechaToTareas = new Map<string, any[]>();
+    tareas.forEach((t) => {
+      const f = t.fecha_objetivo;
+      if (f) {
+        if (!fechaToTareas.has(f)) {
+          fechaToTareas.set(f, []);
+        }
+        fechaToTareas.get(f)!.push(t);
+      }
+    });
+
     // Sessions per date
     const fechaToSesiones = new Map<string, any[]>();
     let totalHorasNetas = 0;
@@ -1849,21 +1880,39 @@ app.get('/estadisticas', async (c) => {
       });
     }
 
-    // Días históricos con actividad registrada (para selección rápida en el modal)
+    // Días históricos con actividad o tareas registradas (ordenados cronológicamente por fecha descendente)
     const allActiveDates = Array.from(new Set([
       ...Array.from(fechaToSesiones.keys()),
+      ...Array.from(fechaToTareas.keys()),
       ...dias.filter((d) => d.cierre_realizado || (d.ejercicio_horas && parseFloat(String(d.ejercicio_horas)) > 0) || (d.alimento && d.alimento > 0)).map((d) => d.fecha),
     ])).filter(Boolean).sort().reverse();
 
     const diasHistoricosConActividad = allActiveDates.map((fStr) => {
       const diaObj = fechaToDia.get(fStr);
       const sesList = fechaToSesiones.get(fStr) || [];
+      const tarList = fechaToTareas.get(fStr) || [];
       const hNetas = sesList.reduce((sum, item) => sum + (parseFloat(String(item.horas_netas)) || 0), 0);
+      const hProfundo = sesList
+        .filter((s) => s.tipo_trabajo !== 'SUPERFICIAL')
+        .reduce((sum, item) => sum + (parseFloat(String(item.horas_netas)) || 0), 0);
+      const hSuperficial = sesList
+        .filter((s) => s.tipo_trabajo === 'SUPERFICIAL')
+        .reduce((sum, item) => sum + (parseFloat(String(item.horas_netas)) || 0), 0);
+
+      const tarTotal = tarList.length;
+      const tarCumplidas = tarList.filter((t) => t.estado === 'hecho').length;
+      const tasaCumplimiento = tarTotal > 0 ? Math.round((tarCumplidas / tarTotal) * 100) : 0;
+
       return {
         fecha: fStr,
         horasNetas: Number(hNetas.toFixed(2)),
+        horasProfundo: Number(hProfundo.toFixed(2)),
+        horasSuperficial: Number(hSuperficial.toFixed(2)),
         sesionesCount: sesList.length,
         sesiones: sesList,
+        tareasTotal: tarTotal,
+        tareasCumplidas: tarCumplidas,
+        tasaCumplimiento,
         cierreRealizado: Boolean(diaObj?.cierre_realizado),
         cierreTimestamp: diaObj?.cierre_timestamp || null,
         alimento: diaObj?.alimento || null,

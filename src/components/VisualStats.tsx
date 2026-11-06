@@ -400,6 +400,10 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
 
   // Filtro de tareas en el panel diario ('todas' | 'por_cumplir' | 'cumplidas')
   const [filtroTareasVisual, setFiltroTareasVisual] = useState<'todas' | 'por_cumplir' | 'cumplidas'>('todas');
+  // Estados para el Archivo Histórico
+  const [subVistaHist, setSubVistaHist] = useState<'detalle' | 'cronologia'>('detalle');
+  const [filtroTareasHist, setFiltroTareasHist] = useState<'todas' | 'cumplidas' | 'pendientes'>('todas');
+  const [busquedaFechaHist, setBusquedaFechaHist] = useState<string>('');
   // Modal rápido para agregar tarea en el panel diario
   const [isQuickCreateTaskOpen, setIsQuickCreateTaskOpen] = useState<boolean>(false);
   const [quickTaskDesc, setQuickTaskDesc] = useState<string>('');
@@ -1213,348 +1217,1127 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
 
 
 
-  const renderCuerpoHistorico = () => (
-    <div className="space-y-6 min-w-0">
-      {/* SELECTOR Y AUDITORÍA DE DÍA ESPECÍFICO */}
-              <section className="card-elevated p-4 sm:p-6 border border-white/10 space-y-5">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/10">
-                  <div className="space-y-0.5">
-                    <h4 className="text-sm sm:text-base font-serif font-bold text-white">
-                      Auditar Día Específico
-                    </h4>
-                    <p className="text-xs text-[#94a3b8]">
-                      Selecciona una fecha en el calendario o haz clic en cualquier jornada con actividad registrada.
-                    </p>
+  const renderCuerpoHistorico = () => {
+    const tareasHist = detalleDiaHist?.tareas || [];
+    const tareasCumplidas = tareasHist.filter((t) => t.estado === 'hecho');
+    const tareasPendientes = tareasHist.filter((t) => t.estado !== 'hecho');
+    const totalTareasHist = tareasHist.length;
+    const tasaCumplimientoHist = totalTareasHist > 0
+      ? Math.round((tareasCumplidas.length / totalTareasHist) * 100)
+      : (detalleDiaHist?.tasaCumplimiento ?? 0);
+
+    const tareasFiltradasHist = tareasHist.filter((t) => {
+      if (filtroTareasHist === 'cumplidas') return t.estado === 'hecho';
+      if (filtroTareasHist === 'pendientes') return t.estado !== 'hecho';
+      return true;
+    });
+
+    const suenosHist = detalleDiaHist?.suenos || [];
+    const comidasHist = detalleDiaHist?.comidas || [];
+    const ejerciciosHist = detalleDiaHist?.ejercicios || [];
+
+    const totalHorasSuenoHist = suenosHist.reduce((acc, s) => acc + (parseFloat(String(s.horas)) || 0), 0);
+    const totalHorasEjercicioHist = ejerciciosHist.reduce((acc, e) => acc + (parseFloat(String(e.duracion_horas)) || 0), 0);
+
+    // Desglose de horas de trabajo
+    const hProfundoHist = detalleDiaHist?.horasProfundo ?? sesionesDiaHist
+      .filter((s) => s.tipo_trabajo !== 'SUPERFICIAL')
+      .reduce((sum, s) => sum + (parseFloat(String(s.horas_netas)) || 0), 0);
+    const hSuperficialHist = detalleDiaHist?.horasSuperficial ?? sesionesDiaHist
+      .filter((s) => s.tipo_trabajo === 'SUPERFICIAL')
+      .reduce((sum, s) => sum + (parseFloat(String(s.horas_netas)) || 0), 0);
+
+    // Filtrado de cronología
+    const diasFiltradosCronologia = diasConActividadLista.filter((d) => {
+      if (!busquedaFechaHist.trim()) return true;
+      const q = busquedaFechaHist.toLowerCase().trim();
+      const fechaLarga = formatFechaLargaEspanol(d.fecha).toLowerCase();
+      return d.fecha.includes(q) || fechaLarga.includes(q);
+    });
+
+    return (
+      <div className="space-y-6 min-w-0">
+        {/* SUB-NAVEGACIÓN SUPERIOR: MODOS Y SELECTOR DE FECHA */}
+        <section className="card-elevated p-4 sm:p-5 border border-white/10 space-y-4">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-3 border-b border-white/10">
+            {/* Pestañas de Vista */}
+            <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-[#080808] border border-white/10 shrink-0">
+              <button
+                type="button"
+                onClick={() => setSubVistaHist('detalle')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${
+                  subVistaHist === 'detalle'
+                    ? 'bg-[#1e1e1e] text-[#eed59b] border border-[#eed59b]/40 shadow-sm'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <span>🔍</span>
+                <span>Auditoría de Jornada ({formatShortDate(fechaSeleccionadaHist || targetFechaStr)})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSubVistaHist('cronologia')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${
+                  subVistaHist === 'cronologia'
+                    ? 'bg-[#1e1e1e] text-[#eed59b] border border-[#eed59b]/40 shadow-sm'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <span>📅</span>
+                <span>Cronología Completa ({diasConActividadLista.length} Días)</span>
+              </button>
+            </div>
+
+            {/* Controles rápidos de Fecha */}
+            <div className="flex items-center gap-2 flex-wrap self-start lg:self-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  handleSeleccionarDia(targetFechaStr);
+                  setSubVistaHist('detalle');
+                }}
+                className="btn-formal-outline px-3 py-1.5 rounded-full text-xs text-[#eed59b]"
+                title="Ir a la fecha de hoy"
+              >
+                Hoy
+              </button>
+              <button
+                type="button"
+                onClick={() => handlePasoDia(-1)}
+                className="btn-formal-outline px-3 py-1.5 rounded-full text-xs"
+                title="Ir al día anterior"
+              >
+                ◀ Ant
+              </button>
+
+              <input
+                type="date"
+                value={fechaSeleccionadaHist}
+                onChange={(e) => {
+                  handleSeleccionarDia(e.target.value);
+                  setSubVistaHist('detalle');
+                }}
+                className="px-3.5 py-1.5 rounded-full text-xs font-mono font-medium bg-[#000000] text-[#eed59b] border border-white/15 focus:outline-none focus:border-[#eed59b]"
+              />
+
+              <button
+                type="button"
+                onClick={() => handlePasoDia(1)}
+                className="btn-formal-outline px-3 py-1.5 rounded-full text-xs"
+                title="Ir al día siguiente"
+              >
+                Sig ▶
+              </button>
+            </div>
+          </div>
+
+          {/* Carrusel / Píldoras de Días con Actividad Registrada */}
+          {diasConActividadLista.length > 0 && (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-[11px] text-[#94a3b8]">
+                <span className="uppercase font-medium tracking-wide">Acceso Rápido por Fecha:</span>
+                <span className="text-[10px] text-zinc-500 font-mono">Orden cronológico descendente</span>
+              </div>
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 pt-0.5 scrollbar-thin">
+                {diasConActividadLista.map((dItem) => {
+                  const isSelected = fechaSeleccionadaHist === dItem.fecha;
+                  const isToday = dItem.fecha === targetFechaStr;
+                  return (
+                    <button
+                      key={dItem.fecha}
+                      type="button"
+                      onClick={() => {
+                        handleSeleccionarDia(dItem.fecha);
+                        setSubVistaHist('detalle');
+                      }}
+                      className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition-all ${
+                        isSelected
+                          ? 'bg-[#eed59b] text-black font-bold shadow-md'
+                          : 'bg-[#101010] text-zinc-300 hover:text-white border border-white/10 hover:border-white/20'
+                      }`}
+                    >
+                      <span>📅 {formatShortDate(dItem.fecha)}</span>
+                      {isToday && (
+                        <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold ${isSelected ? 'bg-black text-[#eed59b]' : 'bg-[#eed59b] text-black'}`}>
+                          Hoy
+                        </span>
+                      )}
+                      <span className={`font-mono font-bold ${isSelected ? 'text-black' : 'text-[#eed59b]'}`}>
+                        {dItem.horasNetas.toFixed(1)}h
+                      </span>
+                      {dItem.tareasTotal != null && dItem.tareasTotal > 0 && (
+                        <span className={`text-[10px] font-mono px-1 rounded ${isSelected ? 'bg-black/25 text-black font-bold' : 'bg-zinc-800 text-zinc-300'}`}>
+                          {dItem.tareasCumplidas}/{dItem.tareasTotal}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* ========================================================= */}
+        {/* VISTA 1: AUDITORÍA A DETALLE DEL DÍA SELECCIONADO          */}
+        {/* ========================================================= */}
+        {subVistaHist === 'detalle' && (
+          <>
+            {loadingDiaHist ? (
+              <div className="card-elevated py-16 flex flex-col items-center justify-center space-y-3 border border-white/10">
+                <div className="w-8 h-8 rounded-full border-2 border-[#eed59b] border-t-transparent animate-spin"></div>
+                <span className="text-xs text-[#94a3b8]">
+                  Cargando auditoría histórica detallada para {fechaSeleccionadaHist}...
+                </span>
+              </div>
+            ) : (
+              <div className="space-y-6 animate-fade-in">
+                {/* 1. HUD GLOBAL DE LA JORNADA */}
+                <section className="card-elevated p-5 sm:p-6 border border-white/10 space-y-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="tag-formal px-2.5 py-0.5 rounded-full text-xs bg-[#141414] text-zinc-300 border border-[#eed59b]/30 font-medium">
+                          {fechaSeleccionadaHist >= FECHA_INICIO_CICLO
+                            ? `Día ${getDiaCicloParaFecha(fechaSeleccionadaHist)} de 365 del Ciclo`
+                            : 'Previo al Ciclo'}
+                        </span>
+                        {fechaSeleccionadaHist === targetFechaStr && (
+                          <span className="tag-formal px-2.5 py-0.5 rounded-full text-xs bg-[#eed59b] text-black font-bold">
+                            Jornada de Hoy
+                          </span>
+                        )}
+                        <span className="text-xs text-[#94a3b8] font-mono">
+                          {fechaSeleccionadaHist}
+                        </span>
+                      </div>
+                      <h3 className="text-xl sm:text-3xl font-serif font-bold text-white">
+                        {formatFechaLargaEspanol(fechaSeleccionadaHist)}
+                      </h3>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-start sm:self-auto">
+                      <div className="text-right">
+                        <span className="text-[10px] text-[#94a3b8] block uppercase">Inmersión Neta</span>
+                        <span className="text-lg sm:text-2xl font-serif font-bold text-[#eed59b]">
+                          {(detalleDiaHist?.totalHorasNetas ?? 0).toFixed(2)}h
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <button
-                      type="button"
-                      onClick={() => handlePasoDia(-1)}
-                      className="btn-formal-outline px-3 py-1.5 rounded-full text-xs"
-                      title="Ir al día anterior"
-                    >
-                      ◀ Ant
-                    </button>
+                  {/* 6 Micro KPIs Claros del Día */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
+                    {/* KPI 1: Tiempo de Foco */}
+                    <div className="p-3.5 rounded-2xl bg-[#080808] border border-white/10 space-y-1.5 flex flex-col justify-between">
+                      <span className="text-[10px] text-[#94a3b8] block uppercase font-medium">🧠 Foco Total</span>
+                      <div>
+                        <span className="text-lg font-serif font-bold text-[#eed59b]">
+                          {(detalleDiaHist?.totalHorasNetas ?? 0).toFixed(1)}h
+                        </span>
+                        <div className="flex items-center gap-1 mt-1 text-[9px] text-zinc-400 font-mono flex-wrap">
+                          <span className="text-emerald-400">⚡ {hProfundoHist.toFixed(1)}h</span>
+                          <span>•</span>
+                          <span className="text-slate-300">📋 {hSuperficialHist.toFixed(1)}h</span>
+                        </div>
+                      </div>
+                    </div>
 
-                    <input
-                      type="date"
-                      value={fechaSeleccionadaHist}
-                      onChange={(e) => handleSeleccionarDia(e.target.value)}
-                      className="px-3.5 py-1.5 rounded-full text-xs font-mono font-medium bg-[#000000] text-[#eed59b] border border-white/15 focus:outline-none focus:border-[#eed59b]"
-                    />
+                    {/* KPI 2: Cumplimiento de Tareas */}
+                    <div className="p-3.5 rounded-2xl bg-[#080808] border border-white/10 space-y-1.5 flex flex-col justify-between">
+                      <span className="text-[10px] text-[#94a3b8] block uppercase font-medium">🎯 Tareas</span>
+                      <div>
+                        <div className="flex items-baseline justify-between">
+                          <span className="text-lg font-serif font-bold text-white">
+                            {tareasCumplidas.length}/{totalTareasHist}
+                          </span>
+                          <span className={`text-[10px] font-bold font-mono ${tasaCumplimientoHist >= 80 ? 'text-emerald-400' : tasaCumplimientoHist > 0 ? 'text-[#eed59b]' : 'text-zinc-500'}`}>
+                            {tasaCumplimientoHist}%
+                          </span>
+                        </div>
+                        {/* Mini barra de progreso */}
+                        <div className="w-full h-1.5 rounded-full bg-zinc-800 mt-1.5 overflow-hidden">
+                          <div
+                            className={`h-full transition-all duration-500 ${tasaCumplimientoHist >= 80 ? 'bg-emerald-500' : 'bg-[#eed59b]'}`}
+                            style={{ width: `${Math.min(100, tasaCumplimientoHist)}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
 
-                    <button
-                      type="button"
-                      onClick={() => handlePasoDia(1)}
-                      className="btn-formal-outline px-3 py-1.5 rounded-full text-xs"
-                      title="Ir al día siguiente"
-                    >
-                      Sig ▶
-                    </button>
+                    {/* KPI 3: Sueño */}
+                    <div className="p-3.5 rounded-2xl bg-[#080808] border border-white/10 space-y-1.5 flex flex-col justify-between">
+                      <span className="text-[10px] text-[#94a3b8] block uppercase font-medium">🌙 Sueño</span>
+                      <div>
+                        <span className="text-lg font-serif font-bold text-[#a78bfa]">
+                          {totalHorasSuenoHist > 0
+                            ? `${totalHorasSuenoHist.toFixed(1)}h`
+                            : suenosHist[0]?.horas
+                            ? `${parseFloat(String(suenosHist[0].horas)).toFixed(1)}h`
+                            : '—'}
+                        </span>
+                        <span className="text-[10px] text-zinc-400 block truncate">
+                          {suenosHist[0]?.calidad_sueno || 'Sin registro'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* KPI 4: Ejercicio */}
+                    <div className="p-3.5 rounded-2xl bg-[#080808] border border-white/10 space-y-1.5 flex flex-col justify-between">
+                      <span className="text-[10px] text-[#94a3b8] block uppercase font-medium">🏃 Ejercicio</span>
+                      <div>
+                        <span className="text-lg font-serif font-bold text-[#fb923c]">
+                          {totalHorasEjercicioHist > 0
+                            ? `${totalHorasEjercicioHist.toFixed(1)}h`
+                            : detalleDiaHist?.ejercicioHoras != null && detalleDiaHist.ejercicioHoras > 0
+                            ? `${Number(detalleDiaHist.ejercicioHoras).toFixed(1)}h`
+                            : '0h'}
+                        </span>
+                        <span className="text-[10px] text-zinc-400 block truncate">
+                          {ejerciciosHist[0]?.tipo_ejercicio || (detalleDiaHist?.ejercicioHoras ? 'Entrenamiento' : 'Sin entreno')}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* KPI 5: Alimentación */}
+                    <div className="p-3.5 rounded-2xl bg-[#080808] border border-white/10 space-y-1.5 flex flex-col justify-between">
+                      <span className="text-[10px] text-[#94a3b8] block uppercase font-medium">🥗 Nutrición</span>
+                      <div>
+                        <span className="text-lg font-serif font-bold text-[#34d399]">
+                          {detalleDiaHist?.alimento != null ? `${detalleDiaHist.alimento}/5 ⭐` : comidasHist.length > 0 ? `${comidasHist.length} reg.` : '—'}
+                        </span>
+                        <span className="text-[10px] text-zinc-400 block truncate">
+                          {comidasHist.length > 0 ? `${comidasHist.length} comida(s)` : 'Sin registro'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* KPI 6: Cierre */}
+                    <div className="p-3.5 rounded-2xl bg-[#080808] border border-white/10 space-y-1.5 flex flex-col justify-between">
+                      <span className="text-[10px] text-[#94a3b8] block uppercase font-medium">🔒 Cierre</span>
+                      <div>
+                        <span className={`text-base font-serif font-bold block ${detalleDiaHist?.cierreRealizado ? 'text-emerald-400' : 'text-zinc-500'}`}>
+                          {detalleDiaHist?.cierreRealizado ? '✓ Concluido' : '○ Sin Cierre'}
+                        </span>
+                        <span className="text-[10px] text-zinc-400 block truncate font-mono">
+                          {detalleDiaHist?.cierreTimestamp ? detalleDiaHist.cierreTimestamp.split('T')[1]?.slice(0, 5) || 'Sellado' : 'Pendiente'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                </section>
 
-                {/* Días con actividad */}
-                {diasConActividadLista.length > 0 && (
-                  <div className="space-y-2">
-                    <span className="text-[11px] text-[#94a3b8] uppercase font-medium tracking-wide block">
-                      Días con actividad registrada:
-                    </span>
-                    <div className="flex items-center gap-2 overflow-x-auto pb-2 pt-0.5">
-                      {diasConActividadLista.map((dItem) => {
-                        const isSelected = fechaSeleccionadaHist === dItem.fecha;
-                        const isToday = dItem.fecha === targetFechaStr;
+                {/* 2. TAREAS PROPUESTAS DEL DÍA (CUMPLIDAS VS PENDIENTES) */}
+                <section className="card-elevated p-5 sm:p-6 border border-white/10 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-base sm:text-lg font-serif font-bold text-white flex items-center gap-2">
+                          <span>🎯</span> Tareas Propuestas para este Día ({totalTareasHist})
+                        </h4>
+                        {totalTareasHist > 0 && (
+                          <span className={`tag-formal text-[10px] px-2.5 py-0.5 rounded-full font-bold font-mono ${
+                            tasaCumplimientoHist === 100
+                              ? 'bg-emerald-950 text-emerald-300 border-emerald-600/50'
+                              : 'bg-zinc-900 text-zinc-300 border-zinc-700'
+                          }`}>
+                            {tareasCumplidas.length}/{totalTareasHist} cumplidas ({tasaCumplimientoHist}%)
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-[#94a3b8]">
+                        Auditoría de cumplimiento: planificado vs alcanzado en esta jornada.
+                      </p>
+                    </div>
+
+                    {/* Filtros de tareas */}
+                    {totalTareasHist > 0 && (
+                      <div className="flex items-center gap-1 bg-[#080808] p-1 rounded-full border border-white/10 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setFiltroTareasHist('todas')}
+                          className={`px-3 py-1 rounded-full transition-all ${
+                            filtroTareasHist === 'todas' ? 'bg-[#1e1e1e] text-white font-medium shadow-sm' : 'text-zinc-400 hover:text-white'
+                          }`}
+                        >
+                          Todas ({totalTareasHist})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFiltroTareasHist('cumplidas')}
+                          className={`px-3 py-1 rounded-full transition-all ${
+                            filtroTareasHist === 'cumplidas' ? 'bg-emerald-950 text-emerald-300 font-medium' : 'text-zinc-400 hover:text-white'
+                          }`}
+                        >
+                          ✓ Cumplidas ({tareasCumplidas.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFiltroTareasHist('pendientes')}
+                          className={`px-3 py-1 rounded-full transition-all ${
+                            filtroTareasHist === 'pendientes' ? 'bg-amber-950 text-amber-300 font-medium' : 'text-zinc-400 hover:text-white'
+                          }`}
+                        >
+                          ○ No Cumplidas ({tareasPendientes.length})
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {totalTareasHist === 0 ? (
+                    <div className="p-8 rounded-2xl bg-[#080808]/70 border border-dashed border-white/10 text-center space-y-1.5">
+                      <span className="text-2xl block">📋</span>
+                      <p className="text-xs text-white font-medium">No se registraron tareas planificadas para esta fecha.</p>
+                      <p className="text-[11px] text-[#94a3b8]">
+                        Las tareas pueden planificarse durante el cierre del día anterior o añadirse directamente en el gestor de tareas.
+                      </p>
+                    </div>
+                  ) : tareasFiltradasHist.length === 0 ? (
+                    <div className="p-6 rounded-2xl bg-[#080808]/70 border border-white/10 text-center text-xs text-[#94a3b8]">
+                      No hay tareas en el filtro &ldquo;{filtroTareasHist}&rdquo;.
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {tareasFiltradasHist.map((tarea) => {
+                        const isDone = tarea.estado === 'hecho';
+                        const isFlexible = !tarea.hora_inicio || !tarea.hora_fin || (tarea.hora_inicio === '00:00' && tarea.hora_fin === '00:01');
+                        const isProfundo = tarea.tipo_trabajo === 'PROFUNDO';
+
                         return (
-                          <button
-                            key={dItem.fecha}
-                            type="button"
-                            onClick={() => handleSeleccionarDia(dItem.fecha)}
-                            className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition-all ${
-                              isSelected
-                                ? 'bg-[#2563eb] text-white font-semibold shadow-midnight'
-                                : 'bg-[#101010] text-[#94a3b8] hover:text-white border border-white/10'
+                          <div
+                            key={tarea.id}
+                            className={`p-4 rounded-2xl border transition-all space-y-2 ${
+                              isDone
+                                ? 'bg-[#09130c]/80 border-emerald-900/40 hover:border-emerald-600/50'
+                                : 'bg-[#080808]/90 border-white/10 hover:border-white/20'
                             }`}
                           >
-                            <span>📅 {formatShortDate(dItem.fecha)}</span>
-                            {isToday && (
-                              <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-[#eed59b] text-[#070e1e] font-bold">
-                                Hoy
-                              </span>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              {/* Estado + Badges */}
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span
+                                  className={`tag-formal text-[10px] px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1 ${
+                                    isDone
+                                      ? 'bg-emerald-950 text-emerald-300 border border-emerald-600/60 shadow-[0_0_8px_rgba(16,185,129,0.2)]'
+                                      : 'bg-zinc-900 text-amber-300 border border-amber-600/40'
+                                  }`}
+                                >
+                                  <span>{isDone ? '✓' : '○'}</span>
+                                  <span>{isDone ? 'CUMPLIDA' : 'NO CUMPLIDA'}</span>
+                                  {isDone && (tarea.hora_completada || (tarea.hora_fin && !isFlexible)) && (
+                                    <span className="font-mono text-[9px] text-emerald-200/90 ml-1">
+                                      ({tarea.hora_completada || tarea.hora_fin})
+                                    </span>
+                                  )}
+                                </span>
+
+                                {/* Dimensión */}
+                                <span className="tag-formal text-[10px] px-2.5 py-0.5 rounded-full bg-[#121212] border border-white/10 text-zinc-300">
+                                  {tarea.categoria === 'ejercicio'
+                                    ? '🏃 Ejercicio'
+                                    : tarea.categoria === 'comida'
+                                    ? '🥗 Comida'
+                                    : tarea.categoria === 'sueno'
+                                    ? '🌙 Sueño'
+                                    : isProfundo
+                                    ? '⚡ Profundo'
+                                    : '📋 Superficial'}
+                                </span>
+
+                                {/* Horario propuesto */}
+                                <span className="text-[11px] text-[#eed59b] font-mono flex items-center gap-1">
+                                  <span>🕒</span>
+                                  <span>{isFlexible ? 'Horario Flexible' : `${tarea.hora_inicio} — ${tarea.hora_fin}`}</span>
+                                </span>
+
+                                <span className="text-[10px] text-[#94a3b8] font-mono">
+                                  ({tarea.horas_netas_estimadas}h estimadas)
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Descripción de la tarea */}
+                            <p className={`text-sm ${isDone ? 'text-zinc-200 font-medium' : 'text-white font-medium'}`}>
+                              {tarea.descripcion}
+                            </p>
+
+                            {/* Motivo de desvío si existe */}
+                            {tarea.motivo_desvio && (
+                              <div className="p-2.5 rounded-xl bg-[#121212] border border-white/10 text-xs text-amber-200/90 italic font-serif">
+                                💬 Nota de Desvío: &ldquo;{tarea.motivo_desvio}&rdquo;
+                              </div>
                             )}
-                            <span className="font-mono font-bold text-[#eed59b]">
-                              {dItem.horasNetas.toFixed(1)}h
-                            </span>
-                          </button>
+                          </div>
                         );
                       })}
                     </div>
-                  </div>
-                )}
+                  )}
+                </section>
 
-                {/* Detalle del día seleccionado */}
-                {loadingDiaHist ? (
-                  <div className="py-12 flex flex-col items-center justify-center space-y-3">
-                    <div className="w-8 h-8 rounded-full border-2 border-[#eed59b] border-t-transparent animate-spin"></div>
-                    <span className="text-xs text-[#94a3b8]">
-                      Cargando auditoría histórica para {fechaSeleccionadaHist}...
-                    </span>
-                  </div>
-                ) : (
-                  <div className="space-y-5 animate-fade-in">
-                    <div className="p-4 sm:p-5 rounded-2xl bg-[#080808]/80 border border-white/10 space-y-3">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="tag-formal px-2.5 py-0.5 rounded-full text-xs bg-[#141414] text-zinc-300 border border-[#eed59b]/30 font-medium">
-                              {fechaSeleccionadaHist >= FECHA_INICIO_CICLO
-                                ? `Día ${getDiaCicloParaFecha(fechaSeleccionadaHist)} de 365`
-                                : 'Previo al Ciclo'}
-                            </span>
-                          </div>
-                          <h5 className="text-lg sm:text-2xl font-serif font-bold text-white">
-                            {formatFechaLargaEspanol(fechaSeleccionadaHist)}
-                          </h5>
-                        </div>
-
-                        <span className="tag-formal px-3.5 py-1.5 rounded-full bg-[#101010] border border-[#e5c179]/30 text-[#eed59b] font-serif font-bold text-xs">
-                          Total: {(detalleDiaHist?.totalHorasNetas ?? 0).toFixed(2)}h netas
+                {/* 3. SESIONES DE CONCENTRACIÓN Y TRABAJO EJECUTADAS */}
+                <section className="card-elevated p-5 sm:p-6 border border-white/10 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-base sm:text-lg font-serif font-bold text-white flex items-center gap-2">
+                          <span>🧠</span> Sesiones de Trabajo y Foco Ejecutadas ({sesionesDiaHist.length})
+                        </h4>
+                        <span className="tag-formal text-[10px] px-2.5 py-0.5 rounded-full bg-[#101010] text-[#eed59b] border border-[#eed59b]/30 font-bold font-mono">
+                          {(detalleDiaHist?.totalHorasNetas ?? 0).toFixed(2)}h totales
                         </span>
                       </div>
-
-                      {/* Micro KPIs */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 text-xs">
-                        <div className="p-3 rounded-xl bg-[#101010]/70 border border-white/10 space-y-1">
-                          <span className="text-[10px] text-[#94a3b8] block uppercase font-medium">Tiempo de Foco</span>
-                          <span className="text-lg font-serif font-bold text-[#eed59b]">
-                            {(detalleDiaHist?.totalHorasNetas ?? 0).toFixed(1)}h
-                          </span>
-                        </div>
-                        <div className="p-3 rounded-xl bg-[#101010]/70 border border-white/10 space-y-1">
-                          <span className="text-[10px] text-[#94a3b8] block uppercase font-medium">Entrenamiento</span>
-                          <span className="text-lg font-serif font-bold text-white">
-                            {detalleDiaHist?.ejercicioHoras != null ? `${Number(detalleDiaHist.ejercicioHoras).toFixed(1)}h` : '0h'}
-                          </span>
-                        </div>
-                        <div className="p-3 rounded-xl bg-[#101010]/70 border border-white/10 space-y-1">
-                          <span className="text-[10px] text-[#94a3b8] block uppercase font-medium">Alimentación</span>
-                          <span className="text-lg font-serif font-bold text-[#60a5fa]">
-                            {detalleDiaHist?.alimento != null ? `${detalleDiaHist.alimento}/5 ⭐` : '—'}
-                          </span>
-                        </div>
-                        <div className="p-3 rounded-xl bg-[#101010]/70 border border-white/10 space-y-1">
-                          <span className="text-[10px] text-[#94a3b8] block uppercase font-medium">Cierre Diario</span>
-                          <span className={`text-base font-serif font-bold ${detalleDiaHist?.cierreRealizado ? 'text-emerald-300' : 'text-[#94a3b8]'}`}>
-                            {detalleDiaHist?.cierreRealizado ? 'Concluido' : 'Sin Cierre'}
-                          </span>
-                        </div>
-                      </div>
+                      <p className="text-xs text-[#94a3b8]">
+                        Bloques de inmersión y entregables concretos registrados en esta jornada.
+                      </p>
                     </div>
+                  </div>
 
-                    {/* Bloques de Foco Auditados con hora exacta */}
+                  {sesionesDiaHist.length === 0 ? (
+                    <div className="p-8 rounded-2xl bg-[#080808]/70 border border-dashed border-white/10 text-center space-y-1.5">
+                      <span className="text-2xl block">🧠</span>
+                      <p className="text-xs text-white font-medium">No se registraron sesiones de trabajo en esta fecha.</p>
+                      <p className="text-[11px] text-[#94a3b8]">
+                        Cada bloque registrado aporta horas netas y alimenta las curvas de inmersión del panel.
+                      </p>
+                    </div>
+                  ) : (
                     <div className="space-y-3">
-                      <h6 className="text-xs sm:text-sm font-serif font-bold uppercase tracking-wide text-white">
-                        Sesiones de Concentración Ejecutadas ({sesionesDiaHist.length})
-                      </h6>
+                      {sesionesDiaHist.map((sesion, idx) => {
+                        const timeInfo = getSessionTimeRange(sesion);
+                        const isUltraDeep = sesion.incomodidad === 'Alta' && sesion.intensidad === 'Alta';
+                        const isProfundo = sesion.tipo_trabajo !== 'SUPERFICIAL';
 
-                      {sesionesDiaHist.length === 0 ? (
-                        <div className="p-6 rounded-2xl bg-[#080808]/60 border border-dashed border-white/10 text-center text-xs text-[#94a3b8]">
-                          No se registraron sesiones de trabajo profundo en esta fecha.
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {sesionesDiaHist.map((sesion, idx) => {
-                            const timeInfo = getSessionTimeRange(sesion);
-                            return (
-                              <div
-                                key={sesion.id || idx}
-                                className="p-4 rounded-2xl bg-[#080808]/90 border border-white/10 space-y-2.5"
-                              >
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-white/10">
-                                  <div className="flex items-center gap-2">
-                                    <span className="tag-formal px-2.5 py-0.5 rounded-full text-xs bg-[#141414] text-zinc-300 border border-[#eed59b]/30">
-                                      🕒 {timeInfo.inicio} — {timeInfo.fin}
-                                    </span>
-                                    <span className="text-xs text-white font-medium">
-                                      ({timeInfo.durMin} min / {sesion.horas_netas}h netas)
-                                    </span>
-                                  </div>
-                                  <span className="text-[11px] text-[#94a3b8]">
-                                    Registrado a las <strong>{timeInfo.exacta}</strong>
+                        return (
+                          <div
+                            key={sesion.id || idx}
+                            className={`p-4 rounded-2xl bg-[#080808]/90 border space-y-3 transition-all ${
+                              isUltraDeep
+                                ? 'border-[#f59e0b]/50 shadow-[0_0_12px_rgba(245,158,11,0.15)]'
+                                : 'border-white/10 hover:border-white/20'
+                            }`}
+                          >
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-white/10">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="tag-formal px-2.5 py-0.5 rounded-full text-xs bg-[#141414] text-zinc-300 border border-[#eed59b]/30 font-mono">
+                                  🕒 {timeInfo.inicio} — {timeInfo.fin}
+                                </span>
+                                <span className="text-xs text-white font-medium font-mono">
+                                  ({timeInfo.durMin} min / {parseFloat(String(sesion.horas_netas)).toFixed(2)}h netas)
+                                </span>
+
+                                <span
+                                  className={`tag-formal text-[10px] px-2 py-0.5 rounded-full border font-semibold ${
+                                    isProfundo
+                                      ? 'bg-emerald-950/80 text-emerald-300 border-emerald-600/50 shadow-sm'
+                                      : 'bg-slate-800 text-slate-300 border-slate-700'
+                                  }`}
+                                >
+                                  {isProfundo ? '⚡ Trabajo Profundo' : '📋 Trabajo Superficial'}
+                                </span>
+
+                                {isUltraDeep && (
+                                  <span className="tag-formal text-[10px] px-2 py-0.5 rounded-full bg-[#78350f] text-[#fde68a] border border-[#f59e0b]/60 font-semibold">
+                                    ⚡ Máxima Fricción Cognitiva
                                   </span>
-                                </div>
-
-                                <div className="flex items-center justify-between gap-2">
-                                  <span className="text-base font-serif font-bold text-white">
-                                    {sesion.tipo}
-                                  </span>
-                                  <div className="flex items-center gap-2 text-[10px]">
-                                    <span className="tag-formal px-2.5 py-0.5 rounded-full bg-[#101010] text-[#60a5fa] border border-white/10">
-                                      Intensidad: {sesion.intensidad}
-                                    </span>
-                                    <span className="tag-formal px-2.5 py-0.5 rounded-full bg-[#101010] text-[#eed59b] border border-[#e5c179]/30">
-                                      Incomodidad: {sesion.incomodidad}
-                                    </span>
-                                  </div>
-                                </div>
-
-                                {sesion.calidad && (
-                                  <blockquote className="p-3 rounded-xl bg-[#101010]/80 border-l-2 border-[#eed59b] text-xs text-[#94a3b8] italic font-serif">
-                                    &ldquo;{sesion.calidad}&rdquo;
-                                  </blockquote>
                                 )}
                               </div>
-                            );
-                          })}
-                        </div>
-                      )}
+
+                              <span className="text-[11px] text-[#94a3b8] font-mono">
+                                Registrado: {timeInfo.exacta}
+                              </span>
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <div className="space-y-0.5">
+                                <h5 className="text-base font-serif font-bold text-white">
+                                  {sesion.descripcion || sesion.tipo}
+                                </h5>
+                                {sesion.descripcion && sesion.tipo !== sesion.descripcion && (
+                                  <span className="text-xs text-zinc-400 font-sans">
+                                    Tipo: {sesion.tipo}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-2 text-[10px] shrink-0">
+                                <span className="tag-formal px-2.5 py-0.5 rounded-full bg-[#101010] text-[#60a5fa] border border-white/10">
+                                  Intensidad: <b>{sesion.intensidad}</b>
+                                </span>
+                                <span
+                                  className={`tag-formal px-2.5 py-0.5 rounded-full bg-[#101010] border ${
+                                    sesion.incomodidad === 'Alta'
+                                      ? 'text-[#fde68a] border-[#f59e0b]/50'
+                                      : 'text-[#eed59b] border-white/10'
+                                  }`}
+                                >
+                                  Incomodidad: <b>{sesion.incomodidad}</b>
+                                </span>
+                              </div>
+                            </div>
+
+                            {sesion.calidad && (
+                              <blockquote className="p-3 rounded-xl bg-[#101010]/90 border-l-2 border-[#eed59b] text-xs text-[#eed59b] italic font-serif">
+                                🎯 <span className="font-sans font-semibold text-zinc-400 not-italic text-[11px]">Entregable / Resultado Concreto:</span> &ldquo;{sesion.calidad}&rdquo;
+                              </blockquote>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                  </div>
-                )}
-              </section>
+                  )}
+                </section>
 
-              {/* GRÁFICO HISTÓRICO: MONTAÑAS DE FOCO SPLINE (7D / 14D / 30D) */}
-              <section className="card-elevated p-5 sm:p-6 border border-white/10 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
-                  <div className="space-y-0.5">
-                    <h4 className="text-sm font-serif font-bold text-white">
-                      Relieve Temporal Acumulado
-                    </h4>
-                    <p className="text-xs text-[#94a3b8]">
-                      Total de inmersión en el período: <strong className="text-[#eed59b] font-mono">{totalHorasEnRango.toFixed(1)}h</strong>
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1 bg-[#000000] p-1 rounded-full border border-white/10">
-                      <button
-                        type="button"
-                        onClick={() => setModoGraficoHist('montana')}
-                        className={`px-3 py-1 rounded-full text-xs transition-all ${
-                          modoGraficoHist === 'montana' ? 'bg-[#2563eb] text-white font-medium' : 'text-[#94a3b8]'
-                        }`}
-                      >
-                        ⛰️ Montañas
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setModoGraficoHist('columnas')}
-                        className={`px-3 py-1 rounded-full text-xs transition-all ${
-                          modoGraficoHist === 'columnas' ? 'bg-[#2563eb] text-white font-medium' : 'text-[#94a3b8]'
-                        }`}
-                      >
-                        📊 Columnas
-                      </button>
+                {/* 4. SUEÑO Y RECUPERACIÓN */}
+                <section className="card-elevated p-5 sm:p-6 border border-white/10 space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                    <div className="space-y-0.5">
+                      <h4 className="text-base sm:text-lg font-serif font-bold text-white flex items-center gap-2">
+                        <span>🌙</span> Sueño y Recuperación Circadiana ({suenosHist.length})
+                      </h4>
+                      <p className="text-xs text-[#94a3b8]">
+                        Horas de descanso, higiene del sueño y sensación al despertar.
+                      </p>
                     </div>
+                    {totalHorasSuenoHist > 0 && (
+                      <span className="tag-formal text-xs px-3 py-1 rounded-full bg-[#1f1938] text-[#c7d2fe] border border-[#6366f1]/40 font-bold font-mono">
+                        {totalHorasSuenoHist.toFixed(1)}h dormidas
+                      </span>
+                    )}
+                  </div>
 
-                    <div className="flex items-center gap-1 bg-[#000000] p-1 rounded-full border border-white/10">
-                      {([7, 14, 30] as const).map((r) => (
-                        <button
-                          key={r}
-                          onClick={() => setRangoDias(r)}
-                          className={`px-2.5 py-1 rounded-full text-xs transition-all ${
-                            rangoDias === r ? 'bg-[#161616] text-[#eed59b] font-bold' : 'text-[#94a3b8]'
-                          }`}
+                  {suenosHist.length === 0 ? (
+                    <div className="p-6 rounded-2xl bg-[#080808]/70 border border-white/10 text-center text-xs text-[#94a3b8]">
+                      Sin registros detallados de sueño para esta fecha.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {suenosHist.map((sueno, idx) => (
+                        <div
+                          key={sueno.id || idx}
+                          className="p-4 rounded-2xl bg-[#080808]/90 border border-[#6366f1]/25 space-y-2.5"
                         >
-                          {r}d
-                        </button>
+                          <div className="flex items-center justify-between">
+                            <span className="tag-formal px-2.5 py-0.5 rounded-full text-xs bg-[#1f1938] text-[#c7d2fe] border border-[#6366f1]/40 font-mono">
+                              🕒 {sueno.hora_inicio} — {sueno.hora_fin}
+                            </span>
+                            <span className="text-sm font-serif font-bold text-white font-mono">
+                              {parseFloat(String(sueno.horas)).toFixed(1)}h
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2 flex-wrap text-xs">
+                            <span className="tag-formal px-2.5 py-0.5 rounded-full bg-[#101010] text-[#a5b4fc] border border-white/10">
+                              Calidad: <b>{sueno.calidad_sueno}</b>
+                            </span>
+                            {sueno.sensacion && (
+                              <span className="tag-formal px-2.5 py-0.5 rounded-full bg-[#101010] text-zinc-300 border border-white/10">
+                                Despertar: <b>{sueno.sensacion}</b>
+                              </span>
+                            )}
+                          </div>
+
+                          {sueno.notas && (
+                            <p className="text-xs text-zinc-300 italic font-serif p-2.5 rounded-xl bg-[#121212] border border-white/5">
+                              &ldquo;{sueno.notas}&rdquo;
+                            </p>
+                          )}
+                        </div>
                       ))}
                     </div>
+                  )}
+                </section>
+
+                {/* 5. NUTRICIÓN Y ALIMENTACIÓN */}
+                <section className="card-elevated p-5 sm:p-6 border border-white/10 space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                    <div className="space-y-0.5">
+                      <h4 className="text-base sm:text-lg font-serif font-bold text-white flex items-center gap-2">
+                        <span>🥗</span> Nutrición y Alimentación ({comidasHist.length})
+                      </h4>
+                      <p className="text-xs text-[#94a3b8]">
+                        Comidas registradas, calidad nutricional y combustible biológico.
+                      </p>
+                    </div>
+                    {detalleDiaHist?.alimento != null && (
+                      <span className="tag-formal text-xs px-3 py-1 rounded-full bg-[#062c1b] text-[#6ee7b7] border border-[#10b981]/40 font-bold">
+                        {detalleDiaHist.alimento}/5 ⭐
+                      </span>
+                    )}
                   </div>
-                </div>
 
-                {/* Montañas Históricas SVG */}
-                {modoGraficoHist === 'montana' ? (
-                  <div className="p-4 rounded-2xl bg-[#080808]/80 border border-white/10 overflow-x-auto">
-                    <div className="min-w-[620px] relative">
-                      <svg viewBox={`0 0 ${svgTrendWidth} ${svgTrendHeight}`} className="w-full h-44 overflow-visible">
-                        <defs>
-                          <linearGradient id="histMountainAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.35" />
-                            <stop offset="50%" stopColor="#1e3a8a" stopOpacity="0.15" />
-                            <stop offset="100%" stopColor="#070e1e" stopOpacity="0.0" />
-                          </linearGradient>
-                          <linearGradient id="histMountainLineGrad" x1="0" y1="0" x2="1" y2="0">
-                            <stop offset="0%" stopColor="#5b9bd5" />
-                            <stop offset="50%" stopColor="#eed59b" />
-                            <stop offset="100%" stopColor="#5b9bd5" />
-                          </linearGradient>
-                        </defs>
+                  {comidasHist.length === 0 ? (
+                    <div className="p-6 rounded-2xl bg-[#080808]/70 border border-white/10 text-center text-xs text-[#94a3b8]">
+                      Sin registros detallados de comidas para esta fecha.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {comidasHist.map((comida, idx) => (
+                        <div
+                          key={comida.id || idx}
+                          className="p-4 rounded-2xl bg-[#080808]/90 border border-[#10b981]/25 space-y-2"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-serif font-bold text-white text-sm">
+                              🥗 {comida.tipo_comida}
+                            </span>
+                            <span className="tag-formal px-2 py-0.5 rounded-full text-[10px] bg-[#101010] text-[#34d399] border border-[#10b981]/40 font-mono">
+                              🕒 {comida.hora}
+                            </span>
+                          </div>
 
-                        <line x1="0" y1={svgTrendBaselineY} x2={svgTrendWidth} y2={svgTrendBaselineY} stroke="#222222" strokeWidth="1.5" />
-                        <line x1="0" y1={newportGoalY} x2={svgTrendWidth} y2={newportGoalY} stroke="#5b9bd5" strokeDasharray="4 4" strokeWidth="1.2" opacity="0.6" />
-                        <text x={svgTrendWidth - 10} y={newportGoalY - 6} textAnchor="end" fill="#93c5fd" fontSize="10" fontFamily="sans-serif">
-                          Meta Newport: 4.0h
-                        </text>
+                          <div className="text-[11px]">
+                            <span className="tag-formal px-2 py-0.5 rounded-full bg-[#101010] text-zinc-300 border border-white/10">
+                              {comida.calidad}
+                            </span>
+                          </div>
 
-                        <path d={mountainTrendArea} fill="url(#histMountainAreaGrad)" className="transition-all duration-500" />
-                        <path d={mountainTrendLine} fill="none" stroke="url(#histMountainLineGrad)" strokeWidth="2.5" strokeLinecap="round" className="transition-all duration-500" />
+                          {comida.descripcion && (
+                            <p className="text-xs text-zinc-300 p-2.5 rounded-xl bg-[#121212] border border-white/5">
+                              {comida.descripcion}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
 
-                        {mountainTrendPoints.map((pt) => {
-                          const isSelected = fechaSeleccionadaHist === pt.day.fecha;
-                          const hasHours = pt.day.horasNetas > 0;
+                {/* 6. ENTRENAMIENTO Y EJERCICIO FÍSICO */}
+                <section className="card-elevated p-5 sm:p-6 border border-white/10 space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                    <div className="space-y-0.5">
+                      <h4 className="text-base sm:text-lg font-serif font-bold text-white flex items-center gap-2">
+                        <span>🏃</span> Ejercicio y Entrenamiento Físico ({ejerciciosHist.length})
+                      </h4>
+                      <p className="text-xs text-[#94a3b8]">
+                        Estímulo biológico, fuerza, resistencia y movimiento.
+                      </p>
+                    </div>
+                    {totalHorasEjercicioHist > 0 && (
+                      <span className="tag-formal text-xs px-3 py-1 rounded-full bg-[#341b0b] text-[#fed7aa] border border-[#f97316]/40 font-bold font-mono">
+                        {totalHorasEjercicioHist.toFixed(1)}h de entrenamiento
+                      </span>
+                    )}
+                  </div>
 
-                          return (
-                            <g
-                              key={pt.day.fecha}
-                              className="cursor-pointer group"
-                              onClick={() => handleSeleccionarDia(pt.day.fecha)}
-                              onMouseEnter={() => setHoveredDay(pt.day)}
-                              onMouseLeave={() => setHoveredDay(null)}
-                            >
-                              <circle
-                                cx={pt.x}
-                                cy={pt.y}
-                                r={isSelected ? 6.5 : hasHours ? 4.5 : 2.5}
-                                fill={isSelected ? '#eed59b' : hasHours ? '#60a5fa' : '#11224d'}
-                                stroke="#070e1e"
-                                strokeWidth="2"
-                                className="transition-all duration-200"
-                              />
-                            </g>
-                          );
-                        })}
-                      </svg>
+                  {ejerciciosHist.length === 0 ? (
+                    detalleDiaHist?.ejercicioHoras != null && detalleDiaHist.ejercicioHoras > 0 ? (
+                      <div className="p-4 rounded-2xl bg-[#080808]/90 border border-[#f97316]/30 flex items-center justify-between">
+                        <span className="text-sm font-serif font-bold text-white">Entrenamiento Consolidado</span>
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className="font-mono text-[#fb923c] font-bold">{detalleDiaHist.ejercicioHoras}h</span>
+                          <span className="text-zinc-400">Intensidad: {detalleDiaHist.ejercicioIntensidad || 'Normal'}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-6 rounded-2xl bg-[#080808]/70 border border-white/10 text-center text-xs text-[#94a3b8]">
+                        Sin registros de ejercicio físico en esta fecha.
+                      </div>
+                    )
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {ejerciciosHist.map((ej, idx) => (
+                        <div
+                          key={ej.id || idx}
+                          className="p-4 rounded-2xl bg-[#080808]/90 border border-[#f97316]/25 space-y-2.5"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-serif font-bold text-white text-sm">
+                              🏃 {ej.tipo_ejercicio}
+                            </span>
+                            <span className="tag-formal px-2.5 py-0.5 rounded-full text-xs bg-[#341b0b] text-[#fed7aa] border border-[#f97316]/40 font-mono">
+                              🕒 {ej.hora_inicio} — {ej.hora_fin} ({ej.duracion_horas}h)
+                            </span>
+                          </div>
+
+                          <div className="text-xs">
+                            <span className="tag-formal px-2 py-0.5 rounded-full bg-[#101010] text-[#fed7aa] border border-white/10">
+                              Intensidad: <b>{ej.intensidad}</b>
+                            </span>
+                          </div>
+
+                          {ej.descripcion && (
+                            <p className="text-xs text-zinc-300 p-2.5 rounded-xl bg-[#121212] border border-white/5">
+                              {ej.descripcion}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                {/* 7. CIERRE DE JORNADA Y BITÁCORA RETROSPECTIVA */}
+                <section className="card-elevated p-5 sm:p-6 border border-white/10 space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                    <div className="space-y-0.5">
+                      <h4 className="text-base sm:text-lg font-serif font-bold text-white flex items-center gap-2">
+                        <span>🔒</span> Ritual de Cierre Diario y Auditoría
+                      </h4>
+                      <p className="text-xs text-[#94a3b8]">
+                        Sello oficial de la jornada, estado psicofísico y desconexión.
+                      </p>
+                    </div>
+                    <span
+                      className={`tag-formal text-xs px-3 py-1 rounded-full font-bold ${
+                        detalleDiaHist?.cierreRealizado
+                          ? 'bg-emerald-950 text-emerald-300 border-emerald-600/50'
+                          : 'bg-zinc-900 text-zinc-400 border-zinc-700'
+                      }`}
+                    >
+                      {detalleDiaHist?.cierreRealizado ? '✓ Sello Concluido' : '○ Sin Cierre Oficial'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div className="p-3.5 rounded-2xl bg-[#080808] border border-white/10 space-y-1">
+                      <span className="text-[10px] text-[#94a3b8] block uppercase">Hora de Cierre</span>
+                      <span className="text-sm font-serif font-bold text-white font-mono">
+                        {detalleDiaHist?.cierreTimestamp
+                          ? detalleDiaHist.cierreTimestamp.replace('T', ' ').slice(0, 19)
+                          : 'No registrado'}
+                      </span>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-[#080808] border border-white/10 space-y-1">
+                      <span className="text-[10px] text-[#94a3b8] block uppercase">Frío Mental (Fricción)</span>
+                      <span className="text-sm font-serif font-bold text-[#eed59b]">
+                        {detalleDiaHist?.frioMental || 'Sin evaluar'}
+                      </span>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-[#080808] border border-white/10 space-y-1">
+                      <span className="text-[10px] text-[#94a3b8] block uppercase">Alimentación al Cierre</span>
+                      <span className="text-sm font-serif font-bold text-[#34d399]">
+                        {detalleDiaHist?.alimento != null ? `${detalleDiaHist.alimento}/5 ⭐` : 'Sin puntaje'}
+                      </span>
                     </div>
                   </div>
-                ) : (
-                  <div className="relative pt-4 pb-2 overflow-x-auto">
-                    <div className="min-w-[480px]">
-                      <div className="relative h-44 w-full border-b border-white/10 flex items-end justify-between gap-1.5 px-2">
-                        {filteredTrend.map((day, idx) => {
-                          const heightPercent = maxHoursInTrend > 0
-                            ? Math.min(100, Math.max(day.horasNetas > 0 ? 8 : 2, (day.horasNetas / maxHoursInTrend) * 100))
-                            : 4;
-                          const isSelectedDate = fechaSeleccionadaHist === day.fecha;
-                          const hasHours = day.horasNetas > 0;
+                </section>
+              </div>
+            )}
+          </>
+        )}
 
-                          return (
-                            <div
-                              key={day.fecha || idx}
-                              onClick={() => handleSeleccionarDia(day.fecha)}
-                              className="flex-1 flex flex-col items-center h-full justify-end cursor-pointer group relative z-10"
-                            >
-                              <div
-                                style={{ height: `${heightPercent}%` }}
-                                className={`w-full max-w-[28px] rounded-t-lg transition-all duration-200 ${
-                                  isSelectedDate
-                                    ? 'bg-[#eed59b] shadow-midnight-glow'
-                                    : hasHours
-                                    ? 'bg-[#2563eb] hover:bg-[#3b82f6]'
-                                    : 'bg-[#101010]'
-                                }`}
-                              ></div>
+        {/* ========================================================= */}
+        {/* VISTA 2: CRONOLOGÍA COMPLETA DÍA A DÍA (TODAS LAS JORNADAS) */}
+        {/* ========================================================= */}
+        {subVistaHist === 'cronologia' && (
+          <section className="card-elevated p-5 sm:p-6 border border-white/10 space-y-5 animate-fade-in">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+              <div className="space-y-0.5">
+                <h4 className="text-base sm:text-lg font-serif font-bold text-white flex items-center gap-2">
+                  <span>📅</span> Cronología Histórica Día a Día ({diasFiltradosCronologia.length} de {diasConActividadLista.length} jornadas)
+                </h4>
+                <p className="text-xs text-[#94a3b8]">
+                  Historial ordenado cronológicamente por fecha descendente con sus estadísticas consolidadas.
+                </p>
+              </div>
+
+              {/* Buscador de fecha */}
+              <div className="w-full sm:w-72">
+                <input
+                  type="text"
+                  placeholder="Buscar fecha (ej: 2026-11 o 'noviembre')..."
+                  value={busquedaFechaHist}
+                  onChange={(e) => setBusquedaFechaHist(e.target.value)}
+                  className="w-full px-3.5 py-1.5 rounded-full text-xs bg-[#080808] border border-white/15 text-white placeholder-zinc-500 focus:outline-none focus:border-[#eed59b]"
+                />
+              </div>
+            </div>
+
+            {diasFiltradosCronologia.length === 0 ? (
+              <div className="p-8 rounded-2xl bg-[#080808]/70 border border-white/10 text-center text-xs text-[#94a3b8]">
+                No se encontraron jornadas que coincidan con &ldquo;{busquedaFechaHist}&rdquo;.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {diasFiltradosCronologia.map((dItem) => {
+                  const isSelected = fechaSeleccionadaHist === dItem.fecha;
+                  const isToday = dItem.fecha === targetFechaStr;
+                  const tarTotal = dItem.tareasTotal ?? 0;
+                  const tarCumplidas = dItem.tareasCumplidas ?? 0;
+                  const tasaTar = dItem.tasaCumplimiento ?? 0;
+
+                  return (
+                    <div
+                      key={dItem.fecha}
+                      onClick={() => {
+                        handleSeleccionarDia(dItem.fecha);
+                        setSubVistaHist('detalle');
+                      }}
+                      className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer space-y-3 group ${
+                        isSelected
+                          ? 'bg-[#121212] border-[#eed59b] shadow-[0_0_16px_rgba(238,213,155,0.15)]'
+                          : 'bg-[#080808]/90 border-white/10 hover:border-white/25 hover:bg-[#0d0d0d]'
+                      }`}
+                    >
+                      {/* Cabecera de la jornada */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-white/10">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-serif font-bold text-white text-base group-hover:text-[#eed59b] transition-colors">
+                            📅 {formatFechaLargaEspanol(dItem.fecha)}
+                          </span>
+                          <span className="tag-formal text-[10px] px-2 py-0.5 rounded-full bg-[#141414] text-zinc-400 border border-white/10 font-mono">
+                            {dItem.fecha}
+                          </span>
+                          <span className="tag-formal text-[10px] px-2 py-0.5 rounded-full bg-[#141414] text-zinc-300 border border-[#eed59b]/30">
+                            Día {getDiaCicloParaFecha(dItem.fecha)} de 365
+                          </span>
+                          {isToday && (
+                            <span className="tag-formal text-[10px] px-2 py-0.5 rounded-full bg-[#eed59b] text-black font-bold">
+                              Hoy
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 self-end sm:self-auto">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSeleccionarDia(dItem.fecha);
+                              setSubVistaHist('detalle');
+                            }}
+                            className="btn-formal-outline px-3 py-1 rounded-full text-xs text-[#eed59b] group-hover:bg-[#eed59b] group-hover:text-black transition-all flex items-center gap-1"
+                          >
+                            <span>Auditar Día</span>
+                            <span>➔</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Estadísticas de la jornada */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                        {/* 1. Foco */}
+                        <div className="p-3 rounded-xl bg-[#101010]/80 border border-white/10 space-y-1">
+                          <span className="text-[10px] text-[#94a3b8] uppercase block">🧠 Trabajo Neta</span>
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="text-base font-serif font-bold text-[#eed59b]">
+                              {dItem.horasNetas.toFixed(1)}h
+                            </span>
+                            <span className="text-[10px] text-zinc-400">
+                              ({dItem.sesionesCount} bloques)
+                            </span>
+                          </div>
+                          {(dItem.horasProfundo != null || dItem.horasSuperficial != null) && (
+                            <div className="flex items-center gap-1 text-[9px] text-zinc-400 font-mono">
+                              <span className="text-emerald-400">⚡ {(dItem.horasProfundo ?? dItem.horasNetas).toFixed(1)}h</span>
+                              <span>•</span>
+                              <span className="text-slate-300">📋 {(dItem.horasSuperficial ?? 0).toFixed(1)}h</span>
                             </div>
-                          );
-                        })}
+                          )}
+                        </div>
+
+                        {/* 2. Tareas */}
+                        <div className="p-3 rounded-xl bg-[#101010]/80 border border-white/10 space-y-1">
+                          <span className="text-[10px] text-[#94a3b8] uppercase block">🎯 Tareas</span>
+                          {tarTotal > 0 ? (
+                            <>
+                              <div className="flex items-baseline justify-between">
+                                <span className="text-base font-serif font-bold text-white">
+                                  {tarCumplidas}/{tarTotal}
+                                </span>
+                                <span className={`text-[10px] font-bold font-mono ${tasaTar >= 80 ? 'text-emerald-400' : 'text-[#eed59b]'}`}>
+                                  {tasaTar}%
+                                </span>
+                              </div>
+                              <div className="w-full h-1.5 rounded-full bg-zinc-800 overflow-hidden">
+                                <div
+                                  className={`h-full ${tasaTar >= 80 ? 'bg-emerald-500' : 'bg-[#eed59b]'}`}
+                                  style={{ width: `${Math.min(100, tasaTar)}%` }}
+                                />
+                              </div>
+                            </>
+                          ) : (
+                            <span className="text-xs text-zinc-500 italic block pt-1">
+                              Sin tareas
+                            </span>
+                          )}
+                        </div>
+
+                        {/* 3. Salud y Ejercicio */}
+                        <div className="p-3 rounded-xl bg-[#101010]/80 border border-white/10 space-y-1">
+                          <span className="text-[10px] text-[#94a3b8] uppercase block">🏃 Salud &amp; Físico</span>
+                          <div className="text-xs text-zinc-300 space-y-0.5">
+                            <div>
+                              🏃 {dItem.ejercicioHoras != null && dItem.ejercicioHoras > 0 ? `${Number(dItem.ejercicioHoras).toFixed(1)}h entreno` : '0h entreno'}
+                            </div>
+                            <div>
+                              🥗 {dItem.alimento != null ? `${dItem.alimento}/5 ⭐` : 'Sin nota alimento'}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 4. Cierre */}
+                        <div className="p-3 rounded-xl bg-[#101010]/80 border border-white/10 space-y-1">
+                          <span className="text-[10px] text-[#94a3b8] uppercase block">🔒 Cierre</span>
+                          <span className={`text-xs font-serif font-bold block pt-1 ${dItem.cierreRealizado ? 'text-emerald-400' : 'text-zinc-500'}`}>
+                            {dItem.cierreRealizado ? '✓ Concluido' : '○ Sin Cierre'}
+                          </span>
+                          {dItem.frioMental && (
+                            <span className="text-[10px] text-zinc-400 block truncate">
+                              Frío: {dItem.frioMental}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
-              </section>
-    </div>
-  );
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        )}
 
+        {/* GRÁFICO HISTÓRICO: MONTAÑAS DE FOCO SPLINE (7D / 14D / 30D) */}
+        <section className="card-elevated p-5 sm:p-6 border border-white/10 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+            <div className="space-y-0.5">
+              <h4 className="text-sm font-serif font-bold text-white">
+                Relieve Temporal Acumulado
+              </h4>
+              <p className="text-xs text-[#94a3b8]">
+                Total de inmersión en el período: <strong className="text-[#eed59b] font-mono">{totalHorasEnRango.toFixed(1)}h</strong>
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 bg-[#000000] p-1 rounded-full border border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setModoGraficoHist('montana')}
+                  className={`px-3 py-1 rounded-full text-xs transition-all ${
+                    modoGraficoHist === 'montana' ? 'bg-[#2563eb] text-white font-medium' : 'text-[#94a3b8]'
+                  }`}
+                >
+                  ⛰️ Montañas
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModoGraficoHist('columnas')}
+                  className={`px-3 py-1 rounded-full text-xs transition-all ${
+                    modoGraficoHist === 'columnas' ? 'bg-[#2563eb] text-white font-medium' : 'text-[#94a3b8]'
+                  }`}
+                >
+                  📊 Columnas
+                </button>
+              </div>
+
+              <div className="flex items-center gap-1 bg-[#000000] p-1 rounded-full border border-white/10">
+                {([7, 14, 30] as const).map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => setRangoDias(r)}
+                    className={`px-2.5 py-1 rounded-full text-xs transition-all ${
+                      rangoDias === r ? 'bg-[#161616] text-[#eed59b] font-bold' : 'text-[#94a3b8]'
+                    }`}
+                  >
+                    {r}d
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Montañas Históricas SVG */}
+          {modoGraficoHist === 'montana' ? (
+            <div className="p-4 rounded-2xl bg-[#080808]/80 border border-white/10 overflow-x-auto">
+              <div className="min-w-[620px] relative">
+                <svg viewBox={`0 0 ${svgTrendWidth} ${svgTrendHeight}`} className="w-full h-44 overflow-visible">
+                  <defs>
+                    <linearGradient id="histMountainAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.35" />
+                      <stop offset="50%" stopColor="#1e3a8a" stopOpacity="0.15" />
+                      <stop offset="100%" stopColor="#070e1e" stopOpacity="0.0" />
+                    </linearGradient>
+                    <linearGradient id="histMountainLineGrad" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#5b9bd5" />
+                      <stop offset="50%" stopColor="#eed59b" />
+                      <stop offset="100%" stopColor="#5b9bd5" />
+                    </linearGradient>
+                  </defs>
+
+                  <line x1="0" y1={svgTrendBaselineY} x2={svgTrendWidth} y2={svgTrendBaselineY} stroke="#222222" strokeWidth="1.5" />
+                  <line x1="0" y1={newportGoalY} x2={svgTrendWidth} y2={newportGoalY} stroke="#5b9bd5" strokeDasharray="4 4" strokeWidth="1.2" opacity="0.6" />
+                  <text x={svgTrendWidth - 10} y={newportGoalY - 6} textAnchor="end" fill="#93c5fd" fontSize="10" fontFamily="sans-serif">
+                    Meta Newport: 4.0h
+                  </text>
+
+                  <path d={mountainTrendArea} fill="url(#histMountainAreaGrad)" className="transition-all duration-500" />
+                  <path d={mountainTrendLine} fill="none" stroke="url(#histMountainLineGrad)" strokeWidth="2.5" strokeLinecap="round" className="transition-all duration-500" />
+
+                  {mountainTrendPoints.map((pt) => {
+                    const isSelected = fechaSeleccionadaHist === pt.day.fecha;
+                    const hasHours = pt.day.horasNetas > 0;
+
+                    return (
+                      <g
+                        key={pt.day.fecha}
+                        className="cursor-pointer group"
+                        onClick={() => {
+                          handleSeleccionarDia(pt.day.fecha);
+                          setSubVistaHist('detalle');
+                        }}
+                        onMouseEnter={() => setHoveredDay(pt.day)}
+                        onMouseLeave={() => setHoveredDay(null)}
+                      >
+                        <circle
+                          cx={pt.x}
+                          cy={pt.y}
+                          r={isSelected ? 6.5 : hasHours ? 4.5 : 2.5}
+                          fill={isSelected ? '#eed59b' : hasHours ? '#60a5fa' : '#11224d'}
+                          stroke="#070e1e"
+                          strokeWidth="2"
+                          className="transition-all duration-200"
+                        />
+                      </g>
+                    );
+                  })}
+                </svg>
+              </div>
+            </div>
+          ) : (
+            <div className="relative pt-4 pb-2 overflow-x-auto">
+              <div className="min-w-[480px]">
+                <div className="relative h-44 w-full border-b border-white/10 flex items-end justify-between gap-1.5 px-2">
+                  {filteredTrend.map((day, idx) => {
+                    const heightPercent = maxHoursInTrend > 0
+                      ? Math.min(100, Math.max(day.horasNetas > 0 ? 8 : 2, (day.horasNetas / maxHoursInTrend) * 100))
+                      : 4;
+                    const isSelectedDate = fechaSeleccionadaHist === day.fecha;
+                    const hasHours = day.horasNetas > 0;
+
+                    return (
+                      <div
+                        key={day.fecha || idx}
+                        onClick={() => {
+                          handleSeleccionarDia(day.fecha);
+                          setSubVistaHist('detalle');
+                        }}
+                        className="flex-1 flex flex-col items-center h-full justify-end cursor-pointer group relative z-10"
+                      >
+                        <div
+                          style={{ height: `${heightPercent}%` }}
+                          className={`w-full max-w-[28px] rounded-t-lg transition-all duration-200 ${
+                            isSelectedDate
+                              ? 'bg-[#eed59b] shadow-midnight-glow'
+                              : hasHours
+                              ? 'bg-[#2563eb] hover:bg-[#3b82f6]'
+                              : 'bg-[#101010]'
+                          }`}
+                        ></div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+      </div>
+    );
+  };
 
   if (mode === 'history') {
     return (
