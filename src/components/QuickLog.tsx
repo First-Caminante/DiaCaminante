@@ -12,6 +12,7 @@ import type {
   CalidadComida,
   TipoEjercicio,
   TareaPlanificada,
+  TipoTrabajo,
 } from '../types/database';
 import { getBoliviaShortTimeStr } from '../lib/boliviaTime';
 
@@ -127,6 +128,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
   const [horasNetas, setHorasNetas] = useState<number>(1.5);
   const [intensidad, setIntensidad] = useState<Intensidad>('Alta');
   const [incomodidad, setIncomodidad] = useState<Incomodidad>('Media');
+  const [tipoTrabajo, setTipoTrabajo] = useState<TipoTrabajo>('PROFUNDO');
   const [calidad, setCalidad] = useState<string>('');
 
   // ==========================================
@@ -215,6 +217,9 @@ export const QuickLog: React.FC<QuickLogProps> = ({
       }
     }
 
+    if (t.tipo_trabajo) {
+      setTipoTrabajo(t.tipo_trabajo);
+    }
     if (t.tipo_trabajo === 'PROFUNDO') {
       setIntensidad('Alta');
       setIncomodidad('Alta');
@@ -237,6 +242,7 @@ export const QuickLog: React.FC<QuickLogProps> = ({
         body: JSON.stringify({
           tipo: activeTrabajoTipo.trim(),
           descripcion: descFinal,
+          tipo_trabajo: tipoTrabajo,
           tarea_id: selectedTareaId || undefined,
           horas_netas: horasNetas,
           intensidad,
@@ -481,6 +487,17 @@ export const QuickLog: React.FC<QuickLogProps> = ({
         : `${parseFloat(String(s.horas_netas)).toFixed(2)}h de Foco`,
       detalle: s.calidad,
       badges: [
+        ...(s.tipo_trabajo
+          ? [
+              {
+                text: s.tipo_trabajo === 'SUPERFICIAL' ? '📋 Superficial' : '⚡ Profundo',
+                color:
+                  s.tipo_trabajo === 'SUPERFICIAL'
+                    ? 'bg-slate-800 text-slate-300 border-slate-700'
+                    : 'bg-emerald-950/80 text-emerald-300 border-emerald-600/50 shadow-sm',
+              },
+            ]
+          : []),
         { text: `Intensidad: ${s.intensidad}`, color: 'bg-[#1e3a8a] text-zinc-300 border-[#eed59b]/30' },
         {
           text: `Incomodidad: ${s.incomodidad}`,
@@ -793,6 +810,47 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                     className="w-full px-2.5 py-1.5 rounded-xl text-xs font-mono bg-[#101010] border border-white/15 text-white"
                   />
                 </div>
+              </div>
+            </div>
+
+            {/* Selector de Dimensión: Trabajo Profundo vs Superficial */}
+            <div>
+              <label className="block text-xs font-medium text-[#94a3b8] mb-1">
+                Dimensión del Bloque
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTipoTrabajo('PROFUNDO');
+                    setIntensidad('Alta');
+                    setIncomodidad('Alta');
+                  }}
+                  className={`py-2 px-3 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 transition-all ${
+                    tipoTrabajo === 'PROFUNDO'
+                      ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/60 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
+                      : 'bg-[#080808] text-zinc-400 border-white/10 hover:border-white/20'
+                  }`}
+                >
+                  <span>⚡</span>
+                  <span>Trabajo Profundo</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTipoTrabajo('SUPERFICIAL');
+                    setIntensidad('Media');
+                    setIncomodidad('Media');
+                  }}
+                  className={`py-2 px-3 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 transition-all ${
+                    tipoTrabajo === 'SUPERFICIAL'
+                      ? 'bg-slate-800 text-slate-200 border-slate-600 shadow-sm'
+                      : 'bg-[#080808] text-zinc-400 border-white/10 hover:border-white/20'
+                  }`}
+                >
+                  <span>📋</span>
+                  <span>Trabajo Superficial</span>
+                </button>
               </div>
             </div>
 
@@ -1228,6 +1286,43 @@ export const QuickLog: React.FC<QuickLogProps> = ({
                             }
                             className="w-full px-2.5 py-1.5 rounded-lg bg-[#101010] border border-white/15 text-white"
                           />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-[#94a3b8]">Dimensión del Trabajo</label>
+                          <div className="grid grid-cols-2 gap-2 mt-1">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setEditingItem({
+                                  ...editingItem,
+                                  data: { ...editingItem.data, tipo_trabajo: 'PROFUNDO' },
+                                })
+                              }
+                              className={`py-1.5 px-2 rounded-lg text-xs font-semibold border transition-all ${
+                                (editingItem.data.tipo_trabajo || 'PROFUNDO') === 'PROFUNDO'
+                                  ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/60 shadow-sm'
+                                  : 'bg-[#101010] text-zinc-400 border-white/10'
+                              }`}
+                            >
+                              ⚡ Profundo
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setEditingItem({
+                                  ...editingItem,
+                                  data: { ...editingItem.data, tipo_trabajo: 'SUPERFICIAL' },
+                                })
+                              }
+                              className={`py-1.5 px-2 rounded-lg text-xs font-semibold border transition-all ${
+                                editingItem.data.tipo_trabajo === 'SUPERFICIAL'
+                                  ? 'bg-slate-800 text-slate-200 border-slate-600 shadow-sm'
+                                  : 'bg-[#101010] text-zinc-400 border-white/10'
+                              }`}
+                            >
+                              📋 Superficial
+                            </button>
+                          </div>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                           <div>

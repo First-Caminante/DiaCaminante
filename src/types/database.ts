@@ -2,6 +2,7 @@ export type Intensidad = 'Baja' | 'Media' | 'Alta';
 export type Incomodidad = 'Baja' | 'Media' | 'Alta';
 export type FrioMental = 'Frio total' | 'Inspirado' | 'Avido';
 export type TipoTrabajo = 'PROFUNDO' | 'SUPERFICIAL';
+export type CategoriaTarea = 'trabajo' | 'ejercicio' | 'comida' | 'sueno';
 export type EstadoTarea = 'pendiente' | 'hecho' | 'incompleto' | 'no_hecho';
 
 // Tipos específicos para Sueño, Nutrición y Ejercicio
@@ -77,6 +78,7 @@ export interface SesionFlujo {
   hora_fin?: string;    // Formato HH:MM
   descripcion?: string; // Nombre / Descripción concreta de la tarea o actividad
   tarea_id?: string;    // ID de la tarea planificada vinculada
+  tipo_trabajo?: TipoTrabajo; // 'PROFUNDO' | 'SUPERFICIAL' heredado
 }
 
 export interface TareaPlanificada {
@@ -86,6 +88,7 @@ export interface TareaPlanificada {
   hora_inicio?: string | null; // HH:MM (null o '00:00' para flexible)
   hora_fin?: string | null; // HH:MM (null o '00:01' para flexible)
   tipo_trabajo: TipoTrabajo;
+  categoria?: CategoriaTarea; // 'trabajo' | 'ejercicio' | 'comida' | 'sueno'
   descripcion: string;
   horas_netas_estimadas: number;
   estado: EstadoTarea;

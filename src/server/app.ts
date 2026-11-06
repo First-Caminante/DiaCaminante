@@ -379,6 +379,7 @@ app.post('/sesiones', async (c) => {
       tipo,
       descripcion,
       tarea_id,
+      tipo_trabajo,
       horas_netas,
       intensidad,
       incomodidad,
@@ -453,6 +454,9 @@ app.post('/sesiones', async (c) => {
       registrado_a: finalRegistradoA,
     };
 
+    if (tipo_trabajo) {
+      insertPayload.tipo_trabajo = tipo_trabajo === 'SUPERFICIAL' ? 'SUPERFICIAL' : 'PROFUNDO';
+    }
     if (descripcion && String(descripcion).trim()) {
       insertPayload.descripcion = String(descripcion).trim();
     }
@@ -472,11 +476,13 @@ app.post('/sesiones', async (c) => {
     if (insertErr && (insertErr.code === '42703' || String(insertErr.message).includes('column'))) {
       const savedDesc = insertPayload.descripcion;
       const savedTareaId = insertPayload.tarea_id;
+      const savedTipoTrabajo = insertPayload.tipo_trabajo;
       const savedHoraInicio = insertPayload.hora_inicio;
       const savedHoraFin = insertPayload.hora_fin;
 
       delete insertPayload.descripcion;
       delete insertPayload.tarea_id;
+      delete insertPayload.tipo_trabajo;
       delete insertPayload.hora_inicio;
       delete insertPayload.hora_fin;
 
@@ -492,6 +498,7 @@ app.post('/sesiones', async (c) => {
       if (!insertErr && sesion) {
         if (savedDesc) sesion.descripcion = savedDesc;
         if (savedTareaId) sesion.tarea_id = savedTareaId;
+        if (savedTipoTrabajo) sesion.tipo_trabajo = savedTipoTrabajo;
         if (savedHoraInicio) sesion.hora_inicio = savedHoraInicio;
         if (savedHoraFin) sesion.hora_fin = savedHoraFin;
       }
@@ -539,6 +546,7 @@ app.put('/sesiones/:id', async (c) => {
       tipo,
       descripcion,
       tarea_id,
+      tipo_trabajo,
       horas_netas,
       intensidad,
       incomodidad,
@@ -556,6 +564,10 @@ app.put('/sesiones/:id', async (c) => {
         return c.json({ error: 'El tipo de actividad no puede estar vacío' }, 400);
       }
       updatePayload.tipo = String(tipo).trim();
+    }
+
+    if (tipo_trabajo !== undefined) {
+      updatePayload.tipo_trabajo = tipo_trabajo === 'SUPERFICIAL' ? 'SUPERFICIAL' : 'PROFUNDO';
     }
 
     if (descripcion !== undefined) {
@@ -614,11 +626,13 @@ app.put('/sesiones/:id', async (c) => {
       const savedHoraFin = updatePayload.hora_fin;
       const savedDesc = updatePayload.descripcion;
       const savedTareaId = updatePayload.tarea_id;
+      const savedTipoTrabajo = updatePayload.tipo_trabajo;
 
       delete updatePayload.hora_inicio;
       delete updatePayload.hora_fin;
       delete updatePayload.descripcion;
       delete updatePayload.tarea_id;
+      delete updatePayload.tipo_trabajo;
 
       const retry = await supabase
         .from('sesiones_flujo')
@@ -635,6 +649,7 @@ app.put('/sesiones/:id', async (c) => {
         if (savedHoraFin) sesion.hora_fin = savedHoraFin;
         if (savedDesc) sesion.descripcion = savedDesc;
         if (savedTareaId) sesion.tarea_id = savedTareaId;
+        if (savedTipoTrabajo) sesion.tipo_trabajo = savedTipoTrabajo;
       }
     }
 
@@ -1004,6 +1019,7 @@ app.post('/tareas', async (c) => {
       hora_inicio,
       hora_fin,
       tipo_trabajo,
+      categoria,
       horas_netas_estimadas,
       planificacion_markdown,
       tareas: batchTareas,
@@ -1031,6 +1047,16 @@ app.post('/tareas', async (c) => {
     const diaId = dia?.id || null;
     const tareasToInsert: any[] = [];
 
+    // Helper para deducir categoría si no viene explícita
+    const inferCategory = (desc: string, catParam?: string): string => {
+      if (catParam && ['trabajo', 'ejercicio', 'comida', 'sueno'].includes(catParam)) return catParam;
+      const d = (desc || '').toLowerCase();
+      if (/(desayun|almuerz|cena|comid|comer|meriend|snack|nutrici)/i.test(d)) return 'comida';
+      if (/(ejercic|gym|gimnas|entren|pesas|calisteni|corr|cardio|yoga|movilid)/i.test(d)) return 'ejercicio';
+      if (/(dormir|siesta|descans|sueno|sueño|repos)/i.test(d)) return 'sueno';
+      return 'trabajo';
+    };
+
     // Opción A: Parseo de bloque Markdown
     if (typeof planificacion_markdown === 'string' && planificacion_markdown.trim()) {
       const regex = /^\s*-\s*\[\s*\]\s*\[(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})\]\s*\[(PROFUNDO|SUPERFICIAL)\]\s*(.+?)(?:\s*\((\d+(?:\.\d+)?)\s*h\s*netas\))?\s*$/i;
@@ -1054,6 +1080,7 @@ app.post('/tareas', async (c) => {
             hora_inicio: hIni,
             hora_fin: hFin,
             tipo_trabajo: tipo,
+            categoria: inferCategory(desc, categoria),
             descripcion: desc,
             horas_netas_estimadas: isNaN(horasEst) ? 1.0 : horasEst,
             estado: 'pendiente',
@@ -1070,6 +1097,7 @@ app.post('/tareas', async (c) => {
               hora_inicio: '00:00',
               hora_fin: '00:01',
               tipo_trabajo: 'PROFUNDO',
+              categoria: inferCategory(cleanDesc, categoria),
               descripcion: cleanDesc,
               horas_netas_estimadas: 1.0,
               estado: 'pendiente',
@@ -1096,6 +1124,7 @@ app.post('/tareas', async (c) => {
           hora_inicio: hIni,
           hora_fin: hFin,
           tipo_trabajo: t.tipo_trabajo === 'SUPERFICIAL' ? 'SUPERFICIAL' : 'PROFUNDO',
+          categoria: inferCategory(String(t.descripcion), t.categoria || categoria),
           descripcion: String(t.descripcion).trim(),
           horas_netas_estimadas: isNaN(horasEst) || horasEst <= 0 ? 1.0 : horasEst,
           estado: t.estado || 'pendiente',
@@ -1119,6 +1148,7 @@ app.post('/tareas', async (c) => {
         hora_inicio: hIni,
         hora_fin: hFin,
         tipo_trabajo: tipo_trabajo === 'SUPERFICIAL' ? 'SUPERFICIAL' : 'PROFUNDO',
+        categoria: inferCategory(String(descripcion), categoria),
         descripcion: String(descripcion).trim(),
         horas_netas_estimadas: isNaN(horasEst) || horasEst <= 0 ? 1.0 : horasEst,
         estado: 'pendiente',
@@ -1132,10 +1162,35 @@ app.post('/tareas', async (c) => {
       return c.json({ error: 'Debes proporcionar una descripción o un bloque de planificación válido' }, 400);
     }
 
-    const { data: inserted, error: insertErr } = await supabase
+    let { data: inserted, error: insertErr } = await supabase
       .from('tareas_planificadas')
       .insert(tareasToInsert)
       .select('*');
+
+    // Fallback tolerante si la columna categoria no existe aún en Supabase
+    if (insertErr && (insertErr.code === '42703' || String(insertErr.message).includes('column'))) {
+      const fallbackList = tareasToInsert.map((t) => {
+        const copy = { ...t };
+        delete copy.categoria;
+        return copy;
+      });
+
+      const retry = await supabase
+        .from('tareas_planificadas')
+        .insert(fallbackList)
+        .select('*');
+
+      insertErr = retry.error;
+      inserted = retry.data;
+
+      if (!insertErr && inserted) {
+        inserted.forEach((item: any, i: number) => {
+          if (tareasToInsert[i]?.categoria) {
+            item.categoria = tareasToInsert[i].categoria;
+          }
+        });
+      }
+    }
 
     if (insertErr) {
       console.error('Error inserting tasks:', insertErr);
@@ -1171,11 +1226,16 @@ app.put('/tareas/:id', async (c) => {
       hora_completada,
       sin_hora,
       tipo_trabajo,
+      categoria,
       horas_netas_estimadas,
       fecha_objetivo,
     } = body;
 
     const updatePayload: Record<string, any> = {};
+
+    if (categoria !== undefined) {
+      updatePayload.categoria = categoria;
+    }
 
     if (estado !== undefined) {
       const validEstados = ['pendiente', 'hecho', 'incompleto', 'no_hecho'];
@@ -1233,10 +1293,11 @@ app.put('/tareas/:id', async (c) => {
       .select('*')
       .single();
 
-    // Si la columna hora_completada aún no ha sido creada en la base de datos (código 42703), reintentar sin ella
-    if (updateErr && (updateErr.code === '42703' || String(updateErr.message).includes('hora_completada'))) {
+    // Si alguna columna (como hora_completada o categoria) no existe aún en la base de datos (código 42703), reintentar sin ella
+    if (updateErr && (updateErr.code === '42703' || String(updateErr.message).includes('column') || String(updateErr.message).includes('hora_completada'))) {
       const fallbackPayload = { ...updatePayload };
       delete fallbackPayload.hora_completada;
+      delete fallbackPayload.categoria;
       const retry = await supabase
         .from('tareas_planificadas')
         .update(fallbackPayload)
@@ -1245,8 +1306,9 @@ app.put('/tareas/:id', async (c) => {
         .single();
       tarea = retry.data;
       updateErr = retry.error;
-      if (tarea && hora_completada) {
-        tarea.hora_completada = hora_completada;
+      if (tarea) {
+        if (hora_completada) tarea.hora_completada = hora_completada;
+        if (categoria) tarea.categoria = categoria;
       }
     }
 

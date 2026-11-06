@@ -30,6 +30,9 @@ interface VisualStatsProps {
   onTaskCreated?: (nuevasTareas: TareaPlanificada[]) => void;
   onTaskDeleted?: (id: string) => void;
   onSesionRegistrada?: (sesion: SesionFlujo) => void;
+  onSuenoRegistrado?: (sueno: RegistroSueno) => void;
+  onComidaRegistrada?: (comida: RegistroComida) => void;
+  onEjercicioRegistrado?: (ejercicio: RegistroEjercicio) => void;
   onGoToDailyLog?: () => void;
   onGoToTasks?: () => void;
 }
@@ -379,6 +382,9 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
   onTaskCreated,
   onTaskDeleted,
   onSesionRegistrada,
+  onSuenoRegistrado,
+  onComidaRegistrada,
+  onEjercicioRegistrado,
   onGoToDailyLog,
   onGoToTasks,
 }) => {
@@ -1974,7 +1980,18 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                           </div>
                           {activeMountain.points[hoveredSlotHora].slot.sesiones.map((s, idx) => (
                             <div key={idx} className="p-1.5 rounded bg-[#0b1633] border border-white/10 text-[11px] space-y-0.5">
-                              <p className="font-medium text-white truncate">{s.sesion.descripcion || s.sesion.tipo}</p>
+                              <div className="flex items-center gap-1.5 justify-between">
+                                <p className="font-medium text-white truncate">{s.sesion.descripcion || s.sesion.tipo}</p>
+                                {s.sesion.tipo_trabajo && (
+                                  <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono shrink-0 ${
+                                    s.sesion.tipo_trabajo === 'SUPERFICIAL'
+                                      ? 'bg-slate-800 text-slate-300'
+                                      : 'bg-emerald-950 text-emerald-300 border border-emerald-800/60'
+                                  }`}>
+                                    {s.sesion.tipo_trabajo === 'SUPERFICIAL' ? '📋 Superficial' : '⚡ Profundo'}
+                                  </span>
+                                )}
+                              </div>
                               {s.sesion.descripcion && (
                                 <p className="text-[10px] text-zinc-400">Tipo: {s.sesion.tipo}</p>
                               )}
@@ -2897,6 +2914,17 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
                             <span className="font-serif font-bold text-white text-sm">
                               🧠 {item.sesion.descripcion || item.sesion.tipo}
                             </span>
+                            {item.sesion.tipo_trabajo && (
+                              <span
+                                className={`tag-formal text-[10px] px-2 py-0.5 rounded-full border font-semibold ${
+                                  item.sesion.tipo_trabajo === 'SUPERFICIAL'
+                                    ? 'bg-slate-900/80 text-slate-300 border-slate-700'
+                                    : 'bg-emerald-950/80 text-emerald-300 border-emerald-600/50 shadow-[0_0_8px_rgba(16,185,129,0.2)]'
+                                }`}
+                              >
+                                {item.sesion.tipo_trabajo === 'SUPERFICIAL' ? '📋 Superficial' : '⚡ Profundo'}
+                              </span>
+                            )}
                             {item.sesion.descripcion && (
                               <span className="text-[11px] text-zinc-400 font-sans">
                                 ({item.sesion.tipo})
@@ -3685,6 +3713,9 @@ export const VisualStats: React.FC<VisualStatsProps> = ({
         tarea={tareaParaCumplir}
         fechaHoy={fechaHoy || targetFechaStr}
         onSesionRegistrada={onSesionRegistrada}
+        onSuenoRegistrado={onSuenoRegistrado}
+        onComidaRegistrada={onComidaRegistrada}
+        onEjercicioRegistrado={onEjercicioRegistrado}
         onTaskUpdated={onTaskUpdated}
       />
     </div>

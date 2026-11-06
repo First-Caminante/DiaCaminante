@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { TareaPlanificada, TipoTrabajo, EstadoTarea, SesionFlujo } from '../types/database';
+import type { TareaPlanificada, TipoTrabajo, CategoriaTarea, EstadoTarea, SesionFlujo } from '../types/database';
 import { ModalCumplirTareaYRegistrarFoco } from './ModalCumplirTareaYRegistrarFoco';
 
 interface TasksManagerProps {
@@ -9,6 +9,9 @@ interface TasksManagerProps {
   onTaskUpdated: (tarea: TareaPlanificada) => void;
   onTaskDeleted: (id: string) => void;
   onSesionRegistrada?: (sesion: SesionFlujo) => void;
+  onSuenoRegistrado?: (sueno: any) => void;
+  onComidaRegistrada?: (comida: any) => void;
+  onEjercicioRegistrado?: (ejercicio: any) => void;
   onRefresh?: () => void;
 }
 
@@ -19,6 +22,9 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
   onTaskUpdated,
   onTaskDeleted,
   onSesionRegistrada,
+  onSuenoRegistrado,
+  onComidaRegistrada,
+  onEjercicioRegistrado,
   onRefresh,
 }) => {
   // Pestaña de visualización de tareas: 'hoy' o 'manana'
@@ -52,6 +58,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
   const [newHoraInicio, setNewHoraInicio] = useState<string>('09:00');
   const [newHoraFin, setNewHoraFin] = useState<string>('10:30');
   const [newTipo, setNewTipo] = useState<TipoTrabajo>('PROFUNDO');
+  const [newCategoria, setNewCategoria] = useState<CategoriaTarea>('trabajo');
   const [newHorasEstimadas, setNewHorasEstimadas] = useState<number>(1.5);
   const [newTargetFecha, setNewTargetFecha] = useState<'hoy' | 'manana'>('hoy');
   const [newIsFlexible, setNewIsFlexible] = useState<boolean>(true);
@@ -173,6 +180,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
             hora_fin: newIsFlexible ? '00:01' : newHoraFin,
             sin_hora: newIsFlexible,
             tipo_trabajo: newTipo,
+            categoria: newCategoria,
             horas_netas_estimadas: newIsFlexible ? 1.0 : newHorasEstimadas,
           }
         : {
@@ -460,16 +468,33 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
                 </span>
               )}
 
-              {/* Tipo de trabajo */}
-              <span
-                className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                  isProfundo
-                    ? 'bg-[#161616] text-zinc-300 border border-[#eed59b]/30'
-                    : 'bg-[#334155]/60 text-[#cbd5e1] border border-slate-600/40'
-                }`}
-              >
-                {isProfundo ? '🧠 PROFUNDO' : '⚡ SUPERFICIAL'}
-              </span>
+              {/* Dimensión / Categoría y Tipo de trabajo */}
+              {tarea.categoria === 'ejercicio' ? (
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-[#7c2d12]/40 text-[#fed7aa] border border-[#f97316]/40 flex items-center gap-1">
+                  <span>🏃</span>
+                  <span>Ejercicio</span>
+                </span>
+              ) : tarea.categoria === 'comida' ? (
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-[#064e3b]/40 text-[#a7f3d0] border border-[#10b981]/40 flex items-center gap-1">
+                  <span>🥗</span>
+                  <span>Comida</span>
+                </span>
+              ) : tarea.categoria === 'sueno' ? (
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-[#312e81]/40 text-[#c7d2fe] border border-[#818cf8]/40 flex items-center gap-1">
+                  <span>🌙</span>
+                  <span>Sueño</span>
+                </span>
+              ) : (
+                <span
+                  className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                    isProfundo
+                      ? 'bg-[#161616] text-[#eed59b] border border-[#eed59b]/40 shadow-sm'
+                      : 'bg-[#181818] text-slate-300 border border-slate-600/40'
+                  }`}
+                >
+                  {isProfundo ? '⚡ PROFUNDO' : '📋 SUPERFICIAL'}
+                </span>
+              )}
 
               {/* Horas estimadas */}
               <span className="text-[10px] text-[#94a3b8] font-mono">
@@ -1016,20 +1041,90 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-medium text-[#94a3b8] mb-1">
-                      Tipo de Trabajo
-                    </label>
-                    <select
-                      value={newTipo}
-                      onChange={(e) => setNewTipo(e.target.value as TipoTrabajo)}
-                      className="w-full p-2.5 rounded-xl bg-[#0a0a0a] border border-white/15 text-white text-xs focus:outline-none focus:border-[#eed59b]"
+                {/* Selector de Dimensión / Categoría */}
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-medium text-[#94a3b8]">
+                    Dimensión de la Tarea
+                  </label>
+                  <div className="grid grid-cols-4 gap-1.5 bg-[#030303] p-1 rounded-2xl border border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => setNewCategoria('trabajo')}
+                      className={`py-1.5 px-1 rounded-xl text-xs font-medium transition-all flex items-center justify-center gap-1 ${
+                        newCategoria === 'trabajo'
+                          ? 'bg-[#181818] text-white border border-[#eed59b]/50 shadow-sm'
+                          : 'text-[#94a3b8] hover:text-white'
+                      }`}
                     >
-                      <option value="PROFUNDO">🧠 PROFUNDO</option>
-                      <option value="SUPERFICIAL">⚡ SUPERFICIAL</option>
-                    </select>
+                      <span>🧠</span>
+                      <span className="truncate">Trabajo</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNewCategoria('ejercicio')}
+                      className={`py-1.5 px-1 rounded-xl text-xs font-medium transition-all flex items-center justify-center gap-1 ${
+                        newCategoria === 'ejercicio'
+                          ? 'bg-[#181818] text-[#f97316] border border-[#f97316]/50 shadow-sm'
+                          : 'text-[#94a3b8] hover:text-white'
+                      }`}
+                    >
+                      <span>🏃</span>
+                      <span className="truncate">Ejercicio</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNewCategoria('comida')}
+                      className={`py-1.5 px-1 rounded-xl text-xs font-medium transition-all flex items-center justify-center gap-1 ${
+                        newCategoria === 'comida'
+                          ? 'bg-[#181818] text-[#34d399] border border-[#34d399]/50 shadow-sm'
+                          : 'text-[#94a3b8] hover:text-white'
+                      }`}
+                    >
+                      <span>🥗</span>
+                      <span className="truncate">Comida</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNewCategoria('sueno')}
+                      className={`py-1.5 px-1 rounded-xl text-xs font-medium transition-all flex items-center justify-center gap-1 ${
+                        newCategoria === 'sueno'
+                          ? 'bg-[#181818] text-[#818cf8] border border-[#818cf8]/50 shadow-sm'
+                          : 'text-[#94a3b8] hover:text-white'
+                      }`}
+                    >
+                      <span>🌙</span>
+                      <span className="truncate">Sueño</span>
+                    </button>
                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {newCategoria === 'trabajo' ? (
+                    <div>
+                      <label className="block text-[11px] font-medium text-[#94a3b8] mb-1">
+                        Enfoque de Trabajo
+                      </label>
+                      <select
+                        value={newTipo}
+                        onChange={(e) => setNewTipo(e.target.value as TipoTrabajo)}
+                        className="w-full p-2.5 rounded-xl bg-[#0a0a0a] border border-white/15 text-white text-xs focus:outline-none focus:border-[#eed59b]"
+                      >
+                        <option value="PROFUNDO">⚡ PROFUNDO</option>
+                        <option value="SUPERFICIAL">📋 SUPERFICIAL</option>
+                      </select>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-[11px] font-medium text-[#94a3b8] mb-1">
+                        Dimensión
+                      </label>
+                      <div className="p-2.5 rounded-xl bg-[#0a0a0a] border border-white/15 text-xs text-white capitalize">
+                        {newCategoria === 'ejercicio' && '🏃 Ejercicio Físico'}
+                        {newCategoria === 'comida' && '🥗 Alimentación'}
+                        {newCategoria === 'sueno' && '🌙 Sueño / Descanso'}
+                      </div>
+                    </div>
+                  )}
                   <div>
                     <label className="block text-[11px] font-medium text-[#94a3b8] mb-1">
                       Horas Estimadas
@@ -1359,6 +1454,9 @@ export const TasksManager: React.FC<TasksManagerProps> = ({
         tarea={tareaParaCumplir}
         fechaHoy={fechaHoy}
         onSesionRegistrada={onSesionRegistrada}
+        onSuenoRegistrado={onSuenoRegistrado}
+        onComidaRegistrada={onComidaRegistrada}
+        onEjercicioRegistrado={onEjercicioRegistrado}
         onTaskUpdated={onTaskUpdated}
       />
     </div>

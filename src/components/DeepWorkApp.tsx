@@ -673,6 +673,9 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
               onTaskCreated={handleTaskCreated}
               onTaskDeleted={handleTaskDeleted}
               onSesionRegistrada={handleSesionRegistrada}
+              onSuenoRegistrado={handleSuenoRegistrado}
+              onComidaRegistrada={handleComidaRegistrada}
+              onEjercicioRegistrado={handleEjercicioRegistrado}
               onGoToDailyLog={() => setCurrentTab('today')}
               onGoToTasks={() => setCurrentTab('tasks')}
               onGoToHistory={() => setCurrentTab('history')}
@@ -693,6 +696,9 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
                 onTaskCreated={handleTaskCreated}
                 onTaskDeleted={handleTaskDeleted}
                 onSesionRegistrada={handleSesionRegistrada}
+                onSuenoRegistrado={handleSuenoRegistrado}
+                onComidaRegistrada={handleComidaRegistrada}
+                onEjercicioRegistrado={handleEjercicioRegistrado}
                 onGoToDailyLog={() => setCurrentTab('today')}
                 onGoToTasks={() => setCurrentTab('tasks')}
               />
@@ -708,6 +714,9 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
                 onTaskUpdated={handleTaskUpdated}
                 onTaskDeleted={handleTaskDeleted}
                 onSesionRegistrada={handleSesionRegistrada}
+                onSuenoRegistrado={handleSuenoRegistrado}
+                onComidaRegistrada={handleComidaRegistrada}
+                onEjercicioRegistrado={handleEjercicioRegistrado}
                 onRefresh={fetchHoy}
               />
             </div>
@@ -731,6 +740,9 @@ export const DeepWorkApp: React.FC<DeepWorkAppProps> = ({ initialData }) => {
                 onTaskUpdated={handleTaskUpdated}
                 onTaskDeleted={handleTaskDeleted}
                 onSesionRegistrada={handleSesionRegistrada}
+                onSuenoRegistrado={handleSuenoRegistrado}
+                onComidaRegistrada={handleComidaRegistrada}
+                onEjercicioRegistrado={handleEjercicioRegistrado}
                 onRefresh={fetchHoy}
               />
 
